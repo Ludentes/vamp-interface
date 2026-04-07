@@ -21,12 +21,12 @@ from tqdm import tqdm
 
 DB_DSN = "postgresql://USER:PASS@HOST:PORT/DB"
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
-OLLAMA_MODEL = "mxbai-embed-large"
+OLLAMA_MODEL = "qwen3-embedding:0.6b"
 EMBEDDING_DIM = 1024
 
-# mxbai-embed-large has a 512-token limit. Russian text ~= 3 chars/token.
-# Truncate to 1500 chars to stay safely under.
-MAX_CHARS = 1500
+# qwen3-embedding supports up to 32k tokens but longer inputs slow inference.
+# Telegram posts are typically short; cap at 4000 chars as a safety limit.
+MAX_CHARS = 4000
 
 
 def embed(text: str, retries: int = 3) -> list[float]:

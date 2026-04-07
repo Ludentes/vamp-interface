@@ -20,7 +20,7 @@ import psycopg2.extras
 import requests
 
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
-OLLAMA_MODEL = "mxbai-embed-large"
+OLLAMA_MODEL = "qwen3-embedding:0.6b"
 EMBEDDING_DIM = 1024
 DB_DSN = "postgresql://USER:PASS@HOST:PORT/DB"
 
