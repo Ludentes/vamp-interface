@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
+    "httpx>=0.28",
+    "numpy>=2.2",
     "psycopg2-binary>=2.9.11",
     "requests>=2.33.1",
+    "scikit-learn>=1.6",
     "tqdm>=4.67.3",
 ]
