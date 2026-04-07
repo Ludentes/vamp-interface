@@ -1,7 +1,7 @@
 # Vamp Interface: Visualization Approach
 
 **Date:** 2026-04-07  
-**Status:** Experiment complete (v1, v2, Flux pending CLIP comparison)
+**Status:** Complete — all versions generated and measured. See [2026-04-07-final-findings.md](2026-04-07-final-findings.md) for full metric results.
 
 ---
 
@@ -139,7 +139,8 @@ separation = (avg_inter_cluster_distance - avg_intra_cluster_distance) / avg_int
 |---------|-----------|--------------|--------------|-------|
 | v1 (SDXL, 3-axis) | **0.515** | 0.920 | 0.835 | Narrow band spread |
 | v2 (SDXL, 5-axis) | **0.516** | 0.896 | 0.786 | Wider spread, more diverse faces |
-| Flux (pending) | — | — | — | — |
+| v3 (SDXL, work_type) | **0.516** | — | — | Explicit archetypes |
+| Flux fp8 | **0.449** | 0.949 | 0.906 | CLIP-biased; ArcFace r=+0.848 |
 
 ### Key observations from v1/v2
 

@@ -1,7 +1,7 @@
 # Visual Metrics Research: Face Distinctness & Uncanniness
 
 **Date:** 2026-04-07  
-**Status:** CLIP + DINOv2 experiments complete; FaceNet approach identified as correct path forward
+**Status:** Complete. See [2026-04-07-final-findings.md](2026-04-07-final-findings.md) for full results.
 
 ---
 
