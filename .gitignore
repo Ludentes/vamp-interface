@@ -1,1 +1,4 @@
 output/
+data/*.json
+data/*.npy
+
