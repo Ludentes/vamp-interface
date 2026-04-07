@@ -200,7 +200,7 @@ def sample_cohort(conn, cohort: dict, rng: random.Random) -> list[dict]:
             "work_type": row["work_type"],
             "sus_factors": dict(row["sus_factors"]) if row["sus_factors"] else {},
             "embedding": parse_embedding(row["embedding"]),
-            "preview": (row["raw_content"] or "")[:300].replace("\n", " "),
+            "text": (row["raw_content"] or "")[:2000],
             "created_at": row["created_at"],
         })
 
