@@ -1,0 +1,337 @@
+{
+  "phase": 2,
+  "checkpoint": "SDXL Lightning/juggernautXL_juggXILightningByRD.safetensors",
+  "denoising": {
+    "sus0": 0.35,
+    "sus100": 0.6499999999999999
+  },
+  "pca_explained_variance": [
+    0.053602077066898346,
+    0.03881959989666939,
+    0.03400116786360741,
+    0.027080919593572617,
+    0.02653745748102665
+  ],
+  "jobs": [
+    {
+      "cluster": "courier_legit",
+      "job_id": "002ae68a-7764-4355-9e94-6a721ddbc010",
+      "sus_level": 25,
+      "pc1": -0.033,
+      "pc2": -0.431,
+      "pc3": 0.382,
+      "denoise": 0.425,
+      "path": "output/phase2/courier_legit/002ae68a-7764-4355-9e94-6a721ddbc010.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "009f64bb-f6b5-4e60-ac44-77895310964f",
+      "sus_level": 27,
+      "pc1": 0.541,
+      "pc2": -0.231,
+      "pc3": -0.075,
+      "denoise": 0.431,
+      "path": "output/phase2/courier_legit/009f64bb-f6b5-4e60-ac44-77895310964f.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "01079907-c7bc-46bd-84a1-8a37c068c783",
+      "sus_level": 24,
+      "pc1": 0.131,
+      "pc2": -0.589,
+      "pc3": -0.893,
+      "denoise": 0.422,
+      "path": "output/phase2/courier_legit/01079907-c7bc-46bd-84a1-8a37c068c783.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "012c5a7b-5c42-4f58-90cb-b142c75e84e0",
+      "sus_level": 0,
+      "pc1": -0.268,
+      "pc2": -0.67,
+      "pc3": -0.526,
+      "denoise": 0.35,
+      "path": "output/phase2/courier_legit/012c5a7b-5c42-4f58-90cb-b142c75e84e0.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "023563da-d241-42d5-8d37-6c4102045f5c",
+      "sus_level": 27,
+      "pc1": 0.541,
+      "pc2": -0.231,
+      "pc3": -0.075,
+      "denoise": 0.431,
+      "path": "output/phase2/courier_legit/023563da-d241-42d5-8d37-6c4102045f5c.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "02401643-183f-40e6-8e7a-8abed52ff682",
+      "sus_level": 26,
+      "pc1": -0.235,
+      "pc2": -0.188,
+      "pc3": -0.455,
+      "denoise": 0.428,
+      "path": "output/phase2/courier_legit/02401643-183f-40e6-8e7a-8abed52ff682.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "03c39231-3c92-416e-8827-baaa4267fa1d",
+      "sus_level": 24,
+      "pc1": 0.56,
+      "pc2": -0.664,
+      "pc3": -0.349,
+      "denoise": 0.422,
+      "path": "output/phase2/courier_legit/03c39231-3c92-416e-8827-baaa4267fa1d.png"
+    },
+    {
+      "cluster": "courier_legit",
+      "job_id": "a1474285-58de-4b13-a1a2-1775ac830da9",
+      "sus_level": 26,
+      "pc1": -0.352,
+      "pc2": -0.69,
+      "pc3": 0.029,
+      "denoise": 0.428,
+      "path": "output/phase2/courier_legit/a1474285-58de-4b13-a1a2-1775ac830da9.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "000d15b0-3628-44c6-971f-8d742c920176",
+      "sus_level": 24,
+      "pc1": 0.183,
+      "pc2": -0.748,
+      "pc3": 1.0,
+      "denoise": 0.422,
+      "path": "output/phase2/warehouse_legit/000d15b0-3628-44c6-971f-8d742c920176.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "000ec8da-e0e1-4078-b43f-36f75cdca230",
+      "sus_level": 25,
+      "pc1": 0.684,
+      "pc2": -0.489,
+      "pc3": 0.58,
+      "denoise": 0.425,
+      "path": "output/phase2/warehouse_legit/000ec8da-e0e1-4078-b43f-36f75cdca230.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "00333f7b-d2e9-410a-8718-1d0878d4cad6",
+      "sus_level": 25,
+      "pc1": 0.827,
+      "pc2": -0.617,
+      "pc3": 0.607,
+      "denoise": 0.425,
+      "path": "output/phase2/warehouse_legit/00333f7b-d2e9-410a-8718-1d0878d4cad6.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "004b96a3-0c7d-4919-bc06-77af943ba351",
+      "sus_level": 27,
+      "pc1": 0.66,
+      "pc2": -0.422,
+      "pc3": -0.306,
+      "denoise": 0.431,
+      "path": "output/phase2/warehouse_legit/004b96a3-0c7d-4919-bc06-77af943ba351.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "0083b863-b4ff-42a2-9478-10522adcd4db",
+      "sus_level": 27,
+      "pc1": 0.495,
+      "pc2": -0.654,
+      "pc3": 0.43,
+      "denoise": 0.431,
+      "path": "output/phase2/warehouse_legit/0083b863-b4ff-42a2-9478-10522adcd4db.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "00d85236-9961-4c2c-8135-a47f117dfd1f",
+      "sus_level": 25,
+      "pc1": 0.054,
+      "pc2": 0.226,
+      "pc3": 0.073,
+      "denoise": 0.425,
+      "path": "output/phase2/warehouse_legit/00d85236-9961-4c2c-8135-a47f117dfd1f.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "00f579ff-9c70-4988-b202-46684565f823",
+      "sus_level": 25,
+      "pc1": 0.226,
+      "pc2": -0.316,
+      "pc3": 0.247,
+      "denoise": 0.425,
+      "path": "output/phase2/warehouse_legit/00f579ff-9c70-4988-b202-46684565f823.png"
+    },
+    {
+      "cluster": "warehouse_legit",
+      "job_id": "01827539-a3aa-4988-886c-64e9e2a0e374",
+      "sus_level": 24,
+      "pc1": 0.326,
+      "pc2": -1.0,
+      "pc3": 0.385,
+      "denoise": 0.422,
+      "path": "output/phase2/warehouse_legit/01827539-a3aa-4988-886c-64e9e2a0e374.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "00a4cf37-6523-4a4c-83bd-27cce56bf87b",
+      "sus_level": 12,
+      "pc1": -0.361,
+      "pc2": 0.205,
+      "pc3": 0.703,
+      "denoise": 0.386,
+      "path": "output/phase2/office_legit/00a4cf37-6523-4a4c-83bd-27cce56bf87b.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "def739df-be12-4830-abf1-fde764df9881",
+      "sus_level": 6,
+      "pc1": 0.024,
+      "pc2": 0.48,
+      "pc3": 0.205,
+      "denoise": 0.368,
+      "path": "output/phase2/office_legit/def739df-be12-4830-abf1-fde764df9881.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "01c8cf48-9baa-4bb9-8ebf-6b6519f029a4",
+      "sus_level": 6,
+      "pc1": -0.299,
+      "pc2": 0.147,
+      "pc3": 0.612,
+      "denoise": 0.368,
+      "path": "output/phase2/office_legit/01c8cf48-9baa-4bb9-8ebf-6b6519f029a4.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "dfa8778e-653c-4916-b37c-eaabef0ab9d4",
+      "sus_level": 8,
+      "pc1": -0.515,
+      "pc2": 0.35,
+      "pc3": 0.574,
+      "denoise": 0.374,
+      "path": "output/phase2/office_legit/dfa8778e-653c-4916-b37c-eaabef0ab9d4.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "01e2f288-76f3-4796-96aa-7f1884b120be",
+      "sus_level": 12,
+      "pc1": -0.524,
+      "pc2": 0.061,
+      "pc3": 0.608,
+      "denoise": 0.386,
+      "path": "output/phase2/office_legit/01e2f288-76f3-4796-96aa-7f1884b120be.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "01f9a8e8-b1e0-4965-8b83-01d94a9e029a",
+      "sus_level": 24,
+      "pc1": 0.797,
+      "pc2": -0.214,
+      "pc3": -0.24,
+      "denoise": 0.422,
+      "path": "output/phase2/office_legit/01f9a8e8-b1e0-4965-8b83-01d94a9e029a.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "022d370c-2266-44e9-968d-27f0363c530e",
+      "sus_level": 8,
+      "pc1": -0.166,
+      "pc2": 0.116,
+      "pc3": 0.768,
+      "denoise": 0.374,
+      "path": "output/phase2/office_legit/022d370c-2266-44e9-968d-27f0363c530e.png"
+    },
+    {
+      "cluster": "office_legit",
+      "job_id": "038ba69a-62f4-42a0-b074-622154603a76",
+      "sus_level": 24,
+      "pc1": -0.45,
+      "pc2": 0.204,
+      "pc3": 0.152,
+      "denoise": 0.422,
+      "path": "output/phase2/office_legit/038ba69a-62f4-42a0-b074-622154603a76.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a5df355-26d5-41a3-88cb-bec72aa94443",
+      "sus_level": 91,
+      "pc1": -0.034,
+      "pc2": -0.907,
+      "pc3": -0.791,
+      "denoise": 0.623,
+      "path": "output/phase2/scam_critical/1a5df355-26d5-41a3-88cb-bec72aa94443.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a5ea8c6-a78e-492a-9527-3c1f99d32b82",
+      "sus_level": 92,
+      "pc1": -0.618,
+      "pc2": 0.228,
+      "pc3": -0.132,
+      "denoise": 0.626,
+      "path": "output/phase2/scam_critical/1a5ea8c6-a78e-492a-9527-3c1f99d32b82.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a62b1db-347d-47c3-92ba-3ca29bdf1ac2",
+      "sus_level": 100,
+      "pc1": 0.0,
+      "pc2": -1.0,
+      "pc3": -0.777,
+      "denoise": 0.65,
+      "path": "output/phase2/scam_critical/1a62b1db-347d-47c3-92ba-3ca29bdf1ac2.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a7083d2-d15a-4ee9-987a-008c5a339391",
+      "sus_level": 100,
+      "pc1": -0.009,
+      "pc2": -0.25,
+      "pc3": 0.624,
+      "denoise": 0.65,
+      "path": "output/phase2/scam_critical/1a7083d2-d15a-4ee9-987a-008c5a339391.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a70f478-20a8-4ff9-8767-1a5b868cea57",
+      "sus_level": 100,
+      "pc1": -0.454,
+      "pc2": 0.51,
+      "pc3": 0.117,
+      "denoise": 0.65,
+      "path": "output/phase2/scam_critical/1a70f478-20a8-4ff9-8767-1a5b868cea57.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a777340-198a-49fb-b278-b3630989890b",
+      "sus_level": 90,
+      "pc1": -0.365,
+      "pc2": -1.0,
+      "pc3": -0.663,
+      "denoise": 0.62,
+      "path": "output/phase2/scam_critical/1a777340-198a-49fb-b278-b3630989890b.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a7867f8-7114-429b-b906-5543ec6d8597",
+      "sus_level": 100,
+      "pc1": -0.558,
+      "pc2": -1.0,
+      "pc3": -0.846,
+      "denoise": 0.65,
+      "path": "output/phase2/scam_critical/1a7867f8-7114-429b-b906-5543ec6d8597.png"
+    },
+    {
+      "cluster": "scam_critical",
+      "job_id": "1a818900-8da6-49ab-b52b-d01dd1602f3d",
+      "sus_level": 100,
+      "pc1": -0.238,
+      "pc2": -0.105,
+      "pc3": -0.479,
+      "denoise": 0.65,
+      "path": "output/phase2/scam_critical/1a818900-8da6-49ab-b52b-d01dd1602f3d.png"
+    }
+  ]
+}
