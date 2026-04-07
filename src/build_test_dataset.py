@@ -140,30 +140,41 @@ COHORTS = [
 def build_query(cohort: dict, limit_factor: int = 5) -> tuple[str, list]:
     """Build SELECT query for a cohort. Fetches limit_factor × target_n rows for random sampling."""
     conditions = [
-        "embedding IS NOT NULL",
-        "sus_factors IS NOT NULL",
-        f"created_at >= '{CUTOFF_DATE}'",
-        "sus_level >= %s",
-        "sus_level <= %s",
+        "j.embedding IS NOT NULL",
+        "j.sus_factors IS NOT NULL",
+        f"j.created_at >= '{CUTOFF_DATE}'",
+        "j.sus_level >= %s",
+        "j.sus_level <= %s",
     ]
     params: list = [cohort["sus_min"], cohort["sus_max"]]
 
     if cohort.get("work_type"):
-        conditions.append("work_type = %s")
+        conditions.append("j.work_type = %s")
         params.append(cohort["work_type"])
 
     if cohort.get("extra_where"):
-        conditions.append(cohort["extra_where"])
+        conditions.append(cohort["extra_where"].replace("sus_factors", "j.sus_factors"))
 
     limit = cohort["target_n"] * limit_factor
     params.append(limit)
 
     sql = f"""
-        SELECT id::text, raw_content, sus_level, sus_category, work_type,
-               sus_factors, embedding, created_at::text
-        FROM jobs
+        SELECT j.id::text, j.raw_content, j.sus_level, j.sus_category, j.work_type,
+               j.sus_factors, j.embedding, j.created_at::text,
+               j.source_name, j.sender_id, j.telegram_chat_id,
+               ec.telegram_username AS contact_telegram,
+               ec.phone_hash        AS contact_phone_hash
+        FROM jobs j
+        LEFT JOIN LATERAL (
+            SELECT ec2.telegram_username, ec2.phone_hash
+            FROM job_contacts jc
+            JOIN extracted_contacts ec2 ON jc.extracted_contact_id = ec2.id
+            WHERE jc.job_id = j.id
+            ORDER BY jc.contact_priority ASC NULLS LAST
+            LIMIT 1
+        ) ec ON true
         WHERE {' AND '.join(conditions)}
-        ORDER BY created_at DESC
+        ORDER BY j.created_at DESC
         LIMIT %s
     """
     return sql, params
@@ -202,6 +213,11 @@ def sample_cohort(conn, cohort: dict, rng: random.Random) -> list[dict]:
             "embedding": parse_embedding(row["embedding"]),
             "text": (row["raw_content"] or "")[:2000],
             "created_at": row["created_at"],
+            "source_name": row["source_name"],
+            "sender_id": row["sender_id"],
+            "telegram_chat_id": row["telegram_chat_id"],
+            "contact_telegram": row["contact_telegram"],
+            "contact_phone_hash": row["contact_phone_hash"],
         })
 
     return result
