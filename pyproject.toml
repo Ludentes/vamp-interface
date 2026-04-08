@@ -16,5 +16,7 @@ dependencies = [
     "tqdm>=4.67.3",
     "transformers>=5.5.0",
     "pacmap>=0.9.1",
+    "embedding-atlas>=0.20.0",
+    "pandas>=3.0.2",
 ]
 
