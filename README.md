@@ -46,4 +46,4 @@ Key open question: does the linear projection from job-post embedding space to C
 
 ## The Name
 
-From Watts' *Blindsight*: the Rorschach entity that processes faces without understanding them, and the vampire Jukka Sarasti who reads faces better than any human. The interface is named for both — and for the uncanny valley, which is the actual mechanism we're trying to exploit.
+From Watts' *Blindsight*

@@ -266,6 +266,104 @@ def face_descriptor_v4(x: float, y: float, sus: int) -> str:
     return f"{build}, {age}, {skin}, {context}, {affect}"
 
 
+# ── v5: PaCMAP + amplified gain + geometric uncanny + job_id variety ──────────
+
+def sus_to_denoise_v5(sus: int) -> float:
+    """v5 calibration: 0.20 (sus=0) → 0.85 (sus=100). Much wider swing than v1-v4."""
+    return 0.20 + (sus / 100.0) * 0.65
+
+
+def _amp(v: float, gain: float = 1.8) -> float:
+    """Stretch [0,1] away from centre. gain>1 pushes extremes further apart.
+    Makes faces in the middle of PaCMAP space more distinct from each other."""
+    c = v - 0.5
+    return max(0.0, min(1.0, 0.5 + c * gain))
+
+
+# Deterministic per-job variety derived from job_id hash
+_EYE_COLORS   = ["blue-grey eyes", "brown eyes", "green eyes", "dark brown eyes", "hazel eyes"]
+_HAIR_COLORS  = ["dark hair", "brown hair", "black hair", "greying hair", "salt-and-pepper hair"]
+
+
+def _job_variety(job_id: str) -> tuple[str, str]:
+    """Return (eye_color, hair_color) deterministically from job_id."""
+    raw = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+    eye  = _EYE_COLORS[raw % len(_EYE_COLORS)]
+    hair = _HAIR_COLORS[(raw >> 8) % len(_HAIR_COLORS)]
+    return eye, hair
+
+
+def _uncanny_affect_v5(sus: int) -> str:
+    """Five-tier affect: genuine warmth → geometric horror. Each tier names specific
+    structural defects, not moods — Flux responds to geometry, not adjectives."""
+    if sus >= 85:
+        return (
+            "face geometry subtly but unmistakably wrong: eyes fractionally misaligned, "
+            "bilateral symmetry violated, teeth too numerous or wrongly spaced, "
+            "jaw angle inconsistent with skull, skin texture hyperrealistic yet impossible, "
+            "expression does not resolve into any recognisable emotion, "
+            "hollow presence behind the eyes, deeply unsettling, liminal horror"
+        )
+    if sus >= 65:
+        return (
+            "smile slightly too wide for the face, eyes too still, "
+            "micro-expressions firing out of sync with the main expression, "
+            "proportions off in ways that are hard to articulate, "
+            "performative affect over emptiness, disturbing at second glance"
+        )
+    if sus >= 40:
+        return (
+            "avoidant gaze, subtle asymmetry that feels wrong rather than natural, "
+            "guarded expression masking something, vaguely uneasy affect"
+        )
+    if sus >= 15:
+        return "slightly guarded, neutral-to-tense, faint unease"
+    return "natural open gaze, genuine warm expression, relaxed, trustworthy"
+
+
+def face_descriptor_v5(x: float, y: float, job_id: str, sus: int) -> str:
+    """v5: PaCMAP (x,y) with amplified gain + job_id variety + geometric uncanny.
+
+    Changes from v4:
+    - x, y amplified (gain=1.8) → more spread between similar-position faces
+    - Exact age (not range) derived continuously from position
+    - Eye color and hair color from job_id hash → unique per job
+    - Affect prompts describe geometry, not mood
+    """
+    xa = _amp(x)
+    ya = _amp(y)
+    eye, hair = _job_variety(job_id)
+
+    # Build (x-primary, 5 buckets now)
+    if xa < 0.2:   build = "very slender build, light frame"
+    elif xa < 0.4: build = "slim build"
+    elif xa < 0.6: build = "average build"
+    elif xa < 0.8: build = "stocky build, broad shoulders"
+    else:          build = "heavy muscular build, calloused hands"
+
+    # Exact age from continuous score + small hash jitter
+    age_score = xa * 0.35 + (1.0 - ya) * 0.55
+    h_jitter  = (int(hashlib.md5(job_id.encode()).hexdigest()[8:12], 16) / 65535.0) * 0.10
+    age_val   = int(22 + (age_score + h_jitter) * 36)
+    age_val   = max(22, min(58, age_val))
+    age       = f"{age_val} years old"
+
+    # Skin (x-driven)
+    if xa < 0.3:   skin = "pale indoor complexion, smooth skin"
+    elif xa < 0.6: skin = "normal skin texture"
+    else:          skin = "weathered skin, sun-exposed, work-hardened"
+
+    # Work context quadrant
+    if xa < 0.5 and ya > 0.5:   context = "business casual, neat grooming"
+    elif xa < 0.5 and ya <= 0.5: context = "nondescript casual clothing"
+    elif xa >= 0.5 and ya > 0.5: context = "practical workwear, warehouse or delivery uniform"
+    else:                         context = "heavy work clothing, construction wear"
+
+    affect   = _uncanny_affect_v5(sus)
+    identity = f"{build}, {age}, {eye}, {hair}, {skin}, {context}"
+    return f"{identity}, {affect}"
+
+
 def embedding_seed(emb: list[float]) -> int:
     key = ",".join(f"{v:.4f}" for v in emb[:12])
     return int.from_bytes(hashlib.md5(key.encode()).digest()[:4], "big") % (2**31)
@@ -300,39 +398,72 @@ FLUX_T5     = "t5/t5xxl_fp8_e4m3fn.safetensors"
 
 
 def flux_img2img_workflow(checkpoint, image_name, positive,
-                          seed, steps, guidance, sampler, scheduler, denoise, prefix) -> dict:
-    """Flux img2img workflow. fp8 UNet-only checkpoint: separate VAE, CLIP-L, T5.
-    Node map:
-      1 = UNETLoader       (diffusion model)
-      2 = VAELoader        (ae.safetensors)
-      3 = DualCLIPLoader   (clip_l + t5xxl_fp8)
-      4 = LoadImage
-      5 = VAEEncode
-      6 = CLIPTextEncode
-      7 = FluxGuidance
-      8 = KSampler
-      9 = VAEDecode
-      10= SaveImage
+                          seed, steps, guidance, sampler, scheduler, denoise, prefix,
+                          lora_cursed: float = 0.0, lora_eerie: float = 0.0) -> dict:
+    """Flux img2img workflow with optional sus-scaled LoRA stack.
+
+    Node map (no LoRAs):
+      1 = UNETLoader, 2 = VAELoader, 3 = DualCLIPLoader
+      4 = LoadImage, 5 = VAEEncode, 6 = CLIPTextEncode
+      7 = FluxGuidance, 8 = KSampler, 9 = VAEDecode, 10 = SaveImage
+
+    With LoRAs, LoraLoader nodes are inserted between UNETLoader and KSampler.
+    Each LoraLoader passes both model + clip outputs forward.
+    Nodes 11, 12 = LoraLoader (Cursed, Eerie). Model ref for KSampler updated.
     """
-    return {
-        "1":  {"class_type": "UNETLoader",     "inputs": {"unet_name": checkpoint.removeprefix("FLUX1/"), "weight_dtype": "fp8_e4m3fn"}},
+    unet_name = checkpoint.removeprefix("FLUX1/")
+    base = {
+        "1":  {"class_type": "UNETLoader",     "inputs": {"unet_name": unet_name, "weight_dtype": "fp8_e4m3fn"}},
         "2":  {"class_type": "VAELoader",      "inputs": {"vae_name": FLUX_VAE}},
         "3":  {"class_type": "DualCLIPLoader", "inputs": {"clip_name1": FLUX_CLIP_L, "clip_name2": FLUX_T5, "type": "flux"}},
         "4":  {"class_type": "LoadImage",      "inputs": {"image": image_name}},
         "5":  {"class_type": "VAEEncode",      "inputs": {"pixels": ["4", 0], "vae": ["2", 0]}},
-        "6":  {"class_type": "CLIPTextEncode", "inputs": {"text": positive, "clip": ["3", 0]}},
-        "7":  {"class_type": "FluxGuidance",   "inputs": {"conditioning": ["6", 0], "guidance": guidance}},
-        "8":  {
-            "class_type": "KSampler",
-            "inputs": {
-                "model": ["1", 0], "positive": ["7", 0], "negative": ["7", 0],
-                "latent_image": ["5", 0], "seed": seed, "steps": steps, "cfg": 1.0,
-                "sampler_name": sampler, "scheduler": scheduler, "denoise": denoise,
-            },
-        },
-        "9":  {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["2", 0]}},
-        "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": prefix}},
     }
+
+    # LoRA chain: UNETLoader → LoraLoader(Cursed) → LoraLoader(Eerie) → KSampler
+    # Only add nodes when weight > 0 to keep workflow clean for legit faces
+    model_ref = ["1", 0]  # output 0 = model
+    clip_ref   = ["3", 0]
+
+    if lora_cursed > 0.0:
+        base["11"] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "model": model_ref, "clip": clip_ref,
+                "lora_name": "Cursed_LoRA_Flux.safetensors",
+                "strength_model": round(lora_cursed, 3),
+                "strength_clip":  round(lora_cursed * 0.5, 3),  # lighter on CLIP
+            },
+        }
+        model_ref = ["11", 0]
+        clip_ref  = ["11", 1]
+
+    if lora_eerie > 0.0:
+        base["12"] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "model": model_ref, "clip": clip_ref,
+                "lora_name": "Eerie_horror_portraits.safetensors",
+                "strength_model": round(lora_eerie, 3),
+                "strength_clip":  round(lora_eerie * 0.5, 3),
+            },
+        }
+        model_ref = ["12", 0]
+        clip_ref  = ["12", 1]
+
+    base["6"]  = {"class_type": "CLIPTextEncode", "inputs": {"text": positive, "clip": clip_ref}}
+    base["7"]  = {"class_type": "FluxGuidance",   "inputs": {"conditioning": ["6", 0], "guidance": guidance}}
+    base["8"]  = {
+        "class_type": "KSampler",
+        "inputs": {
+            "model": model_ref, "positive": ["7", 0], "negative": ["7", 0],
+            "latent_image": ["5", 0], "seed": seed, "steps": steps, "cfg": 1.0,
+            "sampler_name": sampler, "scheduler": scheduler, "denoise": denoise,
+        },
+    }
+    base["9"]  = {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["2", 0]}}
+    base["10"] = {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": prefix}}
+    return base
 
 
 # ── ComfyUI client ────────────────────────────────────────────────────────────
@@ -450,8 +581,8 @@ async def main() -> None:
     parser.add_argument("--cohorts", nargs="*", help="Limit to these cohorts")
     parser.add_argument("--sus-source", choices=["original", "rescore"], default="original",
                         help="Which sus_level to use for denoising (default: original)")
-    parser.add_argument("--face-version", type=int, choices=[1, 2, 3, 4], default=1,
-                        help="Face descriptor version: 1=3-axis narrow, 2=5-axis wide, 3=work_type primary, 4=PaCMAP (x,y) continuous")
+    parser.add_argument("--face-version", type=int, choices=[1, 2, 3, 4, 5], default=1,
+                        help="Face descriptor version: 1=3-axis narrow, 2=5-axis wide, 3=work_type primary, 4=PaCMAP (x,y) continuous, 5=PaCMAP+gain+geometric uncanny")
     parser.add_argument("--flux", action="store_true",
                         help="Use Flux checkpoint + workflow (outputs to dataset_faces_flux)")
     parser.add_argument("--flux-checkpoint", default=FLUX_CHECKPOINT,
@@ -475,7 +606,10 @@ async def main() -> None:
     print(f"  Input:        {args.input}")
     print(f"  Output:       {args.output}")
     print(f"  Sus source:   {args.sus_source}")
-    if args.face_version == 4:
+    if args.face_version == 5:
+        print(f"  Face version: v5 (PaCMAP x,y + gain amplification + geometric uncanny)")
+        print(f"  Denoise range: 0.20 (sus=0) → 0.85 (sus=100)")
+    elif args.face_version == 4:
         print(f"  Face version: v4 (PaCMAP x,y continuous identity axis)")
     elif args.face_version == 3:
         print(f"  Face version: v3 (work_type primary, {n_axes} PCA axes, divisor={divisor})")
@@ -507,9 +641,9 @@ async def main() -> None:
     print(f"  Already done: {skippable} (will skip)")
     print(f"  To generate:  {len(jobs) - skippable}")
 
-    # v4: load PaCMAP coordinates
+    # v4/v5: load PaCMAP coordinates
     pacmap_coords: dict[str, tuple[float, float]] = {}
-    if args.face_version == 4:
+    if args.face_version in (4, 5):
         layout_path = PACMAP_LAYOUT_PATH
         if not layout_path.exists():
             raise SystemExit(
@@ -522,9 +656,9 @@ async def main() -> None:
         if missing:
             print(f"  WARNING: {len(missing)} jobs have no PaCMAP coords — will use centroid (0.5, 0.5)")
 
-    # Fit PCA on all embeddings in dataset (skip for v4 — not needed)
+    # Fit PCA on all embeddings in dataset (skip for v4/v5 — not needed)
     scaler, pca = None, None
-    if args.face_version != 4:
+    if args.face_version not in (4, 5):
         print("\nFitting PCA on all dataset embeddings...")
         all_jobs_with_emb = [j for j in dataset["jobs"] if j.get("embedding")]
         scaler, pca = fit_pca(all_jobs_with_emb, n_components=max(10, n_axes))
@@ -536,11 +670,15 @@ async def main() -> None:
         job["_denoise"] = sus_to_denoise(sus)
         job["_seed"] = embedding_seed(job["embedding"])
 
-        if args.face_version == 4:
+        if args.face_version in (4, 5):
             x, y = pacmap_coords.get(job["id"], (0.5, 0.5))
             job["_x"] = x
             job["_y"] = y
-            job["_descriptor"] = face_descriptor_v4(x, y, sus)
+            if args.face_version == 5:
+                job["_descriptor"] = face_descriptor_v5(x, y, job["id"], sus)
+                job["_denoise"]    = sus_to_denoise_v5(sus)
+            else:
+                job["_descriptor"] = face_descriptor_v4(x, y, sus)
         else:
             pcs = project(job, scaler, pca, n_axes=n_axes, divisor=divisor)
             for i, v in enumerate(pcs):
@@ -608,7 +746,7 @@ async def main() -> None:
                 done += 1
                 coord_fields = (
                     {"x": round(job["_x"], 4), "y": round(job["_y"], 4)}
-                    if args.face_version == 4
+                    if args.face_version in (4, 5)
                     else {f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)}
                 )
                 manifest_rows.append({
@@ -619,8 +757,24 @@ async def main() -> None:
                 })
                 continue
 
+            sus = job["_sus"]
+            lora_prefix = ""
+            lora_cursed = 0.0
+            lora_eerie  = 0.0
+            guidance    = FLUX_GUIDANCE
+            if args.face_version == 5:
+                t = (sus / 100.0) ** 0.8   # nonlinear — ramps hard at high sus
+                lora_cursed = t * 1.0      # 0.0 → 1.0 (full cursed at sus=100)
+                lora_eerie  = t * 0.75     # 0.0 → 0.75
+                guidance    = 3.5 + t * 2.5  # 3.5 → 6.0
+                if sus >= 85:
+                    lora_prefix = "cursed, scary looking, sharp teeth, many teeth, eerie, hollow, haunting, "
+                elif sus >= 65:
+                    lora_prefix = "cursed, eerie, hollow, haunting, "
+                elif sus >= 40:
+                    lora_prefix = "eerie, haunting, "
             positive = (
-                f"photorealistic portrait, {job['_descriptor']}, "
+                f"photorealistic portrait, {lora_prefix}{job['_descriptor']}, "
                 f"soft studio lighting, plain background, sharp focus, 4k"
             )
             if args.flux:
@@ -629,10 +783,12 @@ async def main() -> None:
                     image_name=anchor_name,
                     positive=positive,
                     seed=job["_seed"],
-                    steps=FLUX_STEPS, guidance=FLUX_GUIDANCE,
+                    steps=FLUX_STEPS, guidance=guidance,
                     sampler=FLUX_SAMPLER, scheduler=FLUX_SCHEDULER,
                     denoise=job["_denoise"],
                     prefix=f"ds_{cohort[:8]}_{job_id[:8]}",
+                    lora_cursed=lora_cursed,
+                    lora_eerie=lora_eerie,
                 )
             else:
                 workflow = img2img_workflow(
@@ -654,14 +810,14 @@ async def main() -> None:
                 remaining = (total - done - 1) / rate if rate > 0 else 0
                 coord_label = (
                     f"x={job['_x']:.3f} y={job['_y']:.3f}"
-                    if args.face_version == 4
+                    if args.face_version in (4, 5)
                     else f"pc1={job.get('_pc1', 0):.2f}"
                 )
                 print(f"  [{done+1:4d}/{total}] {cohort:25s} sus={job['_sus']:3d} "
                       f"denoise={job['_denoise']:.2f} {coord_label}  ETA {remaining/60:.1f}min")
                 coord_fields = (
                     {"x": round(job["_x"], 4), "y": round(job["_y"], 4)}
-                    if args.face_version == 4
+                    if args.face_version in (4, 5)
                     else {f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)}
                 )
                 manifest_rows.append({
