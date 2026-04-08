@@ -18,5 +18,6 @@ dependencies = [
     "pacmap>=0.9.1",
     "embedding-atlas>=0.20.0",
     "pandas>=3.0.2",
+    "hdbscan>=0.8.42",
 ]
 

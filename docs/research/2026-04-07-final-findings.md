@@ -1,17 +1,19 @@
 # Vamp Interface: Final Experiment Findings
 
 **Date:** 2026-04-07  
-**Status:** Complete — 4 generation versions, 2 metrics, encoding validated
+**Status:** Complete — 5 generation versions, 2 metrics, encoding validated
 
 ---
 
 ## Executive Summary
 
-We generated photorealistic portraits encoding fraud signals from 543 job postings across four pipeline versions (SDXL v1, SDXL v2, SDXL v3, Flux). Two metrics were applied: CLIP ViT-B/32 (cluster visual similarity) and ArcFace IR101 (identity fingerprinting).
+We generated photorealistic portraits encoding fraud signals from 543 job postings across five pipeline versions (SDXL v1–v3, Flux, and Flux+PaCMAP v4). Two metrics were applied: CLIP ViT-B/32 (cluster visual similarity) and ArcFace IR101 (identity fingerprinting).
 
-**Primary finding:** The core encoding hypothesis is confirmed. Identity drift from the neutral anchor — measured by ArcFace — correlates strongly with `sus_level` across all four generation versions (Pearson r = +0.69 to +0.85). High-fraud faces are measurably more "uncanny" than legitimate ones.
+**Primary finding:** The core encoding hypothesis is confirmed. Identity drift from the neutral anchor — measured by ArcFace — correlates strongly with `sus_level` across all five generation versions (Pearson r = +0.69 to +0.91). High-fraud faces are measurably more "uncanny" than legitimate ones.
 
-**Secondary finding:** CLIP is a biased metric for cross-model comparison. Flux faces score 0.449 on CLIP separation (worse than SDXL's ~0.516) not because they are less distinct, but because CLIP was trained on a distribution similar to SDXL output. ArcFace confirms Flux faces are genuinely distinct in identity space, and have the strongest sus_level encoding correlation of any version (+0.848).
+**Secondary finding:** CLIP is a biased metric for cross-model comparison. Flux faces score 0.449 on CLIP separation (worse than SDXL's ~0.516) not because they are less distinct, but because CLIP was trained on a distribution similar to SDXL output. ArcFace confirms Flux faces are genuinely distinct in identity space, and have the strongest sus_level encoding correlation of any version (+0.848–0.914).
+
+**v4 finding:** Using normalised PaCMAP (x, y) position as a continuous identity axis — instead of discrete work_type buckets — produces better cluster separation (0.2294 vs 0.2179 on Flux) at a modest cost to sus encoding correlation (r=+0.847 vs +0.914).
 
 ---
 
@@ -23,6 +25,7 @@ We generated photorealistic portraits encoding fraud signals from 543 job postin
 | v2 | PC1 + PC4/PC5 (complexion/texture) | 5 | 1.0 | `dataset_faces_v2` | Wider descriptor spread |
 | v3 | `work_type` explicit archetype | 3 (PC2+PC3 only) | 2.0 | `dataset_faces_v3` | Categorical identity channel |
 | Flux | v1 mapping, Flux backend | 3 | 2.0 | `dataset_faces_flux` | Hyperrealistic, fp8 |
+| **v4** | **PaCMAP (x,y) continuous** | — | — | `dataset_faces_flux_v4` | Geometry-driven; reads `pacmap_layout.json` |
 
 **v3 archetype mapping** (10 categories):
 
@@ -113,29 +116,38 @@ The primary validation metric: Pearson correlation between per-face anchor dista
 
 | Version | Overall r | n_faces | Verdict |
 |---------|-----------|---------|---------|
-| v1 SDXL | **+0.724** | 543 | encoding validated |
+| v1 SDXL | +0.724 | 543 | encoding validated |
 | v2 SDXL | +0.688 | 543 | encoding validated |
 | v3 SDXL | +0.721 | 543 | encoding validated |
-| Flux | **+0.848** | 542 | encoding validated |
+| Flux | +0.848 | 542 | encoding validated |
+| **Flux v3** | **+0.914** | 543 | encoding validated |
+| Flux v4 (PaCMAP) | +0.847 | 543 | encoding validated |
 
-All four pass the 0.3 threshold for "encoding validated." The correlation is strong (>0.7) across the board. **Flux's r=+0.848 is the highest of any version** — the continuous denoising dial produces cleaner identity drift on Flux's diffusion process, despite producing less cohort-separated faces.
+All versions pass the 0.3 threshold. **Flux+v3 descriptors (r=+0.914) is the strongest combination** — explicit work_type archetypes give Flux the sharpest sus gradient. Flux v4 is close (+0.847) despite using a continuous geometric axis instead of hand-crafted prompts.
 
 ---
 
 ## Cross-Model Comparison Summary
 
-| Version | CLIP sep | ArcFace sep | ArcFace r(sus) | Identity channel | Affect channel |
-|---------|---------|-------------|----------------|-----------------|---------------|
-| v1 SDXL | 0.515 | 0.399 | +0.724 | PCA 3-axis, narrow | Works |
-| v2 SDXL | 0.516 | 0.381 | +0.688 | PCA 5-axis, wider | Works |
-| v3 SDXL | 0.516 | **0.418** | +0.721 | work_type archetypes | Works |
-| Flux | 0.449 | 0.236 | **+0.848** | Same as v1 | Works best |
+| Version | ArcFace sep | ArcFace r(sus) | Identity channel | Backend |
+|---------|-------------|----------------|-----------------|---------|
+| v1 SDXL | 0.399 | +0.724 | PCA 3-axis, narrow | SDXL |
+| v2 SDXL | 0.381 | +0.688 | PCA 5-axis, wider | SDXL |
+| v3 SDXL | **0.418** | +0.721 | work_type archetypes | SDXL |
+| Flux | 0.236 | +0.848 | PCA 3-axis (same as v1) | Flux |
+| Flux v3 | 0.2179 | **+0.914** | work_type archetypes | Flux |
+| **Flux v4** | **0.2294** | +0.847 | PaCMAP (x,y) continuous | Flux |
 
-**CLIP penalises Flux (0.449 vs 0.516), ArcFace confirms it.** The correct reading is: Flux faces are hard to distinguish by cohort identity (0.236 ArcFace sep), but the fraud-affect encoding works better on Flux than on SDXL (+0.848 vs +0.72).
+**On Flux:** The ArcFace separation metric uses a different scale for SDXL vs Flux runs because the comparison groups differ (Flux runs use `flux_v3`/`flux_v4` cohort directories which only hold Flux faces). The separation scores are comparable within-backend, not across.
 
-This reflects a trade-off intrinsic to the models:
-- **SDXL** is more controllable via prompt engineering → better cohort-level identity differentiation
-- **Flux** produces more naturalistic denoising drift → cleaner sus_level gradient, but identity archetypes have less influence
+**v4 beats v3 on Flux separation** (0.2294 vs 0.2179): continuous PaCMAP position captures more inter-cohort variety because jobs in different parts of semantic space get genuinely different face descriptors, even within the same work_type.
+
+**v3 beats v4 on sus correlation** (r=+0.914 vs +0.847): discrete work_type archetypes give cleaner identity anchors, so the sus_level → denoising → drift signal is less noisy. In v4, jobs close in PaCMAP space share similar identity descriptors regardless of sus_level, adding identity-driven noise to the anchor distance.
+
+Trade-off summary:
+- **For cohort geography** (which clusters look different from each other): v4 wins
+- **For affect fidelity** (how cleanly sus_level drives face drift): v3 wins
+- **For production**: v3 + Flux is the validated best affect encoding; v4 is more principled geometrically
 
 ---
 
@@ -193,7 +205,7 @@ One Flux face is missing from `courier_scam` (542 total vs 543 expected) — one
 
 | File | Purpose |
 |------|---------|
-| `src/generate_dataset.py` | Full pipeline: `--face-version 1/2/3`, `--flux` |
+| `src/generate_dataset.py` | Full pipeline: `--face-version 1/2/3/4`, `--flux` |
 | `src/face_distinctness.py` | ArcFace + CLIP metrics (`--model arcface/clip`) |
 | `src/compare_scorers.py` | Score comparison utilities |
 | `src/build_test_dataset.py` | Builds 543-job test dataset from DB |
@@ -202,6 +214,8 @@ One Flux face is missing from `courier_scam` (542 total vs 543 expected) — one
 | `output/dataset_faces_v2/` | v2 SDXL (5-axis, 543 PNGs) |
 | `output/dataset_faces_v3/` | v3 SDXL (work_type archetypes, 543 PNGs) |
 | `output/dataset_faces_flux/` | Flux fp8 faces (542 PNGs) |
+| `output/dataset_faces_flux_v3/` | Flux + work_type archetypes (543 PNGs) |
+| `output/dataset_faces_flux_v4/` | Flux + PaCMAP (x,y) continuous (543 PNGs) |
 | `output/dataset_faces/face_distinctness_arcface.json` | Full ArcFace results JSON |
 | `output/phase1/phase1_anchor.png` | Neutral anchor face (seed=42) |
 
@@ -209,12 +223,12 @@ One Flux face is missing from `courier_scam` (542 total vs 543 expected) — one
 
 ## Conclusions
 
-1. **The encoding works.** sus_level → denoising → anchor_distance correlation is +0.72–0.85 across all versions. The uncanny valley is being deployed measurably, not just described.
+1. **The encoding works.** sus_level → denoising → anchor_distance correlation is +0.69–0.91 across all versions. The uncanny valley is being deployed measurably, not just described.
 
-2. **v3 has the best cohort separation** (ArcFace sep=0.418). Explicit work_type archetypes outperform PCA projection for producing identity-distinct cohort faces.
+2. **Flux + v3 descriptors is the strongest combination** (r=+0.914). Explicit work_type archetypes give Flux the sharpest sus gradient — the best affect encoding of any combination tested.
 
-3. **Flux is the correct model for the affect channel.** Its diffusion process produces cleaner sus_level gradients (r=+0.848). Its weakness — weaker identity-channel control — is acceptable since viewers will perceive cohort identity through context (the job text), not just the face.
+3. **PaCMAP (x,y) as identity axis (v4) beats discrete archetypes on cluster separation** (Flux sep 0.2294 vs 0.2179) but loses on sus correlation (r=+0.847 vs +0.914). v4 is more principled — face identity reflects actual embedding geometry rather than hand-assigned categories.
 
-4. **The optimal pipeline for production** would be: v3 identity descriptors (explicit archetypes) + Flux backend. v3 gives cohort separation; Flux gives affect fidelity. This combination was not tested — only v1 descriptors were used for Flux generation.
+4. **For a user-facing product:** v3+Flux for affect fidelity (the uncanny gradient is clearest), v4+Flux for geographic coherence (faces that look different where the corpus is semantically different). Neither is obviously wrong; the choice is editorial.
 
 5. **CLIP is an unreliable cross-model metric.** Use ArcFace for any comparison spanning different generation backends. CLIP is acceptable as an intra-SDXL relative metric.

@@ -7,6 +7,7 @@ embeddings, maps each job to a face descriptor, generates img2img via ComfyUI.
 
 Output: output/dataset_faces/<cohort>/<job_id>.png     (--face-version 1, default)
         output/dataset_faces_v2/<cohort>/<job_id>.png  (--face-version 2)
+        output/dataset_faces_v4/<cohort>/<job_id>.png  (--face-version 4)
         output/dataset_faces/manifest.json
 
 All local: ComfyUI at localhost:8188 (RTX 5090). No remote dependencies.
@@ -14,10 +15,18 @@ All local: ComfyUI at localhost:8188 (RTX 5090). No remote dependencies.
 Face versions:
   1 (default): 3 PCA axes, divisor=2.0 (narrow band spread)
   2:           5 PCA axes, divisor=1.0 (full spread) + complexion + texture axes
+  3:           work_type as primary identity axis; PC2=gender, PC3=age
+  4:           PaCMAP (x,y) as continuous identity axis (reads pacmap_layout.json)
+               x=0: fraud/office language → slim/professional
+               x=1: physical labor language → heavy/weathered
+               y=0: heavy/skilled physical → older, stockier
+               y=1: light/delivery/remote → younger, slimmer
 
 Usage:
     uv run src/generate_dataset.py
     uv run src/generate_dataset.py --face-version 2
+    uv run src/generate_dataset.py --face-version 4          # PaCMAP-driven
+    uv run src/generate_dataset.py --face-version 4 --flux   # Flux + PaCMAP
     uv run src/generate_dataset.py --input data/test_dataset_gemma4.json
     uv run src/generate_dataset.py --sus-source rescore   # use rescored levels
     uv run src/generate_dataset.py --cohorts warehouse_legit courier_scam
@@ -192,6 +201,69 @@ def face_descriptor_v3(work_type: str | None, pc2: float, pc3: float, sus: int) 
     identity = f"{base}, {_age_mod(pc3)}, {_gender_mod(pc2)}, {clothing}"
     affect = _uncanny_affect(sus)
     return f"{identity}, {affect}"
+
+
+# ── v4: PaCMAP (x,y) as continuous identity axis ──────────────────────────────
+
+PACMAP_LAYOUT_PATH = Path("output/pacmap_layout.json")
+
+
+def load_pacmap_coords(path: Path) -> dict[str, tuple[float, float]]:
+    """Load PaCMAP layout → {job_id: (x, y)} with normalised [0,1] coords."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return {p["id"]: (p["x"], p["y"]) for p in data["points"]}
+
+
+def face_descriptor_v4(x: float, y: float, sus: int) -> str:
+    """v4: PaCMAP (x,y) → continuous bilinear identity axis.
+
+    x=0: fraud/office language  → slim, professional, smooth skin
+    x=1: physical labor language → heavy/muscular, weathered, calloused
+    y=0: heavy/skilled physical  → older, construction/loading context
+    y=1: light/delivery/remote   → younger, delivery/warehouse/remote context
+    """
+    # Build (x-primary)
+    if x < 0.25:
+        build = "slender build, light frame"
+    elif x < 0.5:
+        build = "slim average build"
+    elif x < 0.75:
+        build = "stocky build, broad shoulders"
+    else:
+        build = "heavy muscular build, calloused hands"
+
+    # Age (x adds years, y=low adds years — physical+heavy = older)
+    age_score = x * 0.4 + (1.0 - y) * 0.6
+    if age_score < 0.25:
+        age = "22-32 years old"
+    elif age_score < 0.45:
+        age = "28-38 years old"
+    elif age_score < 0.65:
+        age = "35-48 years old"
+    else:
+        age = "42-58 years old"
+
+    # Skin texture (x-driven: office→smooth, physical→weathered)
+    if x < 0.33:
+        skin = "smooth skin, indoor complexion"
+    elif x < 0.67:
+        skin = "normal skin texture"
+    else:
+        skin = "weathered skin, sun-exposed, work-hardened"
+
+    # Work context / clothing (2D quadrant)
+    if x < 0.5 and y > 0.5:
+        context = "business casual or remote work attire, neat grooming"
+    elif x < 0.5 and y <= 0.5:
+        context = "nondescript casual clothing, indoor worker appearance"
+    elif x >= 0.5 and y > 0.5:
+        context = "practical workwear, warehouse or delivery uniform"
+    else:  # x >= 0.5, y <= 0.5
+        context = "heavy work clothing, construction or loading dock wear"
+
+    affect = _uncanny_affect(sus)
+    return f"{build}, {age}, {skin}, {context}, {affect}"
 
 
 def embedding_seed(emb: list[float]) -> int:
@@ -378,8 +450,8 @@ async def main() -> None:
     parser.add_argument("--cohorts", nargs="*", help="Limit to these cohorts")
     parser.add_argument("--sus-source", choices=["original", "rescore"], default="original",
                         help="Which sus_level to use for denoising (default: original)")
-    parser.add_argument("--face-version", type=int, choices=[1, 2, 3], default=1,
-                        help="Face descriptor version: 1=3-axis narrow, 2=5-axis wide, 3=work_type primary")
+    parser.add_argument("--face-version", type=int, choices=[1, 2, 3, 4], default=1,
+                        help="Face descriptor version: 1=3-axis narrow, 2=5-axis wide, 3=work_type primary, 4=PaCMAP (x,y) continuous")
     parser.add_argument("--flux", action="store_true",
                         help="Use Flux checkpoint + workflow (outputs to dataset_faces_flux)")
     parser.add_argument("--flux-checkpoint", default=FLUX_CHECKPOINT,
@@ -394,8 +466,7 @@ async def main() -> None:
     if args.output is None:
         args.output = Path(f"output/{flux_prefix}{suffix}")
 
-    # axis/divisor config per version
-    # v3 only needs PC2+PC3 (indices 1,2) but we fit PCA on all and slice
+    # axis/divisor config per version (v4 skips PCA entirely)
     n_axes   = 5 if args.face_version == 2 else 3
     divisor  = 1.0 if args.face_version == 2 else 2.0
 
@@ -404,8 +475,12 @@ async def main() -> None:
     print(f"  Input:        {args.input}")
     print(f"  Output:       {args.output}")
     print(f"  Sus source:   {args.sus_source}")
-    v3_note = ", work_type primary identity" if args.face_version == 3 else ""
-    print(f"  Face version: v{args.face_version} ({n_axes} PCA axes, divisor={divisor}{v3_note})")
+    if args.face_version == 4:
+        print(f"  Face version: v4 (PaCMAP x,y continuous identity axis)")
+    elif args.face_version == 3:
+        print(f"  Face version: v3 (work_type primary, {n_axes} PCA axes, divisor={divisor})")
+    else:
+        print(f"  Face version: v{args.face_version} ({n_axes} PCA axes, divisor={divisor})")
     print(f"  Checkpoint:   {active_checkpoint}")
     if args.flux:
         print(f"  Backend:      Flux (guidance={FLUX_GUIDANCE}, sampler={FLUX_SAMPLER})")
@@ -432,26 +507,50 @@ async def main() -> None:
     print(f"  Already done: {skippable} (will skip)")
     print(f"  To generate:  {len(jobs) - skippable}")
 
-    # Fit PCA on all embeddings in dataset (use full dataset for stable PCA)
-    print("\nFitting PCA on all dataset embeddings...")
-    all_jobs_with_emb = [j for j in dataset["jobs"] if j.get("embedding")]
-    scaler, pca = fit_pca(all_jobs_with_emb, n_components=max(10, n_axes))
+    # v4: load PaCMAP coordinates
+    pacmap_coords: dict[str, tuple[float, float]] = {}
+    if args.face_version == 4:
+        layout_path = PACMAP_LAYOUT_PATH
+        if not layout_path.exists():
+            raise SystemExit(
+                f"PaCMAP layout not found: {layout_path}\n"
+                "Run: uv run src/build_pacmap_layout.py"
+            )
+        pacmap_coords = load_pacmap_coords(layout_path)
+        print(f"\nLoaded PaCMAP layout: {len(pacmap_coords)} points from {layout_path}")
+        missing = [j["id"] for j in jobs if j["id"] not in pacmap_coords]
+        if missing:
+            print(f"  WARNING: {len(missing)} jobs have no PaCMAP coords — will use centroid (0.5, 0.5)")
 
-    # Project all jobs
+    # Fit PCA on all embeddings in dataset (skip for v4 — not needed)
+    scaler, pca = None, None
+    if args.face_version != 4:
+        print("\nFitting PCA on all dataset embeddings...")
+        all_jobs_with_emb = [j for j in dataset["jobs"] if j.get("embedding")]
+        scaler, pca = fit_pca(all_jobs_with_emb, n_components=max(10, n_axes))
+
+    # Project / prepare all jobs
     for job in jobs:
-        pcs = project(job, scaler, pca, n_axes=n_axes, divisor=divisor)
         sus = get_sus(job, args.sus_source)
-        for i, v in enumerate(pcs):
-            job[f"_pc{i+1}"] = v
         job["_sus"] = sus
         job["_denoise"] = sus_to_denoise(sus)
         job["_seed"] = embedding_seed(job["embedding"])
-        if args.face_version == 3:
-            job["_descriptor"] = face_descriptor_v3(job.get("work_type"), pcs[1], pcs[2], sus)
-        elif args.face_version == 2:
-            job["_descriptor"] = face_descriptor_v2(pcs[0], pcs[1], pcs[2], pcs[3], pcs[4], sus)
+
+        if args.face_version == 4:
+            x, y = pacmap_coords.get(job["id"], (0.5, 0.5))
+            job["_x"] = x
+            job["_y"] = y
+            job["_descriptor"] = face_descriptor_v4(x, y, sus)
         else:
-            job["_descriptor"] = face_descriptor(pcs[0], pcs[1], pcs[2], sus)
+            pcs = project(job, scaler, pca, n_axes=n_axes, divisor=divisor)
+            for i, v in enumerate(pcs):
+                job[f"_pc{i+1}"] = v
+            if args.face_version == 3:
+                job["_descriptor"] = face_descriptor_v3(job.get("work_type"), pcs[1], pcs[2], sus)
+            elif args.face_version == 2:
+                job["_descriptor"] = face_descriptor_v2(pcs[0], pcs[1], pcs[2], pcs[3], pcs[4], sus)
+            else:
+                job["_descriptor"] = face_descriptor(pcs[0], pcs[1], pcs[2], sus)
 
     # Preview
     print("\nSample descriptors:")
@@ -507,10 +606,15 @@ async def main() -> None:
             if dest.exists():
                 skipped += 1
                 done += 1
+                coord_fields = (
+                    {"x": round(job["_x"], 4), "y": round(job["_y"], 4)}
+                    if args.face_version == 4
+                    else {f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)}
+                )
                 manifest_rows.append({
                     "job_id": job_id, "cohort": cohort,
                     "sus_level": job["_sus"], "denoise": job["_denoise"],
-                    **{f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)},
+                    **coord_fields,
                     "path": str(dest), "status": "skipped",
                 })
                 continue
@@ -548,12 +652,22 @@ async def main() -> None:
                 elapsed = time.monotonic() - t0
                 rate = generated / elapsed if elapsed > 0 else 0
                 remaining = (total - done - 1) / rate if rate > 0 else 0
+                coord_label = (
+                    f"x={job['_x']:.3f} y={job['_y']:.3f}"
+                    if args.face_version == 4
+                    else f"pc1={job.get('_pc1', 0):.2f}"
+                )
                 print(f"  [{done+1:4d}/{total}] {cohort:25s} sus={job['_sus']:3d} "
-                      f"denoise={job['_denoise']:.2f}  ETA {remaining/60:.1f}min")
+                      f"denoise={job['_denoise']:.2f} {coord_label}  ETA {remaining/60:.1f}min")
+                coord_fields = (
+                    {"x": round(job["_x"], 4), "y": round(job["_y"], 4)}
+                    if args.face_version == 4
+                    else {f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)}
+                )
                 manifest_rows.append({
                     "job_id": job_id, "cohort": cohort,
                     "sus_level": job["_sus"], "denoise": job["_denoise"],
-                    **{f"pc{i+1}": round(job[f"_pc{i+1}"], 3) for i in range(n_axes)},
+                    **coord_fields,
                     "path": str(dest), "status": "generated",
                 })
             except Exception as e:
