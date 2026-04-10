@@ -121,7 +121,7 @@ from __future__ import annotations
 AGE_VALUES = ["18-25", "25-35", "35-45", "45-55", "55-65"]
 GENDER_VALUES = ["masculine", "feminine", "androgynous"]
 ETHNICITY_VALUES = [
-    "Slavic", "Central Asian", "Caucasian-mixed", "Mediterranean",
+    "Slavic", "Central Asian", "Armenian", "Mediterranean",
     "East Asian", "Middle Eastern",
 ]
 COMPLEXION_VALUES = [
@@ -248,10 +248,11 @@ HARD RULES:
 1. Every field must be present and non-empty.
 2. Enumerated fields ("age", "gender", "ethnicity", "complexion") must use values from the allowed list EXACTLY as written.
 3. Ethnicity must reflect realistic demographics of the Russian-speaking labour market for this type of work:
-   - Delivery, courier, construction, cleaning, domestic work: often Central Asian or Caucasian-mixed
+   - Delivery, courier, construction, cleaning, domestic work: often Central Asian or Armenian
    - IT, office, recruitment, finance: often Slavic
    - Retail, service, hospitality: mixed
    - Do NOT default every cluster to Slavic. Assign based on the work.
+   - "Armenian" is the label for the South Caucasus demographic; do not use the word "Caucasian" which means something different in English.
 4. "hair", "facial_hair", "uniform" are open strings, but be SPECIFIC — name colour, length, brand or colour of vest, etc.
 5. For "expressions", give five distinct short phrases — one per sus band. They describe the same person's mood across increasing fraud suspicion: clean is a legitimate applicant, fraud is a desperate or predatory schemer. The phrases should evolve naturally from neutral/professional to off/wrong.
 6. Aggressively DIFFERENTIATE this cluster from the generic "weathered worker" default. Pick details that would visibly distinguish this face from a neighbouring cluster.

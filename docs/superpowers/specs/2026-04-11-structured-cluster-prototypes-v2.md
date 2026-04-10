@@ -26,7 +26,7 @@ Replace the free-form single sentence with a JSON object per cluster using 8 fix
 Axes (per cluster, single value):
   age                 ∈ {"18-25", "25-35", "35-45", "45-55", "55-65"}
   gender              ∈ {"masculine", "feminine", "androgynous"}
-  ethnicity           ∈ {"Slavic", "Central Asian", "Caucasian-mixed",
+  ethnicity           ∈ {"Slavic", "Central Asian", "Armenian",
                          "Mediterranean", "East Asian", "Middle Eastern"}
   hair                ∈ open string (e.g. "short dark", "shaved", "long braided blonde")
   facial_hair         ∈ open string, or "none" for non-masculine (e.g. "clean-shaven",
@@ -49,7 +49,7 @@ The enumerated axes (age, gender, ethnicity, complexion) use strict value sets t
 
 ### 2. Ethnicity distribution
 
-Realistic for a Russian-speaking labour market. The model is instructed to assign ethnicity based on the statistical realism of the cluster — delivery and construction skew Central Asian and Caucasian-mixed, IT and office skew Slavic, domestic services and retail are mixed. No forced diversity; just accurate representation.
+Realistic for a Russian-speaking labour market. The model is instructed to assign ethnicity based on the statistical realism of the cluster — delivery and construction skew Central Asian and Armenian, IT and office skew Slavic, domestic services and retail are mixed. No forced diversity; just accurate representation. "Armenian" is the Flux-friendly label for the South Caucasus demographic — the word "Caucasian" would collide with its English meaning of generic white.
 
 ### 3. LoRA curve
 
