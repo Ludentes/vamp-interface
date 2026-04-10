@@ -32,30 +32,33 @@ Why text queries instead of hand-placed 2D points:
 ## Pipeline shape
 
 ```
-Russian text queries (hand-written, ~30 candidates)
+Russian job-posting prose queries (hand-written, ~34 candidates)
      │
-     │ qwen embedding (localhost:11434)
+     │ qwen3-embedding:0.6b with retrieval instruction prefix
      ▼
 Query vectors in qwen space (1024-d, unit-normed)
      │
-     │ pairwise cos, drop redundant (cos > 0.85)
+     │ diagnostics: dedup, greedy order, blend concentration at T=0.02
      ▼
-Candidate anchor set (~20-25)
+Candidate pool (up to 34; used only for ranking + diagnostics)
      │
-     │ coverage analysis: for each job, max cos over anchors
-     │ knee method: pick smallest N where p50(max_cos) plateaus
+     │ CURATE to N = 10 by hand, balancing game-map diversity
+     │ (age, gender, ethnicity, role archetype) against corpus coverage
      ▼
-Final anchor list (N ≈ 10-22)
+Final anchor list (N = 10 — "countries" on the game map)
      │
-     │ hand-author face_record per anchor (8-axis schema)
-     │ target ethnicity distribution: 40% Slavic + even rest
+     │ hand-author face_record per anchor (vivid 8-axis descriptors)
+     │ target ethnicity distribution: 40% Slavic + roughly even rest
      ▼
 data/face_anchors.json
      │
      │ at generation time per job:
-     │   cos(job_emb, anchor_i) for all i
-     │   softmax(scale * cos) → weights
+     │   cos(job_emb, anchor_i) for all 10
+     │   softmax with temperature T=0.02 → weights
+     │     (top-1 ≈ 63%, top-3 ≈ 89%, effective_N ≈ 2.3)
+     │   optional post-softmax power sharpening (default k=1.0)
      │   top-3 → compose_sentence(anchor_record, sus_band)
+     │   optional conditioning-space amplification (default α=1.0)
      │   ConditioningAverage blend
      ▼
 ComfyUI Flux workflow → face PNG
@@ -63,40 +66,71 @@ ComfyUI Flux workflow → face PNG
 
 ## Design details
 
-### Text query language
+### Text query language and format
 
-Queries are written in **Russian**. The corpus is Russian; qwen3-embedding:0.6b is multilingual but Russian queries produce embeddings closer to Russian job postings. No translation indirection.
+Queries are written in **Russian** as short 1-2 sentence job-posting prose, not phrase-lists. Example:
 
-### Candidate pool size
+> `Требуется пеший курьер для доставки еды и заказов по городу. Работа с мобильным приложением, гибкий график, оплата за каждую доставку.`
 
-~30 queries. Dedup step may drop redundant pairs (cos > 0.85) down to ~22-25, then knee analysis may reduce further.
+Two reasons for prose over phrase-lists:
+1. The corpus is prose. The document encoder expects prose-shaped text; phrase-lists produce embeddings that are systematically further from real jobs.
+2. Queries double as editorial hints to the face_record author — a vivid prose query makes it easier to write a vivid face_record.
+
+### Query encoding: asymmetric retrieval prefix
+
+qwen3-embedding:0.6b is a contrastive retrieval model with an **asymmetric query/document format**. Documents (the jobs in postgres) were encoded as plain text (verified cos=1.0000 on a round-trip re-embed). Queries (our anchors) must be encoded with the retrieval instruction prefix:
+
+```
+Инструкция: Найди вакансии, соответствующие роли.
+Запрос: <query>
+```
+
+Without the prefix, queries behave like plain documents and the per-query→per-doc cosines are systematically lower. With the prefix, top-1 cosines for matching jobs rise by ~0.05-0.10.
+
+### Candidate pool size and curation
+
+- **Candidate pool:** ~34 queries (the pool used for ranking and diagnostics).
+- **Final N:** **10**, hand-curated from the pool.
+
+Why 10, hand-curated: this is a game (scam-guessr), not a retrieval system. Each anchor becomes a *country* on the player's 2D map — a learnable face archetype that occupies a visible PaCMAP neighborhood. Too few (N<7) leaves the map feeling empty; too many (N>15) becomes a pro-level geoguessr where players can't learn the distinctions. **N=10 is the casual-game sweet spot.**
+
+Greedy coverage order is used as *input* to the curation, not as the final selector — the top-10 greedy picks over-represent delivery/warehouse/office because the corpus is skewed, and leave the ethnicity/age/gender axes underspread. A small hand-curation step picks 10 that span the visual axes.
 
 ### Deduplication threshold
 
-Two anchors with pairwise cosine > 0.85 are considered redundant; keep whichever has higher average cosine to the corpus (i.e. the better-represented one).
+Two anchors with pairwise cosine > 0.85 are considered redundant; keep whichever has higher median cosine to the corpus. In practice this triggered 0 drops at N=34 candidates — prose queries are distinct enough.
 
-### Coverage metric
+### Blend concentration metric (replaces max_cos coverage)
 
-For each job `j`, compute `max_cos(j) = max_i cos(job_emb(j), anchor_i)`.
+The v3 generation uses a **softmax top-3 blend** at T=0.02. What matters is not "does the best anchor match job X closely" (max_cos), but "when I blend the top-3 anchors for job X, does that blend concentrate on a few anchors or mush across all of them".
 
-Report the distribution across all jobs:
-- p50 (median): how well the average job is covered
-- p10: how badly the worst 10% are covered
-- p90: how well the best 10% are covered
+Metrics computed on the full job corpus:
 
-Coverage is acceptable if **p50 > 0.50 and p10 > 0.35**. If either fails with 30 candidates, we need more queries or better ones — flag and escalate, don't silently proceed.
+- **Top-3 weight sum, p50:** how much of the softmax mass lands in the top-3 for a typical job. Target: **≥ 0.80**.
+- **Effective N anchors, p50:** `1 / Σ(w_i²)`. Target: **≤ 4.0** (ideally 2-3).
+- **Top-1 weight, p50:** how dominant the single best anchor is. Reported, no gate (follows from top-3 + eff_N).
+- **Per-anchor participation:** how many jobs have this anchor in their top-3. Target: **≥ 1% of corpus per anchor** (no "dead" anchors).
 
-### Knee analysis for N
+At T=0.02 with our current 34 candidates these metrics are: top-3 p50 = 0.89, eff_N p50 = 2.3, all 34 participate. With the curated 10 the numbers should be at least as good (fewer anchors to split mass across).
 
-Greedy anchor selection by marginal contribution:
+If metrics fail: lower T slightly, expand the pool, or reduce N — but never below 7.
 
-1. Start with empty anchor set, compute `max_cos` distribution (just the zero vector baseline).
-2. Add the anchor that maximises the increase in median `max_cos`.
-3. Repeat until all candidates added.
-4. Plot median `max_cos` vs N.
-5. Knee = smallest N where adding one more anchor improves median by less than a threshold (default 0.01).
+### Softmax temperature
 
-Default N parameter is auto-derived from the knee. User can override with `--num-anchors N` on both the validator and the generator.
+**Default `T = 0.02`**. This was chosen empirically from a sweep on real job embeddings (see commit history in `src/analyse_anchor_coverage.py`). T=0.1 (the original guess) gave effective_N ≈ 24 — essentially uniform mush over all 34 anchors. T=0.01 gives effective_N ≈ 1.2 (nearly one-hot, hard Voronoi boundaries, loses smoothness). T=0.02 is the sweet spot: top-1 ≈ 63%, top-3 ≈ 89%, effective_N ≈ 2.3, still continuous.
+
+### Smoothness preservation
+
+v3 moved away from cluster-based prototypes specifically to get a **smooth** face function over embedding space. Changes that break smoothness are off the table:
+
+- Lowering T below 0.02 → one-hot → hard Voronoi boundaries → broken smoothness
+- Power sharpening with k > 1.5 → same effect, default **k = 1.0**
+- Reducing N below 7 → transition regions become too small to see
+
+Distinctness instead comes from:
+
+1. **Vivid face_records.** Ethnicity/age/hair/uniform descriptors are written *extreme* ("ice-blue eyes, very fair Slavic, snub nose" not "Slavic"). The blend math is untouched; the archetypes being blended are each more vivid.
+2. **Optional conditioning-space amplification** (parameter `amplify_alpha`, default `1.0` = no-op). After the 3 top anchors' sentences are encoded into CLIP/T5 conditioning, compute `base = mean(c_1, c_2, c_3)` and replace `c_i' = base + α·(c_i - base)` for α > 1. This preserves continuity (a smooth blend between two archetypes stays smooth) but pushes archetype conditionings further apart in Flux latent space. Tuned empirically on smoke batches.
 
 ### Face records
 
@@ -121,17 +155,18 @@ Each final anchor gets a hand-authored face record matching the 8-axis schema fr
 }
 ```
 
-Target ethnicity distribution across N anchors: **40% Slavic, 15% each for Central Asian, Armenian, Mediterranean, East Asian, Middle Eastern**. At N=15, that's 6 Slavic + ~2 each of the others (rounded to integer counts; one bucket may be short). The validator reports actual vs target and flags if any axis is under-represented by more than one anchor.
+Target ethnicity distribution at N=10: **4 Slavic (40%), 1-2 Central Asian, 1 Armenian, 1 Mediterranean, 1 East Asian, 1 Middle Eastern**. Validator allows ±1 anchor deviation per bucket.
 
 ### Blending at generation time
 
 Per job:
 
-1. Compute `cos(job_embedding, anchor_i)` for all i.
-2. Softmax with temperature: `w_i = exp(cos_i / T) / Σ exp(cos_i / T)`, default `T = 0.1` (sharp but not hard).
-3. Take top-3 by weight. Renormalise.
-4. For each of the 3, `compose_sentence(anchor.face_record, sus_band=job.sus_band)`.
-5. Three `CLIPTextEncode` nodes → two-stage `ConditioningAverage` chain (existing infrastructure).
+1. Compute `cos(job_embedding, anchor_i)` for all 10 anchors.
+2. Softmax with temperature: `w_i = exp(cos_i / T) / Σ exp(cos_i / T)`, default `T = 0.02`.
+3. Optional power sharpening: `w_i ← w_i^k / Σ w_j^k`, default `k = 1.0` (no-op).
+4. Take top-3 by weight. Renormalise to sum to 1.
+5. For each of the 3, `compose_sentence(anchor.face_record, sus_band=job.sus_band)`.
+6. Three `CLIPTextEncode` nodes → optional conditioning-space amplification (default `α = 1.0`) → two-stage `ConditioningAverage` chain.
 
 ### Sus axis
 
@@ -160,17 +195,32 @@ Modified:
 
 ## Validation gates
 
-**Phase 1c gate (pre-generation):**
-- Candidate dedup: no surviving anchor pair with cos > 0.85
-- Coverage: p50(max_cos) > 0.50 and p10(max_cos) > 0.35
-- Every final anchor has a complete face_record (8 axes + 5 expression bands)
-- Ethnicity distribution within ±1 anchor of the target (40% Slavic + even rest)
-- Enumerated axes use whitelisted values only
+**Phase 1c gate (pre-generation), computed on `data/face_anchors.json` (N=10):**
+
+Schema:
+- Exactly 10 anchors
+- Every anchor has a complete `face_record` (8 axes + 5 expression bands)
+- Enumerated axes (age, gender, ethnicity, complexion) use whitelisted values
+- Pairwise anchor cosine < 0.85 (no redundant pair survives curation)
+
+Ethnicity distribution at N=10:
+- 4 Slavic (±1)
+- 1 Armenian (±1)
+- 1 Mediterranean (±1)
+- 1 East Asian (±1)
+- 1 Middle Eastern (±1)
+- 1-2 Central Asian
+
+Blend concentration over the full job corpus (computed with T=0.02, k=1.0):
+- p50(top-3 weight sum) ≥ 0.80
+- p50(effective_N) ≤ 4.0
+- Every anchor is in the top-3 for ≥ 1% of the corpus (no dead anchors)
 
 **Phase 3c gate (post-smoke):**
 - ComfyUI accepts the new workflow (first face generates cleanly)
-- Smoke contact sheet shows readable cluster-column variation within each sus-band row
+- Smoke contact sheet shows each of the 10 anchors clearly readable when it dominates
 - Clean-band faces at sus ≤ 25 render without LoRA artifacts
+- Transitions on the 2D PaCMAP map look *smooth* — no hard Voronoi boundaries
 
 **Phase 4 gate (eval):**
 - v8c M3 > v8 M3 + 0.05 (semantic anchors actually improve cluster separation)
