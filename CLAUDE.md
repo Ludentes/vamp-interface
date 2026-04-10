@@ -16,7 +16,7 @@ The uncanny valley is the primary signal mechanism, not feature-by-feature readi
 
 - **Python 3.12**, uv for package management
 - **SDXL via ComfyUI** — img2img, two-pass generation (identity pass + expression pass)
-- **mxbai-embed-large** on server COMFY_HOST:11434 — 1024-d job post embeddings
+- **qwen3-embedding:0.6b** via Ollama at localhost:11434 — 1024-d job post embeddings (verified 2026-04-11 by re-embedding a stored job; cosine=1.0000 vs qwen, ≈0 vs mxbai)
 - **pgvector** in telejobs DB — embedding storage
 - **PCA projection** — 1024-d → CLIP conditioning space, whitened
 

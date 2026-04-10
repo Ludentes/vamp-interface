@@ -12,11 +12,11 @@ Two failures in v2:
 
 ## Approach: directional anchors in qwen space
 
-Replace cluster-based LLM prototypes with **text-query anchors** in the native qwen embedding space. Each anchor is a unit vector derived from a hand-written Russian text query encoded through mxbai-embed-large. Each job computes cosine similarity to every anchor, softmax over the scores gives blend weights, and the top-3 anchors combine through the existing ConditioningAverage infrastructure.
+Replace cluster-based LLM prototypes with **text-query anchors** in the native qwen embedding space. Each anchor is a unit vector derived from a hand-written Russian text query encoded through qwen3-embedding:0.6b (the same model that produced `jobs.embedding`). Each job computes cosine similarity to every anchor, softmax over the scores gives blend weights, and the top-3 anchors combine through the existing ConditioningAverage infrastructure.
 
 Why directional instead of point-based:
 
-- **Cosine is the native metric of qwen space.** mxbai-embed-large is contrastive-loss trained; angles are meaningful, Euclidean distances less so.
+- **Cosine is the native metric of qwen space.** qwen3-embedding is contrastive-loss trained; angles are meaningful, Euclidean distances less so.
 - **No curse of dimensionality.** In 1024-d, Euclidean makes everything look equidistant; cosine doesn't.
 - **Smooth everywhere.** Softmax(cos) produces nonzero weight on every anchor for every point — no boundary artifacts.
 - **Editorial control through text.** We write the queries; we get the semantic axes we care about.
@@ -34,7 +34,7 @@ Why text queries instead of hand-placed 2D points:
 ```
 Russian text queries (hand-written, ~30 candidates)
      │
-     │ mxbai-embed-large (localhost:11434)
+     │ qwen embedding (localhost:11434)
      ▼
 Query vectors in qwen space (1024-d, unit-normed)
      │
@@ -65,7 +65,7 @@ ComfyUI Flux workflow → face PNG
 
 ### Text query language
 
-Queries are written in **Russian**. The corpus is Russian; mxbai-embed-large is multilingual but Russian queries produce embeddings closer to Russian job postings. No translation indirection.
+Queries are written in **Russian**. The corpus is Russian; qwen3-embedding:0.6b is multilingual but Russian queries produce embeddings closer to Russian job postings. No translation indirection.
 
 ### Candidate pool size
 
@@ -147,7 +147,7 @@ New (additive — v8 and v8b logic untouched):
 ```
 data/candidate_anchors.txt        — 30 Russian queries, one per line with optional English comment
 data/face_anchors.json            — final anchor list: name, query, embedding, face_record
-src/encode_anchors.py             — encode queries via mxbai-embed-large, save embeddings
+src/encode_anchors.py             — encode queries via qwen3-embedding:0.6b, save embeddings
 src/analyse_anchor_coverage.py    — dedup + coverage + knee analysis
 src/validate_face_anchors.py      — ethnicity distribution, schema, orthogonality checks
 src/generate_v8c.py               — generation with semantic anchor conditioning
@@ -188,5 +188,5 @@ Modified:
 
 - Not rewriting the 42-cluster partition. Clusters stay as a UI/analysis artifact for the game map; they're no longer a face-derivation primitive.
 - Not changing the PaCMAP 2D layout. Same map, same UI.
-- Not changing the embedding model. mxbai-embed-large stays.
+- Not changing the embedding model. qwen3-embedding:0.6b stays (it is what `jobs.embedding` was populated with).
 - Not recalibrating sus beyond the v2 LoRA curve change.
