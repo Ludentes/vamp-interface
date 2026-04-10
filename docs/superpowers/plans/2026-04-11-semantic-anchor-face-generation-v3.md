@@ -6,7 +6,31 @@
 
 **Spec:** [../specs/2026-04-11-semantic-anchor-face-generation-v3.md](../specs/2026-04-11-semantic-anchor-face-generation-v3.md)
 
-**Tech Stack:** Python 3.12 + uv, mxbai-embed-large at `localhost:11434`, ComfyUI Flux.1-krea-dev, existing `RBFConditioner` + `compose_sentence()` from v2 Task 1.
+**Tech Stack:** Python 3.12 + uv, qwen3-embedding:0.6b at `localhost:11434`, ComfyUI Flux.1-krea-dev, existing `RBFConditioner` + `compose_sentence()` from v2 Task 1.
+
+---
+
+## Status and pivots (2026-04-11)
+
+**Tasks 1, 2, 3 have completed with pivots.** See
+[`docs/research/2026-04-11-semantic-anchor-iteration-log.md`](../../research/2026-04-11-semantic-anchor-iteration-log.md)
+for the full pivot history. Short version:
+
+- **Task 1 (candidate_anchors.txt)** — rewrote the 30 phrase-list queries
+  as 34 short job-posting prose queries (Pivot 2).
+- **Task 2 (encode_anchors.py)** — added the qwen3 retrieval instruction
+  prefix on the query side (Pivot 3); slug now uses 4 words to avoid
+  collision (Pivot 6).
+- **Task 3 (analyse_anchor_coverage.py)** — pivoted from a max_cos
+  coverage gate to blend-concentration metrics (Pivots 4, 5): top-3
+  weight sum ≥ 0.80, effective_N ≤ 4.0, per-anchor participation ≥ 1%.
+  Default softmax temperature is **T=0.02** (not 0.1).
+- **Added `data/curated_anchor_names.txt`** — 10 hand-picked anchor
+  slugs (not the knee-derived number from the original plan). See Pivot 6.
+
+**Tasks 4-9 below are the remaining work.** The code listings in those
+tasks have been updated to match the pivots: T=0.02 default, new
+conditioning-method parameters (`k`, `amplify_alpha`), new validator gate.
 
 **Working directory:** `/home/newub/w/telejobs/tools/face-pipeline`
 
@@ -16,7 +40,7 @@
 - `/home/newub/w/vamp-interface/output/full_layout.parquet`
 - Postgres at `localhost:15432` with `jobs.embedding` populated
 - ComfyUI at `localhost:8188`
-- `mxbai-embed-large` loaded at `localhost:11434`
+- `qwen3-embedding:0.6b` loaded at `localhost:11434`
 
 ---
 
@@ -95,7 +119,7 @@ EOF
 
 ---
 
-## Task 2: Encode candidate queries via mxbai-embed-large
+## Task 2: Encode candidate queries via qwen3-embedding:0.6b
 
 **Files:**
 - Create: `src/encode_anchors.py`
@@ -108,7 +132,7 @@ EOF
 """encode_anchors.py — encode candidate text queries into qwen space.
 
 Reads data/candidate_anchors.txt, strips comments, calls the local
-mxbai-embed-large via Ollama per-query, stores name + query + unit-normed
+qwen3-embedding:0.6b via Ollama per-query, stores name + query + unit-normed
 1024-d embedding in a parquet file.
 
 Usage:
@@ -124,7 +148,7 @@ import requests
 CANDIDATES = Path("data/candidate_anchors.txt")
 OUT_PATH   = Path("data/candidate_anchor_embeddings.parquet")
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
-MODEL      = "mxbai-embed-large"
+MODEL      = "qwen3-embedding:0.6b"
 
 
 def parse_candidates(path: Path) -> list[tuple[str, str]]:
@@ -193,10 +217,10 @@ Expected: 30 lines printed, parquet file written. Each embedding is 1024-d. Take
 cd /home/newub/w/telejobs/tools/face-pipeline
 git add src/encode_anchors.py data/candidate_anchor_embeddings.parquet
 git commit -m "$(cat <<'EOF'
-feat(anchors-v3): encode candidate queries via mxbai-embed-large
+feat(anchors-v3): encode candidate queries via qwen3-embedding:0.6b
 
 encode_anchors.py reads candidate_anchors.txt, strips English comments,
-calls the local mxbai-embed-large via Ollama once per query, and saves
+calls the local qwen3-embedding:0.6b via Ollama once per query, and saves
 (name, query, 1024-d unit vector) rows to
 data/candidate_anchor_embeddings.parquet.
 
@@ -449,6 +473,15 @@ EOF
 
 This task is interactive editorial work — the controller (me, in the conversation) will author the records. No subagent dispatch. The output must satisfy the v2 schema from `prototype_schema.py`.
 
+The 10 anchor slugs are fixed in advance (see [`data/curated_anchor_names.txt`](../../../tools/face-pipeline/data/curated_anchor_names.txt)). Embeddings are copied verbatim from `data/candidate_anchor_embeddings.parquet`. The authoring work is the 10 `face_record` objects.
+
+**Authoring guidance — write vivid, not bland.** v3 relies on vivid
+face_records for distinctness (smoothness comes from the softmax math).
+Bad: `"ethnicity": "Slavic"`. Good: `"ethnicity": "Slavic"` plus
+`"hair": "ash-blonde short braid"` plus `"complexion": "pale indoor"`.
+Push each axis toward the archetype extreme — Flux renders extreme
+descriptors distinctly and blends them gracefully.
+
 - [ ] **Step 1: Draft the JSON file with one record per selected anchor**
 
 Structure:
@@ -488,8 +521,8 @@ Authoring rules (enforced by Task 5 validator):
 - Enumerated axes (age, gender, ethnicity, complexion) use whitelisted values
 - `expressions` has all 5 band keys
 - `facial_hair` is `"none"` for feminine and androgynous
-- Ethnicity distribution target: **40% Slavic, 15% each of Central Asian, Armenian, Mediterranean, East Asian, Middle Eastern**
-- Validator allows up to ±1 anchor deviation from target
+- Ethnicity distribution at N=10: **4 Slavic, 1-2 Central Asian, 1 each of Armenian, Mediterranean, East Asian, Middle Eastern**
+- Validator allows up to ±1 anchor deviation per ethnicity bucket
 
 Embeddings are copied verbatim from `data/candidate_anchor_embeddings.parquet` for the selected anchor names.
 
@@ -828,7 +861,9 @@ In `src/rbf_conditioning.py`:
         sus_band: str,
         clip_ref: list,
         start_node_id: int = 20,
-        softmax_temperature: float = 0.1,
+        softmax_temperature: float = 0.02,
+        sharpening_k: float = 1.0,
+        amplify_alpha: float = 1.0,
     ) -> tuple[dict[str, Any], str]:
         """Blend top-3 semantic anchors by cosine softmax over job embedding.
 
@@ -836,6 +871,20 @@ In `src/rbf_conditioning.py`:
         similarity of the job embedding to each anchor is softmaxed into
         blend weights; the top-3 face records are composed into sentences
         at the requested sus_band and blended via ConditioningAverage.
+
+        Parameters
+        ----------
+        softmax_temperature: default 0.02 (calibrated on real jobs —
+            see docs/research/2026-04-11-semantic-anchor-iteration-log.md)
+        sharpening_k: post-softmax power sharpening; default 1.0 (no-op).
+            Values > 1 push mass toward the dominant anchor without
+            lowering T (preserves differentiability).
+        amplify_alpha: conditioning-space amplification parameter.
+            default 1.0 (no-op). Values > 1 push the top-3 anchors'
+            ConditioningAverage targets further apart in Flux latent
+            space relative to their mean. Not yet implemented — the
+            parameter is accepted but ignored until a smoke batch shows
+            the baseline is muddy.
         """
         from prototype_schema import compose_sentence  # noqa: PLC0415
 
@@ -854,6 +903,9 @@ In `src/rbf_conditioning.py`:
             scores.append(float(torch.dot(job_vec, av)))
         scores_t = torch.tensor(scores, dtype=torch.float32)
         weights = torch.softmax(scores_t / softmax_temperature, dim=0)
+        if sharpening_k != 1.0:
+            weights = weights ** sharpening_k
+            weights = weights / weights.sum()
 
         k = min(3, len(self.face_anchors))
         top_vals, top_idxs = torch.topk(weights, k)
