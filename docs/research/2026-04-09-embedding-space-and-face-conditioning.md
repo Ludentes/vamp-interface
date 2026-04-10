@@ -7,8 +7,8 @@
 
 ## 1. Embedding Model
 
-**Model:** `mxbai-embed-large` (Mistral-based, 1024-d)
-**Served via:** Ollama at `COMFY_HOST:11434`
+**Model:** `qwen-embed` 
+**Served via:** Ollama at `localhost:11434`
 **Input:** Raw job posting text (`raw_content` column in telejobs DB)
 **Output:** 1024-dimensional float32 vector, stored in `jobs.embedding` (pgvector)
 

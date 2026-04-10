@@ -9,14 +9,24 @@
 
 ## 1. Goal
 
-Generate one photorealistic face per job posting such that the face manifold preserves the structure of the qwen embedding manifold:
+Generate one photorealistic face per job posting such that the face manifold meaningfully reflects the underlying job semantics:
 
-- Jobs in the same cluster → visually similar faces (cluster identity)
-- Jobs at cluster boundaries → visually hybrid faces (smooth interpolation)
-- Fine-grained distances in qwen space → correlated fine-grained FaceNet distances
+- Semantically similar jobs → visually similar faces (cluster identity)
+- Jobs at semantic boundaries → visually hybrid faces (smooth interpolation)
+- Fine-grained semantic distances → correlated fine-grained FaceNet distances
 - High-sus jobs → faces with uncanny-valley affect (orthogonal modifier, not identity)
 
 The pipeline must be driven by **measured metrics**, not eyeballing. We will rebuild around an evaluation harness.
+
+### Framing: qwen is an input, not the target
+
+The qwen 1024-d embedding and its 42 HDBSCAN clusters are **convenient existing artefacts**, not the goal. They were produced by one embedding model on the original Russian text. A different embedding (CLIP-L on translations, sentence-transformers on gemma4 face descriptions, or another clustering scheme) could give a cleaner partition.
+
+For this spec we proceed with qwen + 42 clusters because they already exist, the infrastructure is built, and we have no evidence yet that they're wrong. If the evaluation in §8 reveals that the 42-cluster partition is itself the bottleneck (e.g. all metrics fail because the clusters themselves are noisy), we reopen the question of what the source partition should be. This is the **"silent assumption we're willing to abandon"** — document it so we don't confuse "pipeline is broken" with "qwen clusters were the wrong target".
+
+Implications:
+- Phase 0's clustering metric uses gemma4 outputs against qwen clusters. A failure there means *either* the LLM projection is bad *or* the qwen partition is wrong. We interpret a soft fail (ratio 1.0–1.4) as "try a different source partition", not "redesign the LLM pipeline".
+- Phase 4's M3 Pearson r uses qwen distances. This is noted as a temporary ground truth. A better ground truth would be FaceNet-vs-sentence-encoder-on-translated-text, which is embedding-model-agnostic. If v8 passes M4 and M5 but fails M3, we re-run M3 with the translated-text sentence-encoder distances before declaring failure.
 
 ---
 
@@ -502,6 +512,7 @@ Each gate is a checkpoint where we decide: proceed, iterate on parameters, or ab
 - Within-cluster qwen variation maps somewhat linearly to within-cluster face variation (else RBF blending is meaningless)
 - Flux's attention will treat blended T5 sequences as coherent prompts, not as concatenated nonsense
 - 3 prototypes (top-k=3) is enough to interpolate smoothly across cluster boundaries
+- **The qwen 42-cluster partition is "good enough" as a source** — we're willing to proceed without validating this, but will revisit if evaluation metrics suggest the clusters themselves are the bottleneck rather than the pipeline
 
 ---
 

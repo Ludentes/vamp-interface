@@ -177,7 +177,13 @@ telejobs/
 
 ## R2 Scope (if D7 ≥ 30%)
 
-- Infinite mode: 24k corpus faces (full generation run needed)
+- **The Map** — zoomable embedding space explorer (see `scam-guessr-map-shape.md`)
+  - Semantic zoom: colored dots → face thumbnails → face detail
+  - Cluster hulls + cluster summary panel
+  - Sus band filter + RasterFairy grid view toggle
+  - Post-session entry: "see where your 5 faces lived"
+  - Requires: full corpus generation (24k) + convex hull + grid position pre-computation
+- Infinite mode: 24k corpus faces (full generation run feeds The Map too)
 - Daily challenge: `E5-S3` if not shipped in R1
 - Score trajectory exit hook: visible from session 3
 - Accuracy trend: "Your accuracy grew 12% over 10 games" (R11)
