@@ -14,6 +14,8 @@ venv/
 .ruff_cache/
 
 # Node / web
+# The full web/ tree is a separate project (WIP), not part of this repo
+web/
 web/node_modules/
 web/dist/
 web/.vite/
@@ -30,6 +32,10 @@ pnpm-debug.log*
 *.key
 *.pem
 credentials.json
+
+# Private infra / runbooks (contain LAN IPs, dev DSNs)
+docs/design/comfyui-shard-windows.md
+docs/runbooks/telejobs-db.md
 
 # OS / editor
 .DS_Store
