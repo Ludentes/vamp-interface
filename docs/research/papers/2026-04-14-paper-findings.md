@@ -204,11 +204,17 @@ The packing objective maximizes the minimum pairwise angle — it actively *push
 4. **Gallery dimension match.** Gallery must also be in ArcFace-512 (not qwen space).
 5. **Initialization matters.** Starting from Gaussian noise on the sphere converges slower than from StyleGAN-face embeddings.
 
-### Verdict for vamp-interface
+### Verdict for vamp-interface (REVISED — see theory constraints doc)
 
-**Option (d) as previously specified is killed.** HyperFace produces discrete well-separated targets, not a smooth continuous projection target. It can still contribute as a **codebook / anchor generator** for a later interpolation step, but the Step 2 recommendation needs to change.
+**Initial verdict (too strong):** "Option (d) killed because HyperFace is separation-maximizing and incompatible with continuity."
 
-**Safe to skip re-reading unless** we pivot to a HyperFace-as-codebook design that needs specific implementation details.
+**Corrected verdict after the regime analysis (Statement 1 in [docs/research/2026-04-14-vamp-theory-constraints.md](../2026-04-14-vamp-theory-constraints.md)):** HyperFace is not a path killer. The earlier argument conflated "HyperFace's property" (max-min-angle packing) with "the regime in which HyperFace's output is used" (discrete exact regression vs. interpolation vs. soft assignment). Only Regime A (discrete exact regression) produces piecewise-constant behavior, and even then the behavior is *monotonic* which is all the theory pivot (Statement 2) actually requires. Regime B (interpolation) is smooth but doesn't use HyperFace's max-separation property. Regime C is intermediate.
+
+**Under the identifier-not-readout reframe** (Statement 2), the identity channel only needs monotonic similarity (similar qwen → similar face, different qwen → different face, direction-preserving not distance-preserving). Regime A satisfies this trivially: within-cluster = 0 distance, between-cluster ≥ min-pairwise-angle. HyperFace is therefore a **viable Step 2 option** for the vamp-interface rebuild, essentially generalizing the original fixed-anchor thesis from one anchor to N-anchors-deterministically-packed.
+
+**Residual problems to analyze post-compact:** cluster granularity, within-cluster information budget, gallery choice, license, assignment function design. See blind-alleys entry 9 for the full list.
+
+**Safe to skip re-reading unless** we commit to HyperFace implementation and need specific details on Algorithm 1, the α-regularizer weighting, or the gallery ablation numbers.
 
 ---
 

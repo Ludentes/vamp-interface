@@ -1,5 +1,7 @@
 # vamp-interface Rebuild — Blind Alleys
 
+> **2026-04-14 late session update.** Two theory-level arguments (Statement 1: HyperFace regime analysis; Statement 2: continuity-vs-readability self-contradiction, leading to the identifier-not-readout reframe) changed the criteria for what "killed" means here. The arguments are saved verbatim at [docs/research/2026-04-14-vamp-theory-constraints.md](2026-04-14-vamp-theory-constraints.md) and are the primary reference. Some entries below have been reopened with residual-problem notes. Interface-level blockers (no embedding input port, token stacks of real images, landmark spatial maps) still kill — the theory pivot only relaxes the *smoothness* requirement, not the *interface* requirement. A post-compact rewrite of the rebuild plan will systematically re-evaluate all options against the new criteria.
+
 **Date:** 2026-04-14
 **Status:** Living document. Append new dead ends as they are discovered.
 **Purpose:** Record research paths that looked promising from summaries / review-level descriptions but turned out to be wrong when verified against primary sources. Each entry says what we thought, what we actually found, why it is dead, and the minimum bar to reopen.
@@ -32,6 +34,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 
 **Minimum bar to reopen:** A new published result showing that Arc2Face (or a similar fine-tuned identity backbone) can be driven by multi-token text-space conditioning without retraining. None exists as of 2026-04-14.
 
+**2026-04-14 late-session reconsideration:** Stays killed. This was a misreading of the Arc2Face paper, not a smoothness mismatch. The theory pivot does not resurrect it.
+
 ---
 
 ### 2. Arc2Morph proves "ArcFace space is highly non-smooth"
@@ -43,6 +47,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 **Why it is dead for our use case:** A +3% MAP gain at one midpoint value does not establish non-smoothness and does not endorse a projection-space change. The continuity question Arc2Morph would need to answer is not the one it asked.
 
 **Minimum bar to reopen:** A published α-sweep LPIPS study (or equivalent) on Arc2Face, either confirming ArcFace-space discontinuity or characterizing CLIP-space continuity. Our Step 5 pre-flight test will produce this data directly — at that point we will know for ourselves, and this memory becomes obsolete.
+
+**2026-04-14 late-session reconsideration:** Stays killed. The original objection was that Arc2Morph never measured smoothness — that remains factually correct. The theory pivot (identifier-not-readout) means we care *less* about metric-preserving smoothness and more about monotonicity, but Arc2Morph still doesn't give us that evidence either.
 
 ---
 
@@ -58,6 +64,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 
 **Minimum bar to fully reopen as a clone:** A published variant of Vox2Face trained without ground-truth pairs on a cross-domain embedding (e.g., text → face). None known.
 
+**2026-04-14 late-session reconsideration (Statement 2 reframe).** Under the identifier-not-readout framing, we do not need identity labels to be *real identities*. We can substitute qwen-cluster-indices for identity labels: AM-Softmax on cluster membership, InfoNCE with positives defined as "same cluster". This turns Stage I from a speech-identity alignment into a cluster-alignment loss, which is what vamp-interface actually wants (similar-cluster jobs → similar-looking faces, different-cluster jobs → different-looking faces). Residual problems to analyze post-compact: (a) qwen cluster counts and distributions differ from face identity counts/distributions, so Vox2Face's published geometric guarantees about inter-class angular margins may not transfer; (b) the cluster granularity (number of clusters, clustering algorithm) becomes a load-bearing design choice; (c) we still have no test for whether Stage II SDS trains stably from a cluster-labeled Stage I init. **Reopened conditionally.** Treat as a viable but non-trivial Step 2 option, not a dead path.
+
 ---
 
 ### 4. Boundary Diffusion gives us a "class-mean drop-in" for Asyrp's `f_θ`
@@ -71,6 +79,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 **What is still alive:** Paired mean-difference in `h_t` applied via Asyrp's asymmetric formulation (Step 4B) — as a zero-training heuristic with no Boundary Diffusion pedigree, just the cheapest thing worth a 2-hour spike before paying Asyrp's 20-min `f_θ` training cost.
 
 **Minimum bar to reopen Boundary Diffusion as a drop-in:** A published validation of the method on a CFG'd, text-conditioned, fine-tuned SD-family model. None known. Until then, Asyrp's learned `f_θ` is the correct primary because it is the only h-space method in this lineage actually designed for SD-family UNets.
+
+**2026-04-14 late-session reconsideration:** Stays killed as a drop-in. The method-transfer problem to CFG'd fine-tuned SD is an architectural mismatch, not a smoothness mismatch, so the theory pivot doesn't rescue it. Still queued as a 4C research-bet option if the α-sweep gate kills all other h-space paths.
 
 ---
 
@@ -86,6 +96,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 
 **Replacement fallbacks to consider instead:** Models that accept a continuous identity vector as input — PhotoMaker, InstantID's IdentityNet used in isolation, or StyleGAN3 FFHQ w+ space.
 
+**2026-04-14 late-session reconsideration:** Stays killed. The theory pivot relaxes the Lipschitz requirement on per-layer features, but RigFace's other blockers (no embedding input port, no inference code released, GitHub URL 404'd) are at the *interface* level and unaffected. RigFace still cannot be driven by a projected qwen vector regardless of smoothness requirements.
+
 ---
 
 ### 6. NoiseCLR is an unsupervised alternative to paired h-space direction finding
@@ -97,6 +109,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 **Why it is dead for our use case:** Four independent blockers. (1) Wrong slot — the pseudo-tokens occupy CLIP text-conditioning space, which Arc2Face has semantically repurposed for ArcFace identity; zero evidence NoiseCLR's InfoNCE objective converges or stays disentangled when `c` no longer spans a CLIP manifold. (2) Wrong geometry — NoiseCLR operates at ε-output via CFG, while our plan targets the UNet bottleneck h-space; different injection points, different semantics, not interchangeable. (3) No fine-tuned backbone validation — the paper never touches identity-fine-tuned models. (4) Unsupervised — we have labels (`sus_level`), we know which axis we want; an unsupervised method that finds K=100 FFHQ-salient axes (age, race, glasses, lipstick, hair) gives no guarantee "uncanny" is among them, and post-hoc labeling 100 directions to find the one we need is more work than the supervised paired approach.
 
 **Minimum bar to reopen:** A published validation of NoiseCLR on a fine-tuned identity-conditioned diffusion model, *or* a reason to believe the axes it discovers on vanilla SD would transfer unchanged to Arc2Face. Neither exists. Could still be useful as an exploratory tool on vanilla SD 1.5 to see what axes FFHQ naturally exposes — low priority, not on the critical path.
+
+**2026-04-14 late-session reconsideration:** Stays killed. NoiseCLR operates in the wrong slot (CLIP text-conditioning pseudo-tokens, not h-space) and on the wrong backbone regime (vanilla SD only). These are architectural blockers, unaffected by the theory pivot.
 
 ---
 
@@ -110,6 +124,8 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 
 **Minimum bar to reopen:** A published variant of PhotoMaker that (a) accepts a single continuous vector rather than a token stack, (b) has identity fully determined by that vector with no text modulation, and (c) has validated continuity under interpolation of synthetic (non-real-image) identity codes. None exists.
 
+**2026-04-14 late-session reconsideration:** Stays killed. The blocker is an interface mismatch (expects N CLIP-image tokens from real reference images), which is unaffected by the continuity-vs-readability theory pivot. Even under the weaker monotonic-identifier requirement, we still need to supply PhotoMaker with something it was designed to consume, and we don't have real face images for our job postings.
+
 ---
 
 ### 8. InstantID's IdentityNet used in isolation as a continuous-identity fallback
@@ -122,11 +138,36 @@ This document exists because during the 2026-04-14 rebuild-planning session we r
 
 **Minimum bar to reopen:** A variant that decouples IdentityNet from the landmark and IP-Adapter inputs, or a published experiment showing that fixed-template landmarks + a projected ArcFace-space vector produce locally-continuous faces. None exists.
 
+**2026-04-14 late-session reconsideration:** Stays killed. Interface-level blocker (needs landmark spatial map + IP-Adapter CLIP-image branch in addition to the ArcFace vector), unaffected by the theory pivot. Same class of rejection as PhotoMaker.
+
+---
+
+### 9. HyperFace as Step 2 Option (d) recommended path — REOPENED
+
+**Claim originally made:** Based on a subagent paraphrase, I promoted HyperFace (arXiv:2411.08470, Boutros et al., late 2025) to "Step 2 Option (d) recommended" combined with Vox2Face Stage II SDS, as a published substitute for Vox2Face's supervised Stage I alignment loss. The plan was: precompute HyperFace packed targets → train `qwen → ArcFace` MLP to regress to those targets → apply Vox2Face Stage II SDS for refinement.
+
+**First-hand read finding:** HyperFace's objective is `max min pairwise angle on the hypersphere` with an α-weighted face-manifold regularizer, and the reference vectors are directly optimized as free parameters via Adam. The packed vectors are well-spread on the ArcFace sphere but the objective is **explicitly separation-maximizing**.
+
+**Why I initially called it killed:** I argued that separation-maximizing targets were incompatible with the continuity hypothesis `d(face_A, face_B) ≈ C · d(emb_A, emb_B)`, so using HyperFace as a Stage I regression target would produce a non-smooth `g`.
+
+**Why that argument was too strong (Statement 1, 2026-04-14 theory constraints doc):** My claim silently assumed exact discrete regression (Regime A), under which yes, the composition would be piecewise-constant with step-function jumps at cluster boundaries. But HyperFace doesn't *require* exact regression. Under interpolation among k-nearest packed targets (Regime B), the mapping is smooth by construction but HyperFace's max-separation property becomes irrelevant (any well-spread set of N ArcFace vectors would work equivalently). Under soft assignment (Regime C), we get intermediate behavior.
+
+**Why the theory pivot un-kills it (Statement 2):** Under the identifier-not-readout reframe, we don't need metric-preserving smoothness — we need monotonic identity-channel continuity (similar qwen → similar face, different qwen → different face, direction-preserving not distance-preserving) plus a separately-trained readable drift axis. Regime A (discrete cluster regression) satisfies monotonic continuity perfectly: same cluster → same face (trivially Lipschitz with constant 0 within), different cluster → maximally-distinct face (maximally-readable between-cluster difference). Step functions are monotonic; they just aren't metric-preserving. Since we don't need metric preservation, Regime A is fine.
+
+**Residual problems to analyze post-compact:**
+1. Cluster granularity is now a load-bearing design choice. How many clusters? What clustering algorithm? How does cluster-count interact with N in HyperFace packing?
+2. Within-cluster variance carries no information in Regime A. If some jobs within a cluster are more suspicious than others, that signal must come from the drift channel, not the identity channel. Does the drift channel have enough bandwidth to carry it?
+3. The packing objective's default α-regularizer (face-manifold pull) uses a reference gallery. Which gallery? FFHQ-ArcFace? BUPT real? LDM-synthetic? HyperFace ablates this and the differences are small for FR accuracy but may differ for our use case.
+4. HyperFace's Idiap license needs checking. Method is ~50 lines of PyTorch so re-implementation is trivial if the license is restrictive.
+5. The assignment function (which qwen cluster → which packed target) is left to the user. A deterministic hash is simplest; an OT assignment that minimizes `Σ d_qwen(source) · d_ArcFace(target)` would partially recover between-cluster monotonicity.
+
+**Minimum bar to re-kill if later evidence contradicts:** An empirical result showing that discrete cluster regression into HyperFace targets produces faces where *within-cluster* variation is so small that viewers cannot distinguish jobs within a cluster, *and* the drift channel is insufficient to carry that information.
+
 ---
 
 ## Meta-pattern across these entries
 
-Every single one of the eight dead paths above came from trusting a summary (review-level, subagent paraphrase, or abstract) over a primary-source read. In three of the six (Arc2Face 5-token, Arc2Morph non-smoothness, Boundary Diffusion drop-in) the summary was materially wrong in ways that would have cost days of implementation work. In the other three (Vox2Face clone, RigFace fallback, NoiseCLR unsupervised alternative) the summary described a real paper accurately at a high level but elided the preconditions that made it inapplicable to our use case.
+Of the nine entries above, six stay killed (interface-level or misreading blockers that the theory pivot does not affect), two are conditionally reopened (Vox2Face clone under cluster-labels, HyperFace under Regime A discrete cluster regression), and one (Arc2Face 5-token, entry 1) was a misreading of the paper rather than an architectural decision. The lesson holds: every dead-or-reopened path above came from trusting a summary (review-level, subagent paraphrase, or abstract) over a primary-source read. In three of the six (Arc2Face 5-token, Arc2Morph non-smoothness, Boundary Diffusion drop-in) the summary was materially wrong in ways that would have cost days of implementation work. In the other three (Vox2Face clone, RigFace fallback, NoiseCLR unsupervised alternative) the summary described a real paper accurately at a high level but elided the preconditions that made it inapplicable to our use case.
 
 **The operational lesson:** for every option that affects the expensive critical path, read the primary source's method section before committing. Summaries are fine for orientation ("which methods exist, in which lineage") but not for implementation ("what exactly does this method do"). See `~/.claude/projects/-home-newub-w-vamp-interface/memory/feedback_shallow_research_risk.md` for the full lesson.
 
