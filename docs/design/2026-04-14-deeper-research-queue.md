@@ -111,7 +111,41 @@ These are the claims that might be wrong but are low-impact. Batch them into a f
 - **VTuber rig commission pricing $500-3000** (Ch11) — anecdotal from community chatter.
 - **Which open-source projects are "dead" vs "active"** — based on GitHub star counts and last-commit dates, not actually running the code.
 
-## Tier 1b — New items surfaced by the Tier 1 deep reads (2026-04-14 post-Tier-1)
+## Tier 1b — COMPLETED 2026-04-14 late session
+
+All five Tier 1b items were dispatched as four parallel agents and completed. Summary:
+
+- **T1b.1 (fallback verification)** — PhotoMaker and InstantID killed. StyleGAN3 FFHQ native-W promoted to primary fallback. **InfiniteYou (arXiv:2503.16418, ByteDance, Mar 2025, FLUX DiT backbone) added as newer-backbone upgrade path** — not a fallback, an alternative primary if SD 1.5 ceiling becomes limiting.
+- **T1b.2 (Asyrp + HAAD + 2026 h-space successors)** — **Major correction**: Asyrp's linearity/homogeneity claims are NOT established on any latent-diffusion or CFG backbone. HAAD does NOT support semantic-direction transfer under fine-tuning. α-sweep continuity gate made mandatory in Step 4A. **LoRA weight-space editing (arXiv:2406.09413) added as Option 4F** — credible alternative primary since Arc2Face is itself a fine-tune.
+- **T1b.3 (Vox2Face full read + cross-domain 2026)** — WebFetch was denied so the full PDF is still unread (see T1b.6 residual below). From indexed snippets, confirmed Stage I is AM-Softmax + InfoNCE (not plain cosine), Stage II SDS with LoRA on text encoder + UNet attention. **HyperFace (arXiv:2411.08470, late 2025) found** — geometric packing on the ArcFace hypersphere with no paired data, exactly solves our pairing problem. **Recommended Step 2 is now HyperFace Stage I + Vox2Face Stage II SDS.**
+- **T1b.4 (Arc2Morph pipeline details)** — Deprioritized; not on critical path.
+- **T1b.5 (Arc2Face latency benchmark)** — Implementation ticket, not a paper read.
+
+See the rebuild plan's "Tier 1b deep-read findings" table for the full accounting. Corrections applied to rebuild plan and blind-alleys doc (entries 7-8).
+
+## Tier 1b residual — unread items surfaced by Tier 1b (queue these next)
+
+### T1b.6 — Vox2Face full PDF (manual fetch, WebFetch was denied)
+
+The Tier 1b Vox2Face agent could not fetch the full PDF — WebFetch was denied in its session. It reported findings from indexed Google snippets only. Before implementing Step 2, `wget https://www.mdpi.com/2078-2489/17/2/200/pdf` manually and verify: the exact SDS equation form, the LoRA rank value selected in the rank ablation, exact training schedule, limitations section, and data availability statement. These are all load-bearing implementation details.
+
+### T1b.7 — HyperFace (arXiv:2411.08470) — read before committing Step 2 Option (d)
+
+HyperFace was promoted to Step 2 Option (d) recommended path based on Agent C's summary. Classic risk: if I commit to implementation based on a single summary, this is exactly how blind alleys get into the plan. Read the paper directly before implementation. Specifically verify: the exact geometric packing objective (is it maximize-min-angle, or something more complex?), how synthetic IDs are initialized, what's left fixed vs. trainable, whether the pipeline assumes a reference set of real ArcFace vectors or can work fully synthetically, and whether HyperFace has been validated end-to-end as a drop-in replacement for paired-supervision alignment in a generative pipeline.
+
+### T1b.8 — FEM (arXiv:2602.13168) — short read for MLP-vs-KAN design choice in Step 2
+
+FEM uses Kolmogorov-Arnold Networks (KAN) for its embedding-to-latent projection. Before committing to a plain MLP in Step 2, a 20-minute read of FEM to see whether KAN is worth the complexity for this specific problem. Agent A and Agent C both flagged FEM as methodologically adjacent.
+
+### T1b.9 — LoRA weight-space editing (arXiv:2406.09413) — read if Step 4A α-sweep gate fails
+
+Promoted to Option 4F in the rebuild plan. Cited from Agent B's summary, not first-hand read. Before investing in 4F as a serious primary alternative, verify: the exact PCA-in-weight-space procedure, the training cost (fitting ~65k LoRAs is not cheap), whether the method has been shown to work with as few as ~100 LoRAs, and whether it transfers to an already-fine-tuned backbone like Arc2Face.
+
+### T1b.10 — InfiniteYou (arXiv:2503.16418) — continuity pre-flight if SD 1.5 ceiling bites
+
+If we ever decide SD 1.5 photorealism is the critical constraint, InfiniteYou (FLUX DiT, code + weights released) is the upgrade path. Before adopting, run Step 5 continuity pre-flight against InfiniteYou's InfuseNet residual injection — the continuity property of residual injection into a DiT is a different geometric question than cross-attention token substitution into a UNet and is not guaranteed to transfer.
+
+## Tier 1b (original — predates completion, kept for history)
 
 The Tier 1 results themselves introduced new dependencies that have the same shallow-research risk as the original queue. Adding them here so they do not get skipped.
 
@@ -180,3 +214,4 @@ After compaction:
 
 - **2026-04-14** — Initial version. Written after Vox2Face / Arc2Face / Asyrp deep reads corrected three rebuild-plan claims, before user-initiated compaction. Captures the remaining read queue so it survives the context reset.
 - **2026-04-14 (post-Tier-1)** — All three Tier 1 items (T1.1 Boundary Diffusion, T1.2 RigFace, T1.3 NoiseCLR) completed. New Tier 1b section added with items the Tier 1 results themselves surfaced: T1b.1 (PhotoMaker / InstantID / StyleGAN3 w+ as unverified Arc2Face fallbacks), T1b.2 (Asyrp linearity on SD fine-tunes), T1b.3 (Vox2Face full PDF), T1b.4 (Arc2Morph pipeline details), T1b.5 (Arc2Face inference latency benchmark).
+- **2026-04-14 (late session — Tier 1b completed)** — All five Tier 1b items dispatched as four parallel agents, completed. PhotoMaker and InstantID killed; StyleGAN3 native-W promoted; InfiniteYou added; Asyrp linearity gate made mandatory; LoRA weight-space editing added as Option 4F; HyperFace promoted to Step 2 Option (d) recommended. New residual items queued: T1b.6 (Vox2Face full PDF, WebFetch was denied), T1b.7 (HyperFace first-hand read), T1b.8 (FEM KAN read), T1b.9 (LoRA weight-space first-hand read), T1b.10 (InfiniteYou continuity pre-flight).
