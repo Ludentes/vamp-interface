@@ -1,368 +1,204 @@
 # vamp-interface Rebuild Plan
 
-**Date:** 2026-04-14
-**Status:** Design, verification pass complete, ready to execute (pending one pre-flight test)
-**Depends on:** Face Research review (github.com/Ludentes/Face-Research), three verification agents dispatched 2026-04-14
+**Date:** 2026-04-14 (rewritten late session after first-hand reads of HyperFace and the Vox2Face full PDF)
+**Status:** Design, ready to execute pending the continuity pre-flight test.
+**Supersedes:** All earlier drafts of this document in this session. The evolution is captured in git history; the architectural conclusions below are the ones to build on.
 
 ## TL;DR
 
-The original vamp-interface stack (two-pass SDXL img2img, fixed PNG anchor, denoising strength as the sus dial) predates three 2024-2026 primitives that collapse its engineering surface substantially: Arc2Face for identity-conditioned generation, Concept Sliders / h-space for parametric drift, and — the biggest finding from the verification pass — **Vox2Face (MDPI *Information* 17(2):200, 2026)**, which is a direct template for projecting arbitrary non-face embeddings into ArcFace's identity geometry and driving Arc2Face as a frozen generator.
+Build vamp-interface's continuous embedding-to-face mapping on top of **StyleGAN3 FFHQ**, with a learned MLP `qwen_1024 → W` trained against randomly-but-deterministically-assigned W targets and a pairwise distance-preservation regularizer. Drift axis comes from Step 4 on the chosen backbone (h-space or LoRA-weight-space direction). Fall through to an Arc2Face-based plan only if StyleGAN3 photorealism is inadequate for the visualization task.
 
-The rebuild is not a research project. It is adapting Vox2Face's speech-to-face pattern to qwen-text-to-face, plus one empirical continuity test (half day of compute), plus a choice of drift mechanism (Concept Slider trained against Arc2Face directly, or h-space direction finding, or Arc2Face's expression adapter). Novelty is retained on the visualization primitive itself — no published work proposes face-per-datum as a continuous visualization encoding; Chernoff faces (1973) is the only conceptual ancestor.
+The pivot away from Arc2Face as the primary Step 2 target is driven by three hard-won findings from primary-source reads:
 
-## Background — why rebuild
+1. **Every published identity-conditioning recipe is optimized for separation, not smoothness.** Arc2Face's backbone is fine on this front (it's just a generator), but ArcFace space itself is separation-maximizing by construction, Vox2Face's Stage I loss is AM-Softmax + InfoNCE (both class-discriminative), and HyperFace is a literal max-min-angle packing. None of these give us local Lipschitz behavior for free.
+2. **Vox2Face's Stage I is not usable without ground-truth pairs**, and the paper runs no ablation of SDS alone without Stage I — we have no evidence Stage II trains stably from a random gϕ init. The earlier "Stage II is the transferable piece" framing was unsupported.
+3. **StyleGAN3 FFHQ W-space is the only candidate in our option set that is locally Lipschitz by construction**, and our use case (learned projection into W, not real-image inversion) dodges the e4e/pSp/ReStyle reconstruction penalty that has historically made StyleGAN inversion hard.
 
-The original vamp-interface architecture (see [diffusion-approach.md](diffusion-approach.md), [scenarios.md](scenarios.md)) is:
+This is a visualization problem, not a face-recognition problem. The tools built for FR have the wrong objective for us, and once we accept that, the cleanest path is the one that never puts us on the FR track.
+
+## Why rebuild at all
+
+Original vamp-interface (see [diffusion-approach.md](diffusion-approach.md), [scenarios.md](scenarios.md)):
 
 1. Fixed anchor face (PNG)
 2. Two-pass SDXL img2img: identity pass + expression pass
-3. Denoising strength as a scalar mapped from `sus_level` (0.05 → 0.55)
+3. Denoising strength as a scalar mapped from `sus_level`
 4. LoRA-based uncanny encoding (v8c curve)
 5. Seeded per job_id, pre-generated and cached
 
-This works well enough for P1/P2 to demonstrate the core idea, but has known limitations:
+Known problems: denoising strength mutates identity and expression together, no principled two-channel separation, v8c LoRA overshoots into zombie / skin-lesion territory, gendered LoRA response, not generalizable beyond fraud.
 
-- **Denoising strength is a crude joint dial.** It mutates identity and expression together; there is no clean way to hold identity fixed while varying the drift axis.
-- **No principled two-channel separation.** Identity (from text embedding) and drift (from sus_level) share a single mutation budget.
-- **v8c LoRA curve overshoots** into zombie / skin-lesion territory at high strengths (see feedback_lora_uncanny_tuning.md in memory). The mechanism is fragile.
-- **Gendered LoRA response** — LoRAs appear to hit female faces differently than male faces (user observation). Unfair by construction if not audited.
-- **Not generalizable.** The current pipeline is hand-tuned to the fraud use case. To become a library, the drift axis needs to be learnable from data, not baked into a LoRA.
+The [Face Research review](https://github.com/Ludentes/Face-Research) identified a newer primitive family (Arc2Face + expression adapter, h-space direction finding, Concept Sliders, FLAME-conditioned diffusion) that collapses the engineering surface of the rebuild. The question this plan answers: given what we *actually* found in those primary sources — including the dead paths that surfaced during the deep reads — what's the cleanest path to a continuous embedding-to-face visualization?
 
-The [Face Research review](https://github.com/Ludentes/Face-Research) (13 chapters, published 2026-04-14) identified the three primitives that address these limitations:
+## Core design principle
 
-- **Arc2Face + expression adapter** (ECCV 2024 Oral + ICCVW 2025): dedicated identity channel (ArcFace 512-d) + dedicated expression channel (FLAME blendshape coefficients) via independent cross-attention paths.
-- **Concept Sliders** (ECCV 2024): LoRA weight pairs for learned semantic directions; compositional.
-- **h-space direction finding** (Asyrp, ICLR 2023): semantic directions in the UNet bottleneck, no fine-tuning, apply at inference.
-- **RigFace** (arXiv:2502.02465): full SD 1.5 fine-tune, sets quality ceiling, overkill for prototype.
+**vamp-interface is a visualization problem, not a face-recognition problem.** Close embeddings should produce close faces. This is a *local Lipschitz* requirement on the mapping `qwen → face_pixels`. It is NOT a requirement for the generated faces to be "recognizable as the same person" or for them to have "high identity similarity to any reference". Those are FR metrics and they are what every published tool in this space is optimizing against. We are not building for those metrics.
 
-## The rebuild plan
+The implication: we want a conditioning space that is smooth by construction, not one that is merely discriminative.
 
-### Step 1 — Replace the anchor paradigm
+## Step 1 — Replace the anchor paradigm
 
 **Old:** fixed PNG image, img2img drift.
-**New:** fixed identity embedding as the anchor. All generated faces are conditioned on identity vectors near the anchor in the conditioning space Arc2Face uses.
+**New:** fixed identity vector (W for StyleGAN3, ArcFace-512 for Arc2Face path) as the anchor. All generated faces are conditioned on vectors near the anchor in the chosen space.
 
-Continuity in the conditioning space → continuity in face space, *assuming* Arc2Face is locally Lipschitz in that space. See Step 5 for the pre-flight test of this assumption.
+## Step 2 — Projection `qwen → face_generation_input_space`
 
-### Step 2 — Projection from qwen embedding to Arc2Face conditioning space
+**Recommended path: `qwen_1024 → StyleGAN3 native W` (Option A).**
 
-**This is the hard step of the rebuild.** Goal: `qwen_1024 → conditioning_space` such that nearby qwen embeddings produce nearby faces and the mapping is learnable from a small amount of data.
+### Option A — StyleGAN3 FFHQ W-space direct projection (primary)
 
-**Template to follow: Vox2Face (2026).** Vox2Face distills a pretrained *speaker encoder*'s embeddings into ArcFace's hyperspherical identity space via metric alignment, then uses Arc2Face as a frozen generator, with a diffusion self-consistency loss updating only the projection + LoRA adapters. Our use case differs only in the source encoder (qwen text embedding instead of speech). The geometry (hypersphere), the loss structure (metric distillation + self-consistency), and the frozen-Arc2Face backend all transfer one-for-one.
+Train a plain MLP `g: ℝ^1024 → ℝ^512` (native W dim) with two losses:
 
-**Projection target — the only viable option.** Previous drafts of this plan listed "project to Arc2Face's 5-token CLIP space" as an alternative. **That option is dead** based on reading the Arc2Face paper in depth:
+1. **Target-regression loss.** Pick N deterministic-but-arbitrary W vectors (e.g., sample via StyleGAN3's mapping network from random Z seeds, or use real-face-inversion centroids from FFHQ). Assign one to each qwen cluster. Train `g` to regress the cluster's qwen embedding to its assigned W vector: `L_reg = ||g(e) − W_target(cluster(e))||²`.
 
-- Arc2Face uses the prompt template `"photo of a ⟨id⟩ person"` tokenized into 5 tokens `{e1, e2, e3, ŵ, e5}`.
-- Only **one** of those tokens carries identity (`ŵ`). The other four are frozen pseudo-prompt context.
-- `ŵ ∈ ℝ^768` is produced by **zero-padding the ArcFace 512-d vector**. No MLP, no learned projection — direct substitution. Arc2Face ablates against a 4-layer MLP and explicitly picks the fine-tuned-CLIP + zero-padded-substitution design.
-- The UNet's actual conditioning is the post-CLIP-transformer output over these 5 tokens, but identity lives in a single 768-d slot derived from a zero-padded 512-d ArcFace vector.
+2. **Pairwise distance-preservation regularizer.** For mini-batch pairs `(e_A, e_B)`:
+   ```
+   L_dist = |d_W(g(e_A), g(e_B)) − C · d_qwen(e_A, e_B)|
+   ```
+   `C` is a learned or fixed scale. This is the Lipschitz-preserving term.
 
-**There is no CLIP token space to project into.** There is only the ArcFace 512-d input slot.
+**Total:** `L = L_reg + λ · L_dist`.
 
-**So the projection target is unambiguous: `qwen_1024 → ArcFace_512`.** Project into the ArcFace hyperspherical identity space, zero-pad to 768, feed through Arc2Face's frozen (fine-tuned) CLIP text encoder. This matches Vox2Face exactly.
+**Why this is the primary:**
+- W-space is **locally Lipschitz by construction** — this is the well-known property that made StyleGAN the default face-editing latent for 2020-2022.
+- The e4e/pSp/ReStyle reconstruction penalty literature does NOT apply — that penalty is a symptom of real-image inversion being hard, and we're not inverting anything. We're learning a fresh projection into native W.
+- Single deterministic forward pass at inference: qwen → W → StyleGAN3 synthesis → PNG. No sampler stochasticity, no CFG, no SDS loop, no LoRA training.
+- No pairing problem (targets are deterministically assigned, not supervised from ground-truth faces).
+- No dependency on ArcFace, which was designed for separation not smoothness.
+- No CC-BY-NC license constraint (StyleGAN3 is Nvidia Source Code License — verify commercial terms before productizing, but non-commercial research is permitted).
 
-**The pairing problem — a real issue Vox2Face does not solve for us.** Vox2Face has (speech, ground-truth face) pairs from HQ-VoxCeleb: a speaker *has* a face. We have (job posting, ???) — **no ground-truth face per job posting exists**. Stage I of the Vox2Face recipe (supervised alignment of source embedding to ArcFace features of the target face) needs a target we do not have. Three sub-options:
+**Caveats:**
+- Dated photorealism vs SDXL/FLUX for hair, backgrounds, non-portrait content. For a fixed square portrait crop this is mostly fine; for anything else it's a limitation.
+- Fixed square portrait crop. Not a limitation for the scam-hunter / analyst / student use cases, which all render thumbnails.
+- The assignment of W vectors to qwen clusters is arbitrary. This is a feature, not a bug — we want consistent-within-cluster, distinct-between-cluster, and smooth-within-embedding-variation. Random assignment gives us that.
 
-- **(a) Synthetic anchor assignment.** Assign each cluster in qwen embedding space to a randomly sampled ArcFace vector from a reference pool. Train the MLP to respect cluster structure via a cluster-preservation loss. Faces are arbitrary but consistent. Loses the "face as encoding" semantics but preserves continuity at the cluster level. Closest to current vamp-interface's fixed-anchor pattern, just generalized from one anchor to many.
-- **(b) Contrastive-only training.** Skip Stage I entirely. Train the MLP end-to-end with only the Stage II SDS self-consistency loss plus a pairwise distance-preservation regularizer: `|d_ArcFace(f(e_A), f(e_B)) − C · d_qwen(e_A, e_B)| → 0`. No ground-truth faces needed. The MLP learns *some* projection that preserves relative structure. Risky — SDS without a stable target is prone to collapse.
-- **(c) Two-channel decoupling — RECOMMENDED.** Treat identity and drift as separable problems. Identity channel uses option (b) — contrastive-only MLP `qwen → ArcFace` with distance-preservation. Drift/sus axis is learned separately via Step 4A (h-space direction finding on Arc2Face activations from paired low-sus and high-sus generations). This matches the original vamp-interface thesis of clean two-channel encoding and sidesteps the pairing problem entirely because the drift direction is learned from internal generations, not from external (job, face) pairs.
-- **(d) HyperFace-style geometric packing — UPGRADE TO (c) after 2026-04-14 T1b research.** HyperFace (arXiv:2411.08470, late 2025) formulates synthetic identity generation as a packing problem on the ArcFace hypersphere — no paired data, no labels, pure geometric constraints (maximize minimum pairwise angle among N synthetic IDs). The connection to our case: run HyperFace's packing objective on qwen clusters, get N ArcFace target vectors that inherit the qwen cluster geometry while being optimally spread on the hypersphere, then train `qwen → ArcFace` via a simple regression to those pre-computed targets. Combined with Vox2Face's Stage II SDS self-consistency (which is discriminator-free and does not need paired data), this gives a two-stage pipeline where Stage I is unsupervised geometric and Stage II is unsupervised generative — neither needs ground-truth (job, face) pairs. **This is the current recommendation for Step 2** — read the HyperFace paper directly before implementation (T1b.6 in the queue).
+**Training cost estimate:** MLP is tiny; full training on a consumer GPU runs in hours, not days. Orders of magnitude cheaper than any SDS-based plan.
 
-### Step 3 — Frozen Arc2Face as generator
+### Option B — Arc2Face path with contrastive distance-preservation (fallback if A's photorealism is inadequate)
 
-Same as Vox2Face. No retraining of Arc2Face. Public code at `github.com/foivospar/Arc2Face`, public weights at `huggingface.co/FoivosPar/Arc2Face`, runs on 6-8 GB consumer GPU, 1-2 s per 512×512 image.
+Train `g: ℝ^1024 → ℝ^512 (ArcFace)` with **only** the pairwise distance-preservation regularizer:
+```
+L = |d_ArcFace(g(e_A), g(e_B)) − C · d_qwen(e_A, e_B)|
+```
+No ground-truth targets. No AM-Softmax. No InfoNCE. This is deliberately the weakest possible Stage I — just enough to keep the projected vectors on a roughly unit-norm sphere while preserving relative distances.
 
-### Step 4 — Drift axis (sus_level encoding)
+Then optionally apply **Vox2Face's Stage II SDS self-consistency** (verified 2026-04-14 from the full PDF) to pull projected vectors onto the high-probability Arc2Face manifold:
+- LoRA r=16, scale 16, on Q/K/V/O of both the Arc2Face CLIP text encoder and the UNet.
+- Equation 14: `L_self = E[w(t) · ||ε_θ(z_t, c_gen, t) − ε_θ(z_t, c_self, t)||²]` with stop-gradient on `c_self`.
+- 20k steps at AdamW LR 1e-6, batch 16, A800-class GPU. ~34 hours wall-clock per Vox2Face Table.
 
-Three alternatives, ranked by experimental cost:
+**Risk:** Vox2Face does not run a "Stage II alone" ablation. The `w/o ArcFace` ablation (Cosine 0.242 with shallow direct regression, vs 0.322 full) shows what happens without *any* ArcFace distillation, and the `w/CosReg` ablation (Cosine 0.317, R@10 22.5 — retrieval tanks) shows what cosine-regression alone gives. Neither of these tells us what SDS + distance-preservation does without AM-Softmax + InfoNCE. **This is a research bet, not a proven pipeline.** Run a small-scale convergence probe (1k steps on 100 identities) before committing to full training.
 
-**REVISED AGAIN 2026-04-14 after Tier 1b reads (Asyrp re-verification + HAAD + 2026 h-space successor scan).** Asyrp's linearity/homogeneity/timestep-consistency claims are **not established on any SD-family or latent-diffusion backbone** in any published source — the paper explicitly lists "h-space in latent diffusion models" as future work. CFG compatibility entirely untested. HAAD (arXiv:2507.17554), previously cited as "implicitly confirming h-space survives few-shot fine-tuning", is an adversarial-attack paper measuring gradient informativeness for poisoning DreamBooth/LoRA customization — **not** a semantic-direction-transfer study. My earlier project note overstated it. The 2026 arXiv window (2601-2604) contains **no** Asyrp-on-SD successors — the community silently migrated to cross-attention editing (Prompt-to-Prompt lineage), LoRA-weight-space editing, or latent-z SVD. The absence of canonical "Asyrp-on-SD" results three years after ICLR 2023 is itself a weak signal that h-space on latent diffusion is less clean than on unconditional DDPM.
+### Option C — HyperFace as anchor codebook (last resort)
 
-**Hard gate added to Step 4A:** Before any `f_θ` training, run a **half-day α-sweep continuity spike** on Arc2Face with a cheap attribute proxy (e.g. a single "older" Δh from 100 samples). Fixed seed, fixed Arc2Face ID, sweep α ∈ [−3, +3] in 0.5 steps, measure ArcFace-ID drift and LPIPS curves for monotonicity and homogeneity across 20 random IDs. If the curves are non-monotone or IDs collapse asymmetrically, Asyrp's assumptions do not transfer to Arc2Face and Step 4A dies. Only then invest in full `f_θ` training.
+Use HyperFace's packing to generate N well-spread ArcFace anchors. Assign each qwen cluster to its nearest anchor. Generate per-job faces as interpolations among k-nearest anchors in ArcFace space, weighted by qwen distance, then renormalized. This uses HyperFace as a *codebook*, not as a Stage I loss — HyperFace's separation objective is inherited only at the anchor scale, not at the job scale. Local smoothness comes from the interpolation step.
 
-**New candidate in this step:** **LoRA weight-space direction finding** (arXiv:2406.09413, "Interpreting the Weight Space of Customized Diffusion Models", 2024). ~65k LoRA fine-tunes, PCA on weights, linear attribute classifiers in weight space, orthogonal edit directions. Because Arc2Face is itself a fine-tune, its weight-space geometry is a natural place to find a "suspicious" direction — probably cleaner than h-space for an identity-locked backbone. **This is a credible alternative primary if the Step 4A α-sweep gate fails.** Flagged as 4F.
+**Caveats:**
+- HyperFace packing is explicitly separation-maximizing. Two adjacent qwen clusters may end up assigned to far-apart packed anchors, so cluster-level adjacency is lost. Only within-anchor local smoothness survives.
+- Adds the assignment problem (nearest-unused, Hungarian, or OT).
+- N must be chosen up-front; adding new identities later requires re-packing.
 
-**2026-04-14 (earlier this session) after Tier 1 deep reads of Boundary Diffusion, RigFace, NoiseCLR.** The earlier "training-free, no labels, drop-in" framing of 4A was based on a subagent paraphrase of Boundary Diffusion that turned out to be wrong on multiple load-bearing points. Reading the actual paper (arXiv:2302.08357, NeurIPS 2023, not CVPR 2023): the method is (1) a **linear SVM hyperplane normal**, not class-mean difference — mean-diff is just a cruder heuristic with no paper endorsement; (2) **symmetric single-step shift** at one searched mixing timestep `t_m`, not Asyrp-style asymmetric per-step `P_t` modification — these are architecturally different; (3) validated **only on unconditional DDPM/iDDPM** (CelebA, LSUN, AFHQ) — never on Stable Diffusion, never with CFG, never on identity-locked fine-tunes. Applying Boundary Diffusion's recipe to CFG'd Arc2Face with an ArcFace ID lock is a research bet, not a drop-in.
+### Killed Step 2 paths (from blind-alleys doc)
 
-The revised ranking — Asyrp's learned `f_θ` (the thing Boundary Diffusion is compared *against*, not a replacement for) is now the primary, because it is the only method in this family actually designed for per-timestep SD-family bottleneck edits with text conditioning.
+- **Vox2Face clone with AM-Softmax + InfoNCE**: needs ground-truth (source, face) pairs we don't have. Entry 3 in blind alleys.
+- **PhotoMaker fallback**: input is a stack of CLIP-image tokens from real faces, not a continuous vector. Entry 7.
+- **InstantID IdentityNet in isolation**: needs ArcFace + landmark spatial map + IP-Adapter branch; cannot isolate ID channel. Entry 8.
+- **RigFace fallback**: per-layer FaceFusion feature conditioning (worst case for Lipschitz), no embedding input port, GitHub 404, weights-only on HF. Entry 5.
+- **HyperFace-as-Stage-I**: separation-maximizing objective breaks continuity hypothesis. See HyperFace entry in paper findings log; the intended composition does not preserve local qwen structure.
 
-- **4A — Asyrp learned f_θ on Arc2Face (PRIMARY, ~20 min training on 3× consumer GPU).** Train Asyrp's 1×1 conv with timestep conditioning using a CLIP directional loss (`y_source = "a photo of a person"`, `y_ref = "a photo of a zombie"` — "zombie" is literally in Asyrp's validated showcase on CelebA-HQ). Cost per Asyrp Table: 1000 samples, S=40 timesteps, 1 epoch, ~20 minutes on 3× RTX 3090. Apply asymmetrically at inference (Theorem 1: modify only `P_t`, leave `D_t`; `[T, t_edit]` where `LPIPS(x, P_t_edit) = 0.33`). `α` linearly scales drift magnitude. Switch Arc2Face from DPM-Solver to DDIM deterministic (η=0). No CFG changes. No Arc2Face-specific replication published — we'd be early-mover on a method with the right architectural preconditions (SD 1.5 UNet, DDIM, CFG compatible via Asyrp's formulation).
-- **4B — Paired mean-difference heuristic in h-space (cheap spike, no published pedigree).** The crude version of 4A: generate N=500 low-sus / N=500 high-sus Arc2Face samples, DDIM-invert to a handful of timesteps, compute `Δh = mean(h_high) − mean(h_low)`, apply asymmetrically per Asyrp's formulation. **This is not Boundary Diffusion** — Boundary Diffusion uses SVM hyperplane normals and symmetric single-step shifts, and it has never been run on a CFG'd SD fine-tune. Mean-difference is just a zero-training heuristic worth a 2-hour spike before committing to 4A. If it gives visible controllable drift on Arc2Face, use it and skip the `f_θ` training. If not, fall through to 4A.
-- **4C — Boundary Diffusion faithful port (research bet, deprioritized).** Fit a linear SVM on h_tm activations from labeled (low-sus, high-sus) Arc2Face generations at a searched `t_m`, use the hyperplane normal as a one-shot shift at `t_m`. Needs DDIM inversion + `t_m` search + 500-2000 labeled samples. Major unknowns: interaction with CFG, interaction with ArcFace ID lock. Only consider this if both 4A and 4B fail and we want to burn a week on a replication.
-- **4D — Concept Slider trained against Arc2Face directly.** Point `pretrained_model.name_or_path` at Arc2Face checkpoint, supply ArcFace ID embeddings as conditioning (not text), train a "suspicious" direction with paired anchor/drifted images. Critical: **do not port a slider from vanilla SD 1.5** — V4 verification found LoRAs do not transfer reliably from base to fine-tuned checkpoints (sliders#95, LoRAtorio).
-- **4E — Arc2Face expression adapter with FLAME coefficients.** Zero training, public code. Useful only as a smoke test of whether FLAME expression dimensions proxy our drift axis. Probably not — uncanny is not a FLAME dimension.
-- **4F — LoRA weight-space direction (arXiv:2406.09413).** Fit ~N LoRA adapters on Arc2Face with paired (low-sus, high-sus) prompts or supervision signals, collect the weight deltas, run PCA on weight space, extract the first principal direction or a linear classifier normal. Apply by interpolating LoRA weight offsets at inference. Because Arc2Face is a fine-tune and LoRA weight-space is a natural latent for fine-tune-specific semantic directions, this may be the cleanest path on an identity-locked backbone. Moderate cost (training many LoRAs is not cheap, but each is small). **Promoted to "serious alternative primary" if the α-sweep gate kills 4A/4B.**
+## Step 3 — Generator
 
-**Order:** 4B (2-hour spike, zero training) → **MANDATORY α-sweep continuity gate** → 4A (20-min training if 4B showed signs of life) → 4F (LoRA weight-space, if h-space paths both fail the gate) → 4D (Concept Slider trained directly, last diffusion-side option) → 4E (FLAME expression smoke test) → 4C (Boundary Diffusion faithful port, research bet).
+**For Option A:** frozen StyleGAN3 FFHQ. Public code, public weights, deterministic synthesis.
 
-**NoiseCLR ruled out.** Evaluated in T1.3 as a possible unsupervised alternative. Wrong slot (learns pseudo-tokens in CLIP text-conditioning space, which Arc2Face has semantically repurposed for ArcFace identity), wrong geometry (operates at ε-output via CFG, not h-space), vanilla SD only, and unsupervised discovery gives no guarantee "uncanny" is among the K directions it finds. Do not spend cycles on it.
+**For Option B:** frozen Arc2Face. Public code at `github.com/foivospar/Arc2Face`, weights at `huggingface.co/FoivosPar/Arc2Face`. CC-BY-NC. Inference ~4.3 s per 512×512 image on A800 (Vox2Face Table measurement) — the community "1-2 s" number appears to have been optimistic. Recompute the caching budget against 4.3 s for 10k+ jobs.
 
-### Step 5 — Continuity validation (MANDATORY pre-flight)
+**For Option C:** frozen Arc2Face (same as B).
 
-**This is the most important experiment of the rebuild.** Everything downstream assumes Arc2Face is locally Lipschitz in the conditioning space. The Arc2Face paper shows one qualitative interpolation demo (Section 4.4 "Averaging ID Features") with no smoothness metrics; Arc2Morph only studies the midpoint α=0.5; nobody has run the continuous sweep.
+**Upgrade path if SD 1.5 ceiling becomes limiting:** InfiniteYou (arXiv:2503.16418, ByteDance, Mar 2025, FLUX DiT backbone, InfuseNet residual injection of ArcFace features, code + weights released). **PROVISIONAL** — not first-hand read yet. Queued as T1b.10. Do not commit before reading.
 
-**Protocol:**
+## Step 4 — Drift axis (encoding sus_level)
 
-1. Sample 20-50 pairs of real ArcFace embeddings from a public face dataset (e.g., FFHQ aligned, or the Vox2Face test set).
-2. For each pair, sweep α ∈ [0, 1] in 20 steps.
-3. Generate ~20 frames per sweep via frozen Arc2Face.
-4. Measure pairwise LPIPS (or DreamSim) between consecutive frames.
+Regardless of which Step 2 option wins, the drift axis lives in the backbone's editing latent. For StyleGAN3 (Option A), there are well-established W-space edit directions that don't need anything Asyrp-related. For Arc2Face (Options B, C), the following ranking holds.
+
+**Mandatory α-sweep continuity gate before any drift-axis training.** Asyrp's homogeneity/linearity/timestep-consistency claims are NOT established on any latent-diffusion or CFG backbone per the paper's Section 5.3 (the "roughly consistent" hedge is load-bearing) and the paper explicitly lists "h-space in latent diffusion models" as future work. HAAD (arXiv:2507.17554) is an adversarial-attack paper, not a transfer study — my earlier citation of it as supporting evidence was wrong. Before investing in `f_θ` training, run the half-day gate: fixed seed + fixed identity token, single cheap learned Δh_mid, sweep α ∈ [−3, +3] in 0.5 steps, measure ArcFace-ID drift and LPIPS curves across 20 random IDs. Non-monotone or asymmetric collapse kills the option.
+
+**Option 4S (StyleGAN3 path).** Train a W-space direction classifier on paired low-sus / high-sus latents, or use an established W-space edit (InterFaceGAN, StyleFlow-style) for a "disgusted" or "unhealthy" axis. Cheap, well-trodden territory.
+
+**Option 4B (mean-difference heuristic, Arc2Face path, 2-hour spike).** Generate N=500 low-sus + N=500 high-sus Arc2Face samples, DDIM invert, `Δh = mean(h_high) − mean(h_low)`, apply asymmetrically per Asyrp Theorem 1. This is not Boundary Diffusion — Boundary Diffusion uses linear SVM hyperplane normals with symmetric one-shot shifts at a searched `t_m` on unconditional DDPM backbones, not mean-difference on SD. Mean-diff has no published pedigree on SD; it's just the cheapest thing worth a spike.
+
+**Option 4A (Asyrp learned f_θ, Arc2Face path, 20 min training).** CLIP directional loss with `y_source="photo of a person", y_ref="photo of a zombie"`. "Zombie" is explicitly in Asyrp's validated CelebA-HQ edits. 1000 samples, 40 timesteps, 1 epoch, ~20 min on 3× RTX 3090. Asymmetric reverse, editing interval `[T, t_edit]`, DDIM η=0. Gate on the α-sweep first.
+
+**Option 4F (LoRA weight-space direction finding, arXiv:2406.09413).** Fit PCA / linear classifiers in LoRA weight space. Natural fit for already-fine-tuned backbones like Arc2Face. **PROVISIONAL** — queued as T1b.9, not first-hand read yet. Promising in principle but don't commit before reading.
+
+**Option 4D (Concept Slider trained directly against Arc2Face).** Do not port sliders from vanilla SD 1.5 (V4 verification: LoRAs don't transfer cleanly to fine-tuned backbones). Train fresh against Arc2Face with paired anchor / drifted images.
+
+**Option 4E (Arc2Face expression adapter, FLAME coefficients).** Smoke test only. Uncanny is not a FLAME dimension.
+
+**Option 4C (Boundary Diffusion faithful port, research bet).** Linear SVM hyperplane normal in h-space at a searched `t_m`, symmetric one-shot shift. Needs labeled pairs, DDIM inversion, `t_m` search, untested CFG interaction. Deprioritized — don't invest here until 4A/4B/4F all fail.
+
+## Step 5 — Continuity pre-flight (mandatory)
+
+Before any Step 2 training, verify the chosen backbone is locally Lipschitz in its conditioning space on a held-out test:
+
+1. Sample 20-50 pairs of real conditioning vectors (FFHQ W for Option A, real ArcFace for Options B/C).
+2. Sweep α ∈ [0, 1] in 20 steps.
+3. Generate ~20 frames per sweep via the frozen generator.
+4. Measure pairwise LPIPS between consecutive frames.
 5. Distribution analysis:
-   - **Smooth, short-tailed** distribution → ArcFace space is usable as-is. Proceed with Option 2a.
-   - **Bimodal or heavy-tailed** → some pairs have discontinuities. Switch to Option 2b (CLIP token space) and re-run the test.
-   - **Both spaces heavy-tailed** → need a continuity regularizer in Step 2 training.
+   - Smooth, short-tailed → proceed with Step 2 training.
+   - Bimodal or heavy-tailed → backbone fails continuity, switch options.
 
-Budget: half a day of compute, zero new training.
+For Option A, the pre-flight is likely a formality since StyleGAN W-space is famously smooth, but it's still cheap insurance and doubles as a sanity check on our measurement protocol.
 
-### Step 6 — Pipeline and caching
+For Option B, this is where Arc2Face's ArcFace-512 behavior gets characterized for the first time on a real metric — no published work has run this specific experiment, so we'd be filling a research gap.
 
-Same pattern as current vamp-interface: for each job, (a) compute qwen embedding, (b) project to conditioning space, (c) generate via frozen Arc2Face, (d) apply drift direction with strength = f(sus_level), (e) cache 256×256 PNG keyed by job_id. Fully offline, static serving.
+Budget: half a day of compute, zero training.
 
-## Verification findings (pre-rebuild)
+## Step 6 — Pipeline and caching
 
-Three parallel agents verified specific questions the Face Research review did not answer:
+For each job: (a) compute qwen embedding, (b) project to conditioning space via `g`, (c) generate via frozen generator, (d) apply Step 4 drift direction with strength `f(sus_level)`, (e) cache 256×256 PNG keyed by job_id. Fully offline, static serving. Same pattern as current vamp-interface.
 
-| Item | Result | Confidence | Impact |
-|---|---|---|---|
-| **V1** Arc2Face operational status (repo active, weights public, VRAM, forks) | Green. 6-8 GB VRAM, clone-and-run today. 791 stars, active October 2025 commits. | High | No blocker |
-| **V2** Arc2Face expression adapter code release | Green. Same repo, October 2025 commit. Not paper-only. | High | Option 4C unblocked |
-| **V3** Cross-domain projection prior art | **Vox2Face (MDPI 2026) is a direct template.** Speech encoder → ArcFace hypersphere via metric distillation, Arc2Face frozen, self-consistency loss. | High | **Step 2 reduces from research to adaptation** |
-| **V4** Concept Sliders on fine-tuned Arc2Face | Unknown, evidence leans unreliable. sliders#95 reports "no effect" on custom checkpoints. LoRAtorio confirms cross-base LoRA degradation. | Medium | Train slider *against* Arc2Face directly, not port from vanilla SD |
-| **V5** Arc2Face continuity | Not characterized in literature. Arc2Morph shows weak empirical case for CLIP space over ArcFace space at midpoint only. No Lipschitz analysis exists. | Medium | **Pre-flight continuity test is mandatory (Step 5)** |
-| **V6** h-space on fine-tuned diffusion | Unknown. No published Arc2Face-specific work. HAAD (arXiv:2507.17554) implicitly confirms h-space survives few-shot fine-tuning. | Medium | Viable fallback (Step 4A), half-day probe |
-| **V7** Face-as-visualization prior art | **Empty.** No 2023-2026 work proposes face-per-datum as a continuous visualization encoding. Chernoff faces (1973) is the only ancestor. | High | **Novelty claim defensible** |
-
-## Tier 1b deep-read findings (2026-04-14 late session)
-
-After the Tier 1 pass exposed shallow-research errors, a second round of four parallel agents verified: the fallback candidates I had *just* promoted (PhotoMaker, InstantID, StyleGAN3 w+), Asyrp's linearity claims on SD-family backbones (HAAD + 2026 h-space successors), the Vox2Face full PDF, and a 2026 arXiv scan for parametric face generation alternatives.
-
-| Item | Finding | Impact |
-|---|---|---|
-| **T1b.1a PhotoMaker** (arXiv:2312.04461) | CLIP-ViT-L/14 image-embedding token stack, backbone SDXL + LoRA adapters. Requires N real face images, not a continuous vector. Identity co-determined by text. | **Killed as fallback.** Cannot be driven by a single projected qwen vector. |
-| **T1b.1b InstantID** (arXiv:2401.07519) | IdentityNet is a ControlNet variant needing *both* an ArcFace vector *and* a 2D landmark spatial map + IP-Adapter image branch. | **Killed as fallback.** Cannot isolate a single continuous ID channel. |
-| **T1b.1c StyleGAN3 FFHQ W** | Viable if we target native **W** (not w+) and train `qwen → W` from scratch. e4e reconstruction penalty only applies to real-image inversion. | **Promoted to primary fallback.** Locally-Lipschitz by construction, deterministic, no ArcFace dependency. |
-| **T1b.1d InfiniteYou** (arXiv:2503.16418, Mar 2025, ByteDance) | FLUX DiT backbone, InfuseNet residual injection of ArcFace features, code + weights released. | **Added as newer-backbone upgrade path.** Needs its own continuity pre-flight — residual injection is a more complex conditioning shape. |
-| **T1b.2a Asyrp linearity on SD** | Paper claims are NOT established on any latent-diffusion or CFG backbone; "h-space in latent diffusion models" is explicit future work. Only DDPM/iDDPM/ADM on CelebA-HQ/AFHQ/LSUN are tested. "Roughly consistent" hedge is load-bearing — Section 5.3 shows that a global Δh "yields similar results" as the per-timestep proof. | **Step 4A downgraded.** α-sweep continuity gate made mandatory before `f_θ` training. |
-| **T1b.2b HAAD** (arXiv:2507.17554) | Adversarial-attack paper crafting PGD perturbations in h-space to poison DreamBooth/LoRA personalization. Does NOT demonstrate semantic-direction transfer under fine-tuning. | **Earlier project note overstated.** Corrected in primitives memory. |
-| **T1b.2c 2026 h-space successors** | None in arXiv 2601-2604 for SD-family h-space direction finding. FLUID (arXiv:2511.17005, Nov 2025) does linear-vs-geodesic h-space editing on unconditional only. **LoRA weight-space editing (arXiv:2406.09413)** is a credible alternative latent — because Arc2Face is itself a fine-tune, weight-space semantic directions may be cleaner than h-space. | **Added Option 4F (LoRA weight-space)** to Step 4 as serious alternative primary. |
-| **T1b.3a Vox2Face details** | Stage I is **AM-Softmax + InfoNCE** (not plain cosine, not ArcFace angular margin). Stage II is SDS with LoRA on both text encoder and UNet attention layers. No GitHub repo found — assume no code release. | **Stage I as-is is not transferable** (needs identity labels and paired positives we don't have). Stage II SDS + LoRA recipe is transferable. |
-| **T1b.3b HyperFace** (arXiv:2411.08470, late 2025) | **The missing piece.** Formulates synthetic ID generation as a packing problem on the ArcFace hypersphere — maximize minimum pairwise angle among N synthetic IDs, no labels, no paired data, pure geometric constraints. | **Added as Step 2 Option (d).** Combined with Vox2Face Stage II SDS, gives a fully unsupervised two-stage pipeline that solves our pairing problem. **This is now the recommended Step 2.** |
-| **T1b.4 2026 parametric face generation scan** | No 2601-2604 paper releases a new identity-conditioned foundation model with code/weights on a modern backbone. 2026 activity is dominated by face-swapping, forensics, sampling-time tricks. RigFace/MorphFace have no successors in the window. ArcFace is still the reference identity embedding. | **Arc2Face is still the reference anchor.** Rebuild is not anchoring on deprecated work. |
-
-**Residual research debts:** (a) **Vox2Face full PDF** — agent could not access it (WebFetch denied); exact SDS equation, LoRA rank, ablation numbers still unread — fetch manually before implementation. (b) **HyperFace full read** — promoted to primary Step 2 recommendation based on Agent C's summary, must be verified against primary source before building. (c) **FEM** (arXiv:2602.13168) — KAN-based embedding projection is methodologically adjacent to our Step 2 MLP; worth a short read for the MLP-vs-KAN choice. (d) **LoRA weight-space editing** (arXiv:2406.09413) — cited as Option 4F but not first-hand read. (e) **InfiniteYou continuity pre-flight** — if SD 1.5 ceiling becomes limiting, run Step 5 against InfiniteYou FLUX as well.
-
-## Tier 1 deep-read findings (2026-04-14 post-compaction)
-
-The deeper-research queue at [2026-04-14-deeper-research-queue.md](2026-04-14-deeper-research-queue.md) identified three Tier 1 papers whose claims were load-bearing for this plan but had never been read against primary sources. All three were dispatched as parallel deep-read agents; all three produced material corrections.
-
-| Item | Finding | Impact |
-|---|---|---|
-| **T1.1 Boundary Diffusion** (arXiv:2302.08357, NeurIPS 2023) | Method is linear SVM hyperplane normal, not class-mean difference. Symmetric single-step shift at searched `t_m`, not Asyrp-style asymmetric per-step P_t modification. Validated only on unconditional DDPM/iDDPM — never SD, never CFG, never identity fine-tunes. Still requires attribute-labeled pairs for the SVM fit. | Step 4A reframed: Asyrp learned `f_θ` promoted to primary; mean-difference demoted to a 2-hour spike heuristic; Boundary Diffusion faithful port deprioritized to 4C research bet. |
-| **T1.2 RigFace** (arXiv:2502.02465) | Identity Encoder is a full second SD 1.5 UNet with per-layer spatial features fused via FaceFusion concat-attention. **No embedding input port — requires a pixel reference image.** Per-layer feature conditioning is worst-case for Lipschitz behavior. No code, no weights released. | **Removed from fallback list.** If Arc2Face fails Step 5 continuity, candidates are PhotoMaker, InstantID IdentityNet in isolation, or StyleGAN3 w+ — not RigFace. |
-| **T1.3 NoiseCLR** (arXiv:2312.05390, CVPR 2024) | Learns pseudo-tokens in CLIP text-conditioning space (the slot Arc2Face repurposes for ArcFace). Operates at ε-output via CFG, not h-space. Vanilla SD 1.5 only — zero fine-tune validation. Unsupervised discovery — no guarantee the K directions include "uncanny". | Ruled out entirely. Wrong slot, wrong geometry, wrong backbone regime, wrong supervision mode for a targeted axis. |
-
-The pattern from these three confirms the `feedback_shallow_research_risk.md` lesson: summary-level descriptions systematically compress away the architectural details that matter for implementation. Every one of the three subagent paraphrases we previously trusted turned out to be wrong in a way that would have cost days of implementation work.
-
-## Reading notes
-
-### Arc2Morph (arXiv:2602.16569v1, Feb 2026)
-
-Di Domenico, Franco, Ferrara, Maltoni, University of Bologna. Published in the morphing-attack-detection / biometric security literature, not visualization.
-
-**Architecture (inference-only, zero training):**
-```
-I_A ─► ArcFace ─► e_A ─┐
-                       ├─► Arc2Face CLIP text encoder ─► p_A ─┐
-I_B ─► ArcFace ─► e_B ─┘                                      │
-                                                               ├─► slerp(α=0.5) ─► p_M
-EMOCAv2 ─► 3D normal map ─► ControlNet ──────────────────────────────────────────┤
-                                                                                  ▼
-                                                                     Arc2Face UNet
-                                                                             ▼
-                                                                       BEN2 matting
-                                                                             ▼
-                                                                     final morphed face
-```
-
-**Pivotal detail** (not in the Arc2Face README, only in Arc2Morph's description): Arc2Face's text encoder is a finetuned CLIP-ViT-L/14 that maps ArcFace 512-d vectors into a **5-token CLIP text embedding** via the template `"photo of a ⟨id⟩ person"` with the ArcFace vector padded into the `⟨id⟩` slot. The UNet never sees raw ArcFace — it sees these 5 tokens. This is the *actual* conditioning space of Arc2Face and the space where continuity matters.
-
-**Their ablation (Table V):**
-
-| Dataset | Interpolation location | Method | MAP_Avg |
-|---|---|---|---|
-| FEI | Identity (ArcFace) | lerp | 0.9778 |
-| FEI | Identity (ArcFace) | slerp | 0.9679 |
-| FEI | CLIP tokens | lerp | 0.9747 |
-| **FEI** | **CLIP tokens** | **slerp** | **0.9835** |
-| MONOT | Identity | lerp | 0.8539 |
-| **MONOT** | **CLIP tokens** | **slerp** | **0.8858** |
-
-Slerp in CLIP token space wins both datasets by +0.6 to +3 percentage points of Morphing Attack Potential. Real but modest.
-
-**What they do NOT study:** continuity along the α sweep, any α ≠ 0.5, LPIPS/FID/smoothness metrics, why CLIP beats ArcFace (only hand-waves about "higher dimensionality and richer semantic structure"). Code not released at time of v1.
-
-**Reusable primitives:** Arc2Face as generator, slerp over lerp as default, ControlNet + normal map for pose control, BEN2 for background cleanup.
-
-**Not reusable:** MAP metric (biometric security, not visualization), α=0.5 midpoint-only focus, the Vox2Face-grade projection training (Arc2Morph assumes you start with two real ArcFace embeddings; we start with qwen embeddings and have to learn the projection).
-
-### Arc2Face paper (arXiv:2403.11641, ECCV 2024 Oral) — Section 4.4 and text encoder details
-
-**What the interpolation experiment actually shows.** Section 4.4 ("Averaging ID Features") is purely qualitative: "we provide transitions between pairs of subjects by linearly blending their ArcFace vectors" and "Arc2Face generates plausible faces along the trajectory connecting their ArcFace vectors." Figure 10 shows a small qualitative grid; the number of pairs is not stated. **No quantitative trajectory analysis, no smoothness metric, no identity-distance plot, no failure-mode discussion.** For our continuity hypothesis this is thin — they assert plausible interpolation but never measure it.
-
-**The text encoder architecture — the load-bearing detail.** Arc2Face's conditioning is a fine-tuned CLIP-ViT-L/14 text encoder processing the prompt template `"photo of a ⟨id⟩ person"` tokenized into 5 tokens. The `⟨id⟩` slot receives the ArcFace 512-d vector **zero-padded to 768-d**:
-
-> "ŵ ∈ ℝ^768 corresponds to w ∈ ℝ^512 after zero-padding to match the dimension of eᵢ ∈ ℝ^768"
-
-**Zero-padding, not a learned projection.** They ablate against a 4-layer MLP (Fig. 9) and find the fine-tuned-CLIP + direct-substitution design wins on identity similarity. Only one of the 5 tokens carries identity; the others are frozen pseudo-prompt context. A PCA analysis (Fig. 8) finds ArcFace space needs 300-400 components to preserve facial fidelity — high intrinsic dimensionality.
-
-**Text channel is dead.** After fine-tuning, Arc2Face "exclusively adheres to ID-embeddings, disregarding its initial language guidance." Any downstream controllability must come from ControlNet, LoRAs, or h-space interventions, not from prompts.
-
-**Training recipe.** Stage 1: ~21M images from WebFace42M (1M identities), super-resolved to 448×448 with GFPGAN v1.4, 5 epochs. Stage 2: FFHQ + CelebA-HQ at 512×512, 15 epochs. 8× A100, batch size 4/GPU, AdamW, LR 1e-6. ArcFace extractor is frozen IR-100 (WebFace42M-trained), unit-normalized.
-
-**Inference.** DPM-Solver, 25 steps, CFG=3.0. Per-image time not reported in the paper; community reports ~1-2 s on a single consumer GPU.
-
-**Non-memorization check.** Generated-to-training ArcFace similarity = 0.37 vs input-similarity = 0.74 — evidence of generalization, not retrieval.
-
-### Vox2Face (MDPI Information 17(2):200, 2026)
-
-**Note: the agent could only reach the MDPI abstract page, not the full PDF.** Exact hyperparameters, loss weights, LoRA rank, ablation details are not recovered. What follows is what's confirmed by the abstract and search-indexed excerpts. The full PDF will need a second pass when we need implementation details.
-
-**Bibliographic:** "Vox2Face: Speech-Driven Face Generation via Identity-Space Alignment and Diffusion Self-Consistency", MDPI *Information*, Vol. 17 Issue 2 Article 200. Received 2025-12-25, published 2026-02-14. Correct DOI pattern: `10.3390/info17020200`. Correct URL: `https://www.mdpi.com/2078-2489/17/2/200` (the earlier draft had an ISSN typo). Authors and affiliations not recovered. License likely CC-BY 4.0 per MDPI default but not confirmed.
-
-**Architecture (confirmed):**
-
-- **Speech encoder**: pretrained AST (Audio Spectrogram Transformer, Gong et al., Interspeech 2021). Variant unconfirmed. Frozen.
-- **Mapping network**: MLP distilling AST features into ArcFace 512-d hyperspherical space. Exact depth/widths unrecovered.
-- **Diffusion backbone**: Arc2Face, frozen UNet weights, with LoRA adapters on attention projections (rank unrecovered).
-- **Target space**: ArcFace 512-d, *not* CLIP token space. **Confirms our architectural choice.**
-
-**Trainable**: MLP + LoRA. **Frozen**: AST, Arc2Face UNet base, VAE, CLIP text encoder, ArcFace network (used only as supervision signal).
-
-**Losses (confirmed):**
-
-1. **Stage I — metric distillation / identity alignment**: cosine similarity / contrastive loss on the ArcFace hypersphere, supervised by ArcFace features of the target face image. Exact form (plain cosine regression, InfoNCE, or ArcFace-style angular margin) not disambiguated from the abstract.
-2. **Stage II — diffusion self-consistency**: SDS-style (Score Distillation Sampling, DreamFusion lineage). Sample t, add noise to VAE-encoded target, denoise with frozen Arc2Face conditioned on predicted identity vector ĉ = MLP(speech), backprop `ε_pred − ε_true` through the conditioning path only. Gradients flow into MLP weights and LoRA adapters. UNet base weights receive no gradient. **Discriminator-free. No perceptual loss. SDS + cosine alignment is the entire loss stack.**
-
-**Training:**
-
-- **Dataset**: HQ-VoxCeleb (curated high-quality subset of VoxCeleb with paired speaker audio and face images).
-- **Two-stage regime**: Stage I pretrains the MLP with the alignment loss alone, Stage II unfreezes the LoRAs and switches to SDS self-consistency. **This two-stage structure is load-bearing** — pure SDS from a random MLP init would likely collapse.
-- **Hardware, epochs, batch size, LR**: unrecovered.
-
-**Results (from abstract):**
-
-| Metric | Baseline | Vox2Face |
-|---|---|---|
-| ArcFace cosine similarity (↑) | 0.295 | 0.322 |
-| R@10 speech→face retrieval (↑) | 29.8% | 32.1% |
-| VGGFace Score (↑) | 18.82 | 23.21 |
-
-Modest but non-trivial improvements over an unnamed strong baseline. **No FID, no LPIPS, no continuity metrics, no identity-geometry analysis.**
-
-**Code/weights**: not visible in search results. **Assume unreleased** until the PDF confirms otherwise. MDPI has a Data Availability Statement section that would settle this.
-
-**The pairing problem they sidestep and we cannot.** Vox2Face has ground-truth (speech, face) pairs from VoxCeleb. We have (job posting, ???). The Stage I alignment loss requires a target face we do not have. This is the gap that forces Step 2's option (c) (two-channel decoupling, contrastive-only MLP, drift via h-space).
-
-### Asyrp (arXiv:2210.10960, ICLR 2023 Oral) — h-space direction finding
-
-**What h-space is.** The UNet bottleneck at layer 8 — "the bridge of the U-Net, not influenced by any skip connection, has the smallest spatial dimension with compressed information." For SD 1.5 this is approximately 8×8×1280 ≈ 80k dimensions. Arc2Face inherits the SD 1.5 UNet structure unchanged, so the layer choice and bottleneck shape port directly.
-
-**Direction-finding procedure.** Neither paired-image supervised nor PCA. Asyrp trains **a small 1×1 conv network f_θ with timestep conditioning** using a **CLIP directional loss** (Gal et al., StyleGAN-NADA):
-
-> L^(t) = λ_CLIP · L_direction(P_t^edit, y_ref; P_t^source, y_source) + λ_recon · |P_t^edit − P_t^source|
-
-You give it text prompts `y_source` and `y_ref` and the method finds a Δh per sample and per timestep. Training cost: **1000 samples, S=40 timesteps, 1 epoch, ~20 minutes on 3× RTX 3090**. Extremely cheap.
-
-**The asymmetric reverse trick.** Directly adding Δh to both the predicted-x0 term `P_t` and the noise term `D_t` causes "destructive interference" (Theorem 1 in the paper) — the edit gets cancelled. The fix: modify only `P_t`, leave `D_t` unchanged:
-
-> x_{t−1} = √α_{t−1} · P_t(ε^θ(x_t | Δh_t)) + D_t(ε^θ(x_t))
-
-**Editing interval.** Apply Δh only over `[T, t_edit]` — early (noisy) timesteps only. `t_edit` is chosen by an LPIPS criterion: pick the latest timestep such that `LPIPS(x, P_t_edit) = 0.33`. After `t_edit`, the unmodified reverse process runs, preserving fine detail.
-
-**Claimed properties.** Homogeneity ("same Δh leads to same effect on different samples"), linearity ("linearly scaling Δh controls magnitude"), robustness ("preserves quality without degradation"), timestep consistency ("Δh_t is *roughly* consistent across timesteps" — note the hedge).
-
-**Validated edits on face models.** Smiling, sad, angry, tanned, disgusted, makeup, curly hair, bald, young, **zombie**, identity swap (Nicolas Cage, Zuckerberg), style transfer (Pixar, Frida, Modigliani). **"Zombie" is in the showcase** — Asyrp already demonstrates a direct drift into uncanny territory purely via CLIP text prompt. **Glasses are absent** — the 8×8 bottleneck is too coarse for small localized features, which bleed into global style shifts. For us this is a positive — we want global drift, not localized attribute manipulation.
-
-**Applicability to Arc2Face:** straightforward. The UNet bottleneck is structurally identical. Asyrp requires DDIM deterministic sampling (η=0) for inversion, so we need to switch Arc2Face from DPM-Solver to DDIM during both training and inference. No CFG changes required. No Arc2Face-specific replication has been published — we would be early-mover.
-
-**Boundary Diffusion as an "easy drop-in" — corrected.** Earlier drafts of this document claimed Boundary Diffusion (Zhu et al., NeurIPS 2023 — not CVPR 2023 as previously written; arXiv:2302.08357) showed "class-mean difference in h_t is a drop-in for Asyrp's f_θ". **That is wrong on three points.** Reading the paper: (1) the method is a *linear SVM hyperplane normal*, not class-mean difference; (2) the edit is a *symmetric one-shot shift* at a single searched mixing timestep `t_m`, not an asymmetric per-step `P_t` modification; (3) the paper validates only on unconditional DDPM/iDDPM (CelebA-HQ, LSUN, AFHQ) and never touches Stable Diffusion, CFG, or identity-fine-tuned backbones. The paper even notes: "the ability for unseen domain image editing is relatively limited compared to other learning-based methods." A faithful port to Arc2Face is Option 4C in the drift ranking — a research bet, not a drop-in. The honest zero-training heuristic for us is **paired mean-difference in h-space applied via Asyrp's asymmetric formulation** (Option 4B): it has no Boundary-Diffusion pedigree, it's just the cheapest thing worth trying before paying Asyrp's 20-minute training cost.
-
-**Known community observation**: h-space directions trained on a base checkpoint transfer to fine-tunes but lose sharpness; retraining on the target checkpoint is cheap (20 min) and recommended. For any h-space direction this maps to: extract h_t from *Arc2Face* generations specifically, not from vanilla SD 1.5.
-
-## License constraint — Arc2Face is CC-BY-NC
-
-Arc2Face is released under **Creative Commons Attribution-NonCommercial**. This has real implications for the rebuild:
-
-- **Any derivative work built on Arc2Face inherits the non-commercial restriction.** The facemap library, Scam Guessr, any hosted tool — all must be non-commercial in distribution.
-- **This is compatible with** the Face Research review's CC-BY-4.0 license, an academic publication, an open-source library released under CC-BY-NC (not MIT/Apache), a free Scam Guessr game with no revenue, donations, or sponsorship that doesn't trigger commercial-use clauses.
-- **This is incompatible with** a paid Scam Guessr app, ads on a Scam Guessr web property, a commercial API of the facemap library, enterprise licensing.
-
-**Decision:** accept the CC-BY-NC constraint for the initial build. The immediate deliverables are a preregistered user study, an open-source library, and a free game — all non-commercial. If any of those take off and commercial licensing becomes valuable, options at that point:
-
-1. Contact the Arc2Face authors at MPI/Imperial for commercial licensing terms.
-2. Swap the backbone to a permissive-license alternative: SDXL, SD 3, Flux. Loses Arc2Face's identity conditioning — would need to retrain something equivalent. Major architectural cost.
-3. Train an identity-conditioned backbone from scratch under a permissive license. Impractical for a solo developer with Claude Code. A paper-level effort on its own.
-
-**Flag in the README when we ship:** "This library is non-commercial due to Arc2Face's CC-BY-NC license. Commercial use requires separate licensing from the Arc2Face authors."
+**Caching budget update:** Arc2Face on A800 runs ~4.3 s per 512×512 image (Vox2Face Table). For 10k jobs → ~12 hours of generation per run. StyleGAN3 is faster (sub-second per image on the same class of GPU). This is another reason to prefer Option A: orders of magnitude cheaper offline generation.
 
 ## Go/no-go recommendation
 
-**Proceed with the rebuild.** The verification pass turned up one major gift (Vox2Face), one warning (continuity not characterized, must test), and one architectural insight (the CLIP token space as the actual Arc2Face conditioning space). Nothing is a blocker. The novelty claim on the visualization primitive is defensible. The engineering surface is smaller than the initial plan suggested — Vox2Face collapses the "hard Step 2" from weeks of custom work into adapting a published pipeline.
+**Proceed with Option A (StyleGAN3).** Run the Step 5 pre-flight first as a cheap sanity check, then build Step 2 Option A directly. Budget ~1 week from the pre-flight to a working offline pipeline.
 
-**Critical path:**
+If Option A's photorealism is inadequate for the scam-hunter / analyst / student evaluations, fall through to Option B with a small-scale convergence probe first (1k steps on 100 identities, check that SDS + distance-preservation regularizer actually trains stably without AM-Softmax + InfoNCE). Only commit to Option B's full ~34-hour Stage II run after the probe confirms training stability.
 
-1. Read Vox2Face in depth (2 hours)
-2. Run the Step 5 continuity test (half day of compute, no new training)
-3. Run the Step 4A h-space probe (half day)
-4. Implement Step 2 following Vox2Face (1-2 weeks depending on data curation)
-5. Wire Step 6 pipeline (1-2 days)
-6. Run the original study plan (H1a/b/c via in-game metrics, see below)
+**Critical path (Option A, optimistic):**
 
-**If any critical path step fails, the fallback order is:**
+1. Step 5 continuity pre-flight on StyleGAN3 W — half day of compute
+2. Step 2 Option A training — 1-2 days (MLP + regularizer, small dataset)
+3. Step 4S W-space drift direction — half day
+4. Step 5 pre-flight for the drift direction (α-sweep on the chosen axis) — half day
+5. Step 6 pipeline wiring — 1-2 days
+6. Offline generation of per-job faces — hours to a day depending on N jobs
+7. Launch user study on the new version
 
-- Step 5 fails in ArcFace space → switch to CLIP token space
-- Step 5 fails in both → add continuity regularizer to Step 2 training
-- Step 4B mean-diff spike weak → try Step 4A (Asyrp learned f_θ, 20 min)
-- 4A fails → 4D (Concept Slider trained directly against Arc2Face)
-- 4D fails → 4E (FLAME expression adapter smoke test)
-- 4E inadequate → 4C (Boundary Diffusion faithful SVM port, research-grade effort)
-- All drift options fail → keep the v8c LoRA from the current pipeline as a stopgap and ship the visualization without parametric drift control
+**If we end up on Option B, add ~1 week for the SDS convergence probe + full Stage II training.**
 
-**Backbone fallback if Step 5 continuity test kills Arc2Face — REVISED 2026-04-14 after T1b.1.** The earlier fallback list (PhotoMaker, InstantID, StyleGAN3) was the shallow-research-lesson repeating itself in real time. Deep reads of the first two killed them:
+## Residual reads before implementation
 
-- **PhotoMaker — NOT VIABLE.** Input space is a *stack* of CLIP-ViT-L/14 image-embedding tokens from N real face images, not a single continuous vector. Single synthetic token is off-manifold; identity is co-determined by text ("a man/woman") breaking continuous-identity property.
-- **InstantID — NOT VIABLE.** IdentityNet is a ControlNet variant requiring *both* an ArcFace vector *and* a 2D facial-landmark spatial map at inference, plus an IP-Adapter CLIP-image branch for appearance. Cannot isolate "just the ID channel" with a projected qwen vector.
+These are the remaining unverified items from the Tier 1b session. Addressing them is not strictly blocking for Option A but becomes blocking for Options B/C or for backbone upgrades.
 
-Surviving and newly-added candidates:
-
-- **StyleGAN3 FFHQ + learned `qwen → W` MLP — VIABLE, now the cleanest continuous-identity fallback.** Critical subtlety: train directly into **native W** (not the extended w+), so the learned codes live on the trained manifold and inherit StyleGAN's smoothness for free. The e4e/pSp/ReStyle reconstruction penalty in the literature is a symptom of *real-image inversion*, not of projection from an external encoder — it does not apply to our use case. Properties: locally-Lipschitz latent by construction, single deterministic forward pass (no sampler stochasticity), no ArcFace dependency. Caveats: FFHQ prior is dated (2019-2021), fixed square portrait crop, photorealism below SDXL/FLUX on non-portrait content.
-- **InfiniteYou (arXiv:2503.16418, Mar 2025, ByteDance) — VIABLE, newer-backbone upgrade path.** FLUX DiT backbone, InfuseNet residual injection of ArcFace-derived identity features, **code and weights released**. This is the genuine "newer-than-SD-1.5-with-code" option if SD 1.5's ceiling starts biting. Caveat: residual injection is a less clean conditioning shape than Arc2Face's cross-attention token substitution — projection into the InfuseNet space is more complex and the continuity property needs its own pre-flight test before adoption. License needs verification.
-
-**2026 successor scan (T1b, arXiv 2601-2604):** No 2026 paper meaningfully deprecates Arc2Face. Three 2026 papers build *on top of* Arc2Face rather than replacing it: Arc2Morph (arXiv:2602.16569, morphing), FEM (arXiv:2602.13168, face reconstruction from FR embeddings via KAN projection — methodologically adjacent to our Step 2), IdGlow (arXiv:2603.00607, multi-subject). No 2026 arXiv paper proposes an ArcFace-embedding replacement. **Conclusion: Arc2Face is still the reference anchor.** Our rebuild is not anchoring on deprecated 2024 work.
-
-## Open questions
-
-1. **Does Vox2Face release code?** The MDPI paper was published in *Information*, which typically requires code release under the open-science mandate, but not always. Need to check the paper itself.
-2. **How did Vox2Face handle the "speech is not face" alignment problem?** Their data must contain speech-identity pairs (the speaker's face is known); we have job-posting-identity pairs only if we generate them. This may force us to a different loss structure.
-3. **What qwen embedding statistics look like.** Before training the projection, we should characterize the qwen embedding distribution over the telejobs corpus: PCA spectrum, intrinsic dimensionality, clustering structure. This informs the projection architecture.
-4. **Continuity regularizer design, if needed.** If Step 5 fails, the regularizer is probably a pairwise distance-preservation loss in the projection: `|d_face(f(e_A), f(e_B)) − C · d_embed(e_A, e_B)| → 0`. This is a known technique from metric learning; we'd just apply it here.
+- **T1b.8** — FEM (arXiv:2602.13168) — 20 min KAN-vs-MLP check. Only matters if Option A's MLP underperforms and we want to try KAN.
+- **T1b.9** — LoRA weight-space editing (arXiv:2406.09413) — read before committing to Option 4F on the Arc2Face path.
+- **T1b.10** — InfiniteYou (arXiv:2503.16418) — read before treating it as a backbone upgrade candidate.
 
 ## Related documents
 
-- **Face Research review** (parent review, published repo): [github.com/Ludentes/Face-Research](https://github.com/Ludentes/Face-Research)
-- **Original vamp architecture**: [diffusion-approach.md](diffusion-approach.md), [scenarios.md](scenarios.md)
-- **v3 anchor spec**: see recent git log entries for `spec/anchors-v3` (current implementation target before this rebuild plan supersedes it)
-- **Research notes referenced**: [2026-04-12-embedding-to-face-latent-arithmetic-2026.md](../research/2026-04-12-embedding-to-face-latent-arithmetic-2026.md), [2026-04-12-rigface-technical-deep-dive.md](../research/2026-04-12-rigface-technical-deep-dive.md), [2026-04-09-embedding-space-and-face-conditioning.md](../research/2026-04-09-embedding-space-and-face-conditioning.md)
-- **Game-study design** (the user-study protocol that will validate H1a/b/c once the rebuild ships): needs its own document
+- **Paper findings log** (all verified reads): [docs/research/papers/2026-04-14-paper-findings.md](../research/papers/2026-04-14-paper-findings.md)
+- **Blind alleys** (8 killed paths): [docs/research/2026-04-14-rebuild-blind-alleys.md](../research/2026-04-14-rebuild-blind-alleys.md)
+- **Deeper research queue**: [2026-04-14-deeper-research-queue.md](2026-04-14-deeper-research-queue.md)
+- **Face Research review**: [github.com/Ludentes/Face-Research](https://github.com/Ludentes/Face-Research)
+- **Shallow research lesson memory**: `~/.claude/projects/-home-newub-w-vamp-interface/memory/feedback_shallow_research_risk.md`
+- **Primitives memory**: `~/.claude/projects/-home-newub-w-vamp-interface/memory/project_vamp_rebuild_primitives.md`
 
 ## Changelog
 
-- **2026-04-14 (initial)** — Written after Face Research review published, three V1-V7 verification agents completed, Arc2Morph reviewed in depth.
-- **2026-04-14 (Tier 1b deep reads — late session)** — Four parallel agents verified the fallback candidates from the earlier update (PhotoMaker, InstantID, StyleGAN3), Asyrp's linearity claims on SD + HAAD, Vox2Face full details + HyperFace, and a full 2026 arXiv scan. Major corrections: (1) PhotoMaker and InstantID removed from fallback list, StyleGAN3 FFHQ native-W promoted to primary fallback, InfiniteYou (FLUX DiT) added as newer-backbone upgrade path; (2) Asyrp linearity gate made mandatory before Step 4A, LoRA weight-space editing added as Option 4F; (3) HyperFace-style geometric packing promoted to Step 2 Option (d), the recommended path combined with Vox2Face Stage II SDS; (4) 2026 scan confirms Arc2Face is still the reference anchor — no successor deprecates it.
-- **2026-04-14 (Tier 1 deep reads)** — Three parallel deep-reads on Boundary Diffusion, RigFace, and NoiseCLR completed. Corrections applied: Step 4A reranked (Asyrp learned f_θ is now primary; mean-diff demoted to 2-hour spike; Boundary Diffusion faithful port is 4C research bet); RigFace removed from fallback list (per-layer features, no embedding port, no code); NoiseCLR ruled out. Boundary Diffusion venue corrected (NeurIPS 2023, not CVPR 2023). New Tier 1 findings table added.
-- **2026-04-14 (update)** — Three parallel deep-dives on Vox2Face, Arc2Face, and Asyrp completed. Major corrections applied:
-  - Killed the "project to 5-token CLIP space" option. Arc2Face has one 768-d identity slot receiving a zero-padded 512-d ArcFace vector; there is no CLIP token space to project into. The only viable projection target is ArcFace 512-d.
-  - Added the pairing problem to Step 2 (Vox2Face has ground-truth (speech, face) pairs; we have no ground-truth face per job). Three sub-options (a/b/c) with (c) — two-channel decoupling — recommended.
-  - Step 4A (h-space) upgraded from "probe" to "primary drift mechanism". Boundary-Diffusion-style mean-difference recipe is the concrete path: N=500 low-sus vs N=500 high-sus generations, class-mean Δh, asymmetric application per Asyrp. Zero training. "Zombie" is in Asyrp's validated showcase — the exact direction we want is already demonstrated to work.
-  - Added license section — Arc2Face is CC-BY-NC, project stays non-commercial.
-  - Added detailed reading notes for Arc2Face, Vox2Face, and Asyrp.
+- **2026-04-14 (initial)** — Written after Face Research review published, V1-V7 verification, Arc2Morph deep read.
+- **2026-04-14 (Tier 1 update)** — Vox2Face / Arc2Face / Asyrp deep reads corrected three earlier claims: killed the "5-token CLIP space" projection option, added the pairing problem, promoted h-space to primary drift.
+- **2026-04-14 (Tier 1 deep reads)** — Boundary Diffusion / RigFace / NoiseCLR deep reads. Boundary Diffusion venue and method corrected. RigFace removed from backbone list. NoiseCLR ruled out.
+- **2026-04-14 (Tier 1b deep reads — earlier)** — Fallback verification (PhotoMaker and InstantID killed, StyleGAN3 promoted, InfiniteYou added), Asyrp linearity claims corrected to "not established on SD", LoRA weight-space added as Option 4F, HyperFace promoted to Step 2 Option (d) RECOMMENDED (based on agent summary, not first-hand read), 2026 successor scan confirms Arc2Face is still the reference.
+- **2026-04-14 (full rewrite — late session)** — First-hand reads of HyperFace and Vox2Face full PDF completed. **Major pivot**: HyperFace is separation-maximizing and incompatible with continuity, and Vox2Face's Stage II has no "without Stage I" ablation, so both are downgraded. **StyleGAN3 FFHQ W-space is now the primary Step 2 path** (Option A) because it's the only candidate that is locally Lipschitz by construction. Arc2Face path becomes Option B (fallback). This supersedes all earlier Step 2 recommendations in this document.
