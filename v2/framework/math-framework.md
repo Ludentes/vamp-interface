@@ -1,7 +1,7 @@
-# vamp-interface Mathematical Framework v0.7
+# vamp-interface Mathematical Framework v0.8
 
-**Date:** 2026-04-14 (user empirical correction — StyleGAN3 elimination retracted)
-**Status:** Draft v0.7. Inputs: user spec, theory constraints doc, blind-alleys doc, paper-findings log, 2026 portrait-animation scan, 2026-04-07 final findings (measured baseline on 543 jobs), 2026-04-09 v2 system description, 2026-04-12 algebra research, 2026-04-12 StyleGAN-vs-diffusion decision review, 2026-04-12 FLAME technical overview, **2026-04-14 math-foundations synthesis (Perplexity + Tavily pro research on trustworthiness/continuity, Gromov-Wasserstein, Information Bottleneck, typical-set OOD, uncanny-as-mismatch)**. Rebuild plan and deeper-research queue deliberately NOT read — they are pre-framework and will be reconciled AFTER the framework is stable.
+**Date:** 2026-04-14 (rectified-flow reattribution of Flux baseline + first editorial-channel candidate)
+**Status:** Draft v0.8. Inputs: user spec, theory constraints doc, blind-alleys doc, paper-findings log, 2026 portrait-animation scan, 2026-04-07 final findings (measured baseline on 543 jobs), 2026-04-09 v2 system description, 2026-04-12 algebra research, 2026-04-12 StyleGAN-vs-diffusion decision review, 2026-04-12 FLAME technical overview, **2026-04-14 math-foundations synthesis (Perplexity + Tavily pro research on trustworthiness/continuity, Gromov-Wasserstein, Information Bottleneck, typical-set OOD, uncanny-as-mismatch)**. Rebuild plan and deeper-research queue deliberately NOT read — they are pre-framework and will be reconciled AFTER the framework is stable.
 **Purpose:** Before touching the rebuild plan again, formalize what vamp-interface actually wants in terms of spaces, maps, metrics, and channels; name the hidden inconsistencies in the informal spec; produce an evaluation grid that lets candidate pipelines be scored rather than asserted.
 
 This document does *not* make architectural choices. It specifies the scoring rubric. The rewrite of the rebuild plan will instantiate the rubric over candidates.
@@ -64,6 +64,14 @@ This document does *not* make architectural choices. It specifies the scoring ru
 - **Methodological note.** This is the second time an over-confident theoretical eliminator was falsified by empirical data the framework had not yet been shown (first: the v0.1 Lipschitz over-commitment walked back in v0.2 after the rank-correlation reframing). Rule re-stated: theoretical eliminators must survive a "does the user have contradicting experimental data?" check before being written as load-bearing. Added to §2.7.5 as a framing principle.
 - **§3.1.4 FLAME "cannot be the drift subsystem" claim softened to "unverified, pending measurement."** The argument used against StyleGAN3 FFHQ and the argument used against FLAME-as-drift are structurally the same ("model's prior is on-manifold → cannot produce uncanny"). Since the StyleGAN3 version turned out to be wrong, the FLAME version must also be held to the same empirical standard. Extreme-edge or cross-factor-inconsistent FLAME parameter edits may produce factor-mismatched geometry in the §2.5 D1 sense. Added to the experiment queue.
 
+**v0.7 → v0.8 (flow-based research pass + verification):**
+
+- **Flux v3 baseline reattributed from "diffusion" to "rectified flow."** The Flux.1-dev backbone used by §3.1.6 is a rectified-flow transformer (Esser et al. arXiv:2403.03206, "Scaling Rectified Flow Transformers for High-Resolution Image Synthesis"), not a classical diffusion model. This is a framework-level correction, not a new measurement: the `r(anchor_dist, sus_level) = +0.914` measurement still stands, but the **structural reason** it was expected to preserve rank is now explicit — rectified flow trains with a straight-line interpolant between noise and data, and straight trajectories in latent time are the strongest structural argument for P4a rank preservation available in any generative-model family. Framework §3.1 entries that compared "Flux" as diffusion should read "Flux as rectified flow." See `docs/research/2026-04-14-flow-based-foundations.md`.
+- **§1.2 algebraic closure gains an existence proof.** arXiv:2602.05214 (2026) "Disentangled Representation Learning via Flow Matching" trains factor-conditioned flows with an orthogonality regularizer over CelebA and explicitly claims algebraic latent operations. The framework §1.2 / §P12 note that flows are one of three algebraic-closure substrates (alongside h-space, 3DMM) is now backed by one concrete paper rather than a pure conjecture. Still optional; status does not change.
+- **New §3.3 Editorial-channel candidates section, first tenant: FluxSpace (CVPR 2025, arXiv:2412.09611).** The editorial channel was named first-class in v0.5 but §3 contained no editorial candidates. FluxSpace is the first concrete entry: training-free orthogonal-decomposition-of-joint-attention-outputs editing on the frozen Flux.1 backbone we already run, with published face-attribute demos (eyeglasses, age, smile, gender, beards). Verified 2026-04-14 (see `docs/research/2026-04-14-rectifid-fluxspace-flowchef-verification.md`). Important caveat: the paper reports CLIP-I / DINO content-preservation numbers, NOT ArcFace identity similarity, so framework E3 "identity leakage" requires **our own measurement** on FluxSpace outputs — it cannot be inherited from the paper.
+- **Verification discipline enforced on two other flow papers.** RectifID (NeurIPS 2024, arXiv:2405.14677) and FlowChef (ICCV 2025, arXiv:2412.00100) were also verified in the same pass. Neither becomes a framework candidate at this version: RectifID is reference-photo personalization on SD 1.5 (wrong base model, wrong task for us); FlowChef is general-purpose classifier-guided steering with no face specialization (candidate primitive for drift-channel or identity-conditioning work if we ever need classifier-guided injection, not an editorial axis).
+- **Methodological note — tightening on "drop-in" claims.** A pre-verification draft of the flow-foundations note called FluxSpace + FlowChef + RF-Solver-Edit "three editorial mechanisms on the same backbone." Post-verification, only **one** (FluxSpace) is drop-in editorial; the other two are general-purpose primitives that require axis-specific classifiers or objectives to become editorial. Framework §3.3 only admits drop-in editorial candidates; general steering primitives are tracked in the experiment queue, not as §3 entries. Added to §2.7.5 as framing principle #5.
+
 ---
 
 ## 0. Scope and non-goals
@@ -91,6 +99,8 @@ This tension matches last session's Regime-A-vs-B split for HyperFace. The user 
 The spec speculates that `emb("suspicious job") + emb("painting of a man") ≈ emb("painting of a man doing a suspicious job")` — classic word2vec analogy-arithmetic. This property is *not* reliably held by modern transformer embeddings. It holds locally, inconsistently, and depends on the model.
 
 Practical consequence: algebra is an **optional** evaluation property. If a candidate embedding supports it we get a bonus mechanism (direct vector manipulation), but we cannot premise the architecture on it. Relying on it would rebuild the same over-commitment failure we just walked back.
+
+**v0.8 — existence proof for flow-matching algebraic closure.** arXiv:2602.05214 (2026) *Disentangled Representation Learning via Flow Matching* trains factor-conditioned flows with an orthogonality regularizer between factors over CelebA, and explicitly claims "compositional editing via algebraic operations in the latent space." This is one concrete existence proof for the flow-matching substrate named in §P12 (alongside h-space §3.1.8 and 3DMM §3.1.9). It does not change the framework's status for P12 — still optional, still single-point-test — but it promotes flow-matching algebraic closure from "speculation" to "speculation with one backing paper on a face dataset."
 
 ### 1.3 Multi-space composition is multiplicatively expensive
 
@@ -465,6 +475,8 @@ The protocol reflects three principles that distinguish this framework from sing
 
 4. **Theoretical eliminators must survive an empirical sanity check.** Before any candidate is written out of the comparison grid on a theoretical argument, ask: *does the user have experimental data that contradicts this argument?* Two eliminations in prior framework versions (v0.1 Lipschitz, v0.6 StyleGAN3 expression-range) failed this check and were later retracted. An eliminator that cannot be re-derived from the measured baseline or from a running experiment is an assumption, not a conclusion, and belongs in §2.7.2 rejection-conditions only when the measurement it names is actually performed.
 
+5. **Candidate status survives verification, not abstracts.** Before a paper becomes a framework candidate (admitted to §3), fetch it and verify the claims that caused us to name it. Three verification failures caught in v0.8 all came from accepting secondary-source summaries: (a) a pre-verification note called FluxSpace + FlowChef + RF-Solver-Edit "three editorial mechanisms on the same backbone" — only one (FluxSpace) is a drop-in editorial; (b) called RectifID a "direct analogue of V1 anchor-bridge" — RectifID's "anchor" is a reference ODE trajectory for fixed-point numerical stability, not a reference face, so V1 is not a prior-art conflict; (c) called FluxSpace's reported metrics "identity leakage" — they are CLIP-I / DINO content preservation, not ArcFace identity similarity, so framework E3 scoring cannot inherit those numbers. General rule: **secondary-source summaries compress away exactly the details that distinguish "drop-in" from "primitive" and "our metric" from "adjacent metric."** Read the paper before admitting a candidate; treat survey snippets as leads, not conclusions.
+
 This framing enables systematic comparison across qualitatively different approaches, including continuous mappings (h-space direction finding), discrete cluster-based methods (HyperFace Regime A, anchor-bridge adapter), and hybrid soft-interpolation methods (v3 Regime C'). All three are legal moves under the same rubric.
 
 ---
@@ -563,6 +575,8 @@ Under **v0.3**, P0 is broadened to include the **anchor-bridge adapter class**: 
 4. Two conditioning channels: **T5 text** (primary, hard clean/scam switch at sus_factor=0.5) and **CLIP-L pooled** (secondary, smooth blend of precomputed archetype centroids). Mediated through `QwenPooledReplace` custom ComfyUI node.
 5. Drift: `Cursed_LoRA_Flux` at strength = `sus_factor` plus `Eerie_horror` at `0.75 × sus_factor`. Seed deterministic via `seed = hash(job_id) % 2^32`.
 6. Backend: Flux.1-dev fp8 scaled, 20 steps, guidance 3.5, txt2img at denoise=1.0.
+
+**v0.8 reattribution — Flux.1-dev is a rectified-flow transformer, not a diffusion model.** Per Esser et al. arXiv:2403.03206 ("Scaling Rectified Flow Transformers for High-Resolution Image Synthesis" — the SD3/Flux research paper), the Flux.1 backbone is trained with a **rectified-flow straight-line interpolant** between noise and data, not with a classical DDPM/score-matching diffusion objective. The measurement `r(anchor_dist, sus_level) = +0.914` is therefore a **rectified-flow** result, and the structural reason the baseline was able to preserve rank is specifically: straight-line trajectories between Gaussian noise and data mean linear movements in conditioning space produce near-linear movements in image space, so neighborhood structure survives by training-objective construction. This reattribution does not change any measured number; it changes which theorem §2.6 cites when explaining why P4a is plausible on this backbone. Framework comparisons in §3.1 should read "rectified flow (Flux v3) vs. W-space GAN (StyleGAN3) vs. pure diffusion (SDXL) vs. parametric (FLAME+Arc2Face)" rather than collapsing the first and third into "diffusion."
 
 **Measured properties (543 jobs, ArcFace IR101, 2026-04-07):**
 
@@ -687,6 +701,46 @@ Scores:
 - D5: deterministic.
 - D6: inference cost identical to current Flux pipeline; training cost one-time and bounded.
 - **Status:** **strong recommended candidate** for the drift subsystem upgrade and the readable-Y decomposition layer, simultaneously. Surfaced on 2026-04-12 decision review, lost across three framework sessions, recovered 2026-04-14. This was the single most load-bearing insight the older docs contained that the framework was missing.
+
+### 3.3 Editorial-channel candidates (new in v0.8)
+
+The editorial channel was named first-class in v0.5 and given its own rubric in §2.3a, but §3 contained no editorial candidates through v0.7 — the channel was load-bearing but unpopulated. v0.8 opens §3.3 with its first concrete tenant.
+
+**Admission criterion for §3.3.** An editorial-channel candidate must be a *drop-in* mechanism on an existing identity-channel backbone — define an attribute axis, get a bounded-cost edit operation, without retraining the identity backbone. General-purpose classifier-guided steering primitives that *could* be adapted to editorial axes by defining a classifier per axis (e.g., FlowChef) are NOT §3.3 candidates; they are tracked in §5 as research primitives. The distinction matters because the editorial channel is supposed to save us work, not create new training pipelines; see §2.7.5 framing principle #5.
+
+#### 3.3.1 FluxSpace (Dalva, Venkatesh, Yanardag — CVPR 2025, arXiv:2412.09611)
+
+**Training-free disentangled semantic editing on frozen Flux.1.** Verified 2026-04-14 (see `docs/research/2026-04-14-rectifid-fluxspace-flowchef-verification.md`). This is the first editorial-channel candidate that drops directly onto our current identity-channel backbone without any retraining.
+
+**Mechanism.** At each timestep during inference, FluxSpace takes the output of Flux's joint-attention layers `ℓ_θ(x, c, t)` under an edit condition `c_e` and a base/null condition `φ`, and computes an **orthogonal decomposition**:
+
+    ℓ'_θ(x, c_e, t) = ℓ_θ(x, c_e, t) − proj_φ ℓ_θ(x, c_e, t)
+
+The edit is applied at inference, scaled by `λ_fine ∈ [0, 1]`:
+
+    ℓ̂_θ(x, c, c_e, t) = ℓ_θ(x, c, t) + λ_fine · ℓ'_θ(x, c_e, t)
+
+A coarse-level variant uses orthogonal projection on the pooled CLIP embedding before modulation. Optionally, an attention-derived spatial mask restricts the edit to semantically-relevant regions.
+
+**Semantic axes demonstrated for faces:** eyeglasses, smiles, age, gender, beards, sunglasses, plus stylization (comic, 3D-cartoon). Paper baselines: LEDITS++, TurboEdit, RF-Inversion, Sliders-FLUX.
+
+**Rubric pre-scoring under §2.3a (editorial-channel rubric):**
+
+- **E0 interface:** passes trivially. Operates on frozen Flux.1 joint-attention outputs at inference time. No retraining, no LoRA, no optimization loop. Integrates with any ComfyUI Flux workflow.
+- **E1 readability:** strong. Semantic axes are prompt-pair-named (`c` = "person", `c_e` = "person wearing glasses") and orthogonally projected so the axis direction is explicit and linearly traversible. Human-namable by construction.
+- **E2 information contribution (ablation):** strong. `λ_fine ∈ [0, 1]` is exactly the ablation parameter — set to 0 to ablate the edit, set to 1 to apply it, sweep continuously for partial application.
+- **E3 identity leakage:** **unverified on framework terms.** The paper reports CLIP-I ≈ 0.94 and DINO ≈ 0.94 for content preservation on face edits — these are image-content-similarity metrics, not face-identity metrics. Framework E3 requires **ArcFace IR101 cosine drift** on paired (unedited, edited) generations, which the paper does not report. We must run this measurement ourselves on FluxSpace outputs before E3 is scored. Without it, E3 is `{assumed: likely-pass, pending-measurement}`.
+- **E4 scalability:** strong. Each editorial axis is a prompt pair; adding an axis costs nothing structural. No per-axis training, no per-axis data curation beyond writing the prompt pair.
+- **E13 verification status:** E0/E1/E2/E4 `{measured: paper}` or `{inherited: direct-observation}`; E3 `{assumed, pending}` until we measure.
+- **Status:** first §3.3 editorial-channel candidate. Framework-viable pending E3 measurement. Recommended next action on the editorial channel: (a) run FluxSpace on a subset of our 543-job corpus against the existing Flux v3 pipeline, (b) measure ArcFace IR101 cosine drift between edited and unedited pairs as the E3 number, (c) score under E1–E4 and add to the grid. This is a ~1-day experiment, zero training cost, existing infrastructure, existing data.
+
+#### 3.3.2 SCFlow (Wen et al. — ICCV 2025, arXiv:2508.03402) — **not yet verified, tier-2 read**
+
+SCFlow learns a bidirectional mapping between entangled and disentangled representations via flow matching, without explicit disentanglement supervision (trained only on style-content merging on a synthetic 510k dataset, disentanglement emerges from the invertible structure). Project page `compvis.github.io/SCFlow`.
+
+Why this is interesting for the editorial channel: if SCFlow's style/content split maps onto vamp-interface's identity/editorial split (identity = "content," editorial = "style"), it gives an alternative editorial mechanism that is *trained* from scratch rather than projected after-the-fact from attention-layer outputs. A priori this could mean cleaner disentanglement than FluxSpace's post-hoc orthogonal projection, at the cost of actual training.
+
+**Status:** unverified. Needs a first-hand read before admission as a §3.3 candidate. Open questions: (a) is the base model Flux or something else? (b) does the synthetic-style-content training transfer to work-type archetypes, or only to literal artistic styles? (c) what is the training cost? Tier-2 read — only after FluxSpace scoring is complete.
 
 ### Rubric shakedown conclusions under v0.3
 
