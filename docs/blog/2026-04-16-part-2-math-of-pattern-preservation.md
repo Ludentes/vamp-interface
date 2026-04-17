@@ -167,10 +167,11 @@ This list draws from a research memo on manifold-alignment metrics[^metrics], ap
 | Distribution alignment (coordinate-free) | Gromov-Wasserstein distance | One scalar, basis-free, robust to dimension mismatch (1024 vs. 512). Heavier to compute than the others but principled | `POT` library[^pot] |
 | Pipeline invertibility (degenerate form) | Linear back-map cycle residual — fit `g: face-space → qwen-space` by least-squares on a train split, evaluate residual on held-out | Our degenerate substitute for true cycle consistency since we don't have a trained inverse. If a trivial linear inverse is enough to recover qwen vectors, information loss is small | `numpy.linalg.lstsq` |
 | Task-level proxy | Face-verification ROC-AUC on pairs labeled by cluster or axis membership | The closest published analogue to our task is "can a face encoder tell paired faces apart by some attribute" | `sklearn.metrics` |
+| Cluster separability (framework P4 Fisher) | Fisher ratio `tr(S_B) / tr(S_W)` on face embeddings, computed over several *eval-time* groupings (qwen k-means clusters, sus-level bins, platform, role label) | Similar-job faces should cluster in face space — this is the "cluster membership" signal the scam-hunter user needs. No training labels required; groupings are imposed at evaluation. **This is the axis the Tier 1 vs Tier 2+ decision hinges on** — the framework scoring memo identifies P4 Fisher as the only axis where Tier 2+ could beat Tier 1[^scoring] | `numpy` (10 LOC) |
 
 Each metric answers a slightly different question. No single one is dispositive.
 
-> ⚠ **Claim 6.1:** The six metrics above form a useful diagnostic panel for our pipeline — each measures a property that the next one doesn't, so seeing the full battery of numbers tells us *how* the pipeline is failing when it fails, not just *that* it's failing.
+> ⚠ **Claim 6.1:** The seven metrics above form a useful diagnostic panel for our pipeline — each measures a property that the next one doesn't, so seeing the full battery of numbers tells us *how* the pipeline is failing when it fails, not just *that* it's failing.
 >
 > The claim is that the metrics are *non-redundant*. A pipeline might have high k-NN overlap (local structure good) and low CKA (global structure bad), or high cycle residual (information loss) and high ROC-AUC (task still works because only the relevant information survived). These combinations are diagnostically different and suggest different fixes. **Status: the diagnostic power is argued from structure, not measured on our data.** The framework commits to running the full panel on the 543-job v3 baseline as "Exp E" before making further architecture commitments.
 
@@ -249,7 +250,7 @@ Regardless of which tier trained the pipeline, the four terms above can be *eval
 
 In Tier 1 these numbers tell us whether the MSE-fit `P` produced a pipeline whose geometric properties are good enough without end-to-end training. In Tier 2+ these numbers tell us whether the Adam-stationary point Adam landed at has the properties we expected from minimizing the same four terms. Same measurement, different interpretive role.
 
-The diagnostic panel is thus *always live*. What changes between tiers is whether the terms also appear in the gradient path. The metrics in §6 (k-NN overlap, trustworthiness, CKA, Gromov-Wasserstein, cycle residual, ROC-AUC) are likewise always diagnostic and never training losses, but they answer finer-grained questions than the four-term panel.
+The diagnostic panel is thus *always live*. What changes between tiers is whether the terms also appear in the gradient path. The metrics in §6 (k-NN overlap, trustworthiness, CKA, Gromov-Wasserstein, cycle residual, ROC-AUC, Fisher ratio) are likewise always diagnostic and never training losses, but they answer finer-grained questions than the four-term panel. In particular, **Fisher ratio over eval-time groupings is the metric on which Tier 1 and Tier 2+ most plausibly differ** — the four-term panel can look healthy while cluster separability is weak, so running Fisher alongside the four terms is how Stage 0 decides whether Tier 1 is sufficient or escalation is warranted. An earlier version of this post folded clustering into the four-term panel and then dropped it; separating "Fisher as diagnostic" from "Fisher as training loss" is the correct decomposition, and the scoring memo[^scoring] foregrounds this split.
 
 ### 7.4 The unlabeled regime: what the three-term form buys and doesn't
 
@@ -318,7 +319,7 @@ When one of those limits hits, escalate.
 
 Seven stages, ordered cheapest-first. Each either validates the pipeline at its current link or kills the stages that would have built on top of it.
 
-**Stage 0 — Baseline measurement.** Run the full metric panel from §6 on the existing Flux v3 + ArcFace pipeline. Numbers to beat.
+**Stage 0 — Baseline measurement.** Run the full metric panel from §6 on the existing Flux v3 + ArcFace pipeline, **including Fisher ratio over at least three eval-time groupings** (qwen k-means at k=8, sus-level quartile bins, work-type label). Numbers to beat, and — per §7.3 — the Fisher numbers are what decide whether Tier 1 is enough or Tier 2+ is warranted.
 
 **Stage 1 — Readout-only on existing v3 faces.** Swap ArcFace → FaRL. Train only the linear probe `R` on the existing 543 v3 faces using the work-type labels we already have. Hours of work. High probe accuracy ⇒ face channel already carries domain structure ⇒ proceed. Low accuracy ⇒ problem is upstream of `R` and we diagnose before spending more effort.
 
@@ -392,6 +393,9 @@ Each reference is annotated with **what we claim it says** and **what a reviewer
 
 [^framework]: Internal framework document at `v2/framework/math-framework.md` (v0.11 as of this post). The framework specifies properties (P4a rank preservation, P5 distribution preservation, P10 co-variation invariance) and experiments. §2.6.1 of the framework names the metric toolbox; this post's §6 draws directly from it.
     **Check:** internal document, provided as context for the post.
+
+[^scoring]: Internal scoring memo at `docs/research/2026-04-16-scoring-part2-against-framework.md`. Runs Part 2's Tier 1 and Tier 2+ candidates through the framework §2.7 Decision Protocol. §5 identifies Fisher ratio (framework P4) as the single Pareto axis on which Tier 2+ could plausibly beat Tier 1 — hence the escalation decision turns on measured Fisher at Stage 0.
+    **Check:** internal document.
 
 [^ib]: Tishby, N., & Zaslavsky, N. (2015). Deep Learning and the Information Bottleneck Principle. arXiv:1503.02406. (Earlier foundational work: Tishby, Pereira & Bialek 1999 "The Information Bottleneck Method.")
     **Claim:** `I(Z; Y) ≤ I(X; Y)` — no map from X to Z can increase the information Z carries about Y beyond what X already carried.
@@ -520,7 +524,7 @@ Running list of everything marked ⚠ or 🔍 above, for review:
 | 5.1 | 🔍 | Data manifolds are well-defined enough for alignment metrics to be meaningful | pragmatic assumption shared by whole representation-learning field |
 | 5.2 | ⚠ | Off-manifold drift is a distinct data channel from pattern preservation | supported by Kätsyri/Diel mechanism + v3 baseline `r(d_anchor, sus_level) = +0.914` |
 | 5.3 | 🔍 | Pattern preservation and off-manifold drift can be engineered independently | untested for multi-axis case; both channels work in isolation |
-| 6.1 | ⚠ | The 6 metrics form a non-redundant diagnostic panel | argued from structure, not measured |
+| 6.1 | ⚠ | The 7 metrics form a non-redundant diagnostic panel | argued from structure, not measured; Fisher added after scoring-memo review |
 | 6.2 | 🔍 | Cross-modal transfer of the metrics is valid | partial; linear-cycle-residual is the weakest point |
 | 7.2 | ⚠ | Unlabeled three-term loss preserves "shared content" which **may or may not be** signal of interest | **honest open problem** — not graceful degradation in general |
 | 7.3 | 🔍 | Task-specific anchor (weak labels / nuisance subtraction / detective pre-conditioning) likely needed on real data | three options, none tested yet |
