@@ -95,6 +95,22 @@ Save to `output/demographic_pc/sanity_check_50.json` + a short writeup.
 ### Stage 5: Validation
 - **Orthogonalization sanity:** take a held-out 200 samples, project their `c` onto `D`-complement, re-render through Flux, run classifiers → do demographic predictions collapse toward the dataset mean? (If not, `D` isn't capturing what we think it is.)
 - **Curriculum readiness:** sample two random conditioning vectors `c_a, c_b` from `D`-complement with `‖c_a − c_b‖` = curriculum's σ unit → render → check inter-classifier demographic agreement says they look "same demographic." Go/no-go for curriculum Level 0.
+- **FluxSpace-borrowed orthogonality check (added 2026-04-20):** after truncated SVD of the stacked weight matrix `W`, also report (a) pairwise cosine similarities between the retained direction vectors — close to 0 after SVD by construction, but worth confirming no numerical surprises; (b) **cosine similarity between same-attribute directions extracted by different classifiers** (e.g. MiVOLO age direction vs FairFace age direction vs InsightFace age direction). If they rediscover the same axis, cosines should be high (≳0.7). If they point different ways, the "age direction" is classifier-specific and the Stage 4 stacking is combining signals that shouldn't be combined. This is the sanity check FluxSpace uses for its own disentanglement claim (Dalva et al. CVPR 2025, §4.2) and is free to add here.
+
+### Stage 4+ (future work): fine-space regression on MM-DiT attention outputs
+**Trigger:** do this only if Stage 4's per-head CV R² on the 4864-d pre-transformer `c` is weaker than hoped (e.g. age R² < 0.5 with regularization tuned), *or* if Stage 5 orthogonalization doesn't collapse classifier predictions enough to unblock curriculum Level 0.
+
+**What:** re-extract directions in FluxSpace's "fine" space — the joint-attention output tensors `ℓ_θ(x, c, t)` inside the MM-DiT blocks of Flux at a chosen timestep and layer. FluxSpace (Dalva et al. CVPR 2025) reports stronger disentanglement of facial attributes (age, gender, smile, eyeglasses) at fine-space than at coarse/pooled levels, and their qualitative ablations put the sweet spot at mid-depth layers (≈15 of 38 in Flux-dev). This is the same orthogonal-projection algebra we already use, just applied one layer further in.
+
+**What it costs:** we currently have neither a ComfyUI node that dumps attention outputs nor a Python-side Flux inference path. Either:
+- write a small ComfyUI custom node (`SaveAttentionOutput`) that caches the tensor at the selected block+timestep, or
+- drop ComfyUI for this stage and run Flux via `diffusers` directly, registering a forward-hook on the target MM-DiT block.
+
+Both are 1–2 days of work. Not worth doing unless Stage 4's coarse-space regression disappoints.
+
+**What we'd gain:** finer disentanglement of demographic axes, especially for gender/race sub-structure where the pre-transformer pooled `c` has less geometry to work with. The fine-space directions would also be directly usable with FluxSpace's inference-time edit mechanism if we ever want to do attribute ablations outside the curriculum's `Δ`-sampling pipeline.
+
+**What we don't do regardless of Stage 4 outcome:** don't switch to FluxSpace's prompt-pair contrastive direction extraction (e.g. "smile vs no smile"). That method answers "what direction changes this labeled attribute" — useful if we want editing; our question is "what direction does *a classifier* pick up on" — the two diverge when the classifier has bias the prompt-pair doesn't know about (e.g. InsightFace's +15y age bias on adult/elderly prompts). Classifier-predicted labels remain the right target for the curriculum's orthogonalization purpose.
 
 ## Outputs
 
