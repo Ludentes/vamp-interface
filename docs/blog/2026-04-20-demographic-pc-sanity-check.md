@@ -4,6 +4,8 @@
 **Series:** Follows [Perception Before Training](2026-04-20-perception-before-training.md). That post set up a six-level curriculum gated by a Level-0 engineering task: build a demographic subspace in Flux conditioning space so trial-sampling can avoid accidentally measuring "find the young face." This post is the progress report from Stage 0 (install) through Stage 1 (go/no-go sanity) of that subspace build.
 **Status:** Stage 1 passes; 1785-sample Stage 2 generation is running as I write this.
 
+![Six Flux Krea portraits from the Stage 1 sanity set, spanning age and ethnicity](images/2026-04-20-demographic-pc-sanity-check-cover.png)
+
 ---
 
 ## Why we're doing this at all
