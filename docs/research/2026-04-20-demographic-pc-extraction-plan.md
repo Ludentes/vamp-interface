@@ -92,6 +92,31 @@ Save to `output/demographic_pc/sanity_check_50.json` + a short writeup.
 - Truncated SVD on `W` → keep components explaining >90% of variance → **demographic subspace `D` of dimension ~10–15**
 - Report: variance-explained curve, cosine similarity between directions from different classifiers (do they rediscover the same axes?), per-head CV R² for continuous and accuracy for categorical
 
+### Stage 4.5: Cross-method direction comparison (added 2026-04-20)
+**Purpose:** before trusting our regression directions for the curriculum, measure them head-to-head against the two published alternatives on the **same held-out Flux portraits**. If someone else's method produces cleaner demographic directions on our backbone, we want to know before Stage 5, not after.
+
+**Methods compared:**
+
+1. **Ours — regression on factorial grid** (Stage 4 output). Directions obtained by ridge/multinomial-logistic regression from pooled 4864-d `c` to classifier-predicted labels, SVD'd into a basis.
+2. **FluxSpace — contrastive prompt-pair** (Dalva et al. CVPR 2025). For each attribute, construct a prompt pair (`c_e` = "elderly portrait…", `φ` = "young adult portrait…") and take `d = ℓ_θ(c_e) − proj_φ ℓ_θ(c_e)` at a mid-depth MM-DiT block. Training-free; uses the FluxSpace public toolkit.
+3. **~~Concept Sliders / SliderSpace~~ (deferred).** Gandikota et al.; ECCV 2024 / CVPR 2025. No pretrained Flux sliders released (per `2026-04-14-flux-edit-code-inventory.md`); running this method would require training our own LoRA per attribute at ~1–2 days and A6000-class compute per axis. Re-evaluate only if Stages 4/4.5/5 show our method and FluxSpace both fail to give the curriculum what it needs.
+
+**Evaluation set:** reuse the Stage 1 50-sample portraits (we already have classifier labels and prompt-attribute ground truth on them). Add a second, unseen 50-sample draw from the full grid as a held-out set so we don't report Stage-1-train-on-train-test-on-train.
+
+**Per-method, per-attribute metrics** (age, gender, 7-race one-hot):
+- **Target-axis response curve:** apply direction `d_attr` at scales `λ ∈ {−1, −0.5, 0, +0.5, +1}` in appropriate normalized units; re-render through Flux; record classifier prediction on the target attribute at each λ. A clean direction gives monotone, near-linear response.
+- **Identity drift:** ArcFace cosine between baseline render (λ=0) and edited render at each λ. Lower drift for the same target-response slope = more disentangled.
+- **Off-axis drift:** classifier prediction delta on the *other* attributes (e.g. age edit → measure gender flip rate, race distribution shift). An age-direction that also shifts race is not an age direction.
+
+**Reporting:** one table per attribute, three rows (us / FluxSpace / deferred), columns = target-slope, ID-drift at matched target-slope, off-axis drift at matched target-slope. Plus per-method qualitative sheets (9 portraits × 5 λ = 45 renders per attribute for visual inspection).
+
+**Time & cost:** FluxSpace implementation = 0.5–1 day (project toolkit is public but needs wiring to our ComfyUI path or a `diffusers` hook). Generation = 3 × attributes × 5 λ × 50 portraits ≈ 750 renders per method; ~1.5h at 7s/render. Classification = negligible.
+
+**Decision rule after Stage 4.5:**
+- If ours is Pareto-dominated on all three metrics for all attributes → switch curriculum to use FluxSpace directions. Stage 5 runs on FluxSpace output.
+- If ours and FluxSpace trade off (ours cleaner on age, FluxSpace cleaner on race, say) → keep ours for the orthogonalization step (it's what Stage 5 was designed for) and note FluxSpace as the editor we'd use if/when the curriculum needs attribute *manipulation* rather than attribute *subtraction*.
+- If both fail the off-axis-drift bar → that's when Stage 4+ (fine-space regression) becomes load-bearing, not optional.
+
 ### Stage 5: Validation
 - **Orthogonalization sanity:** take a held-out 200 samples, project their `c` onto `D`-complement, re-render through Flux, run classifiers → do demographic predictions collapse toward the dataset mean? (If not, `D` isn't capturing what we think it is.)
 - **Curriculum readiness:** sample two random conditioning vectors `c_a, c_b` from `D`-complement with `‖c_a − c_b‖` = curriculum's σ unit → render → check inter-classifier demographic agreement says they look "same demographic." Go/no-go for curriculum Level 0.
@@ -144,6 +169,7 @@ Both are 1–2 days of work. Not worth doing unless Stage 4's coarse-space regre
 - Stage 2 (1800-sample generation): ~3.5h unattended (768×1024)
 - Stage 3 (classifier inference): 0.5 day
 - Stage 4 (regression + direction extraction): 1 day
+- Stage 4.5 (cross-method comparison vs FluxSpace): 1–1.5 days
 - Stage 5 (validation): 0.5 day
 
 **Total active: ~3.5 days, plus one overnight.**
