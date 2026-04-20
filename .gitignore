@@ -61,3 +61,8 @@ Thumbs.db
 web/*
 data/*
 output/*
+# demographic_pc Stage 0
+vendor/weights/
+vendor/MiVOLO/
+vendor/FairFace/
+vendor/pytorch-DEX/
