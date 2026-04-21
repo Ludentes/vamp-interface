@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 
 from src.demographic_pc.comfy_flux import ComfyClient, flux_img2img_workflow
-from src.demographic_pc.prompts import PromptRow, full_grid
+from src.demographic_pc.prompts import full_grid
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "output" / "demographic_pc"

@@ -27,15 +27,34 @@ def flux_txt2img_workflow(
     steps: int = FLUX_STEPS, guidance: float = FLUX_GUIDANCE,
     sampler: str = FLUX_SAMPLER, scheduler: str = FLUX_SCHEDULER,
     checkpoint: str = FLUX_CHECKPOINT,
+    edit_npz_path: str | None = None, edit_strength: float = 0.0,
 ) -> dict:
     unet_name = checkpoint.removeprefix("FLUX1/")
+    # Optionally insert demographic_pc ApplyConditioningEdit between CLIPTextEncode
+    # and FluxGuidance. When edit_strength == 0 we still route through the node so
+    # the graph shape is identical across renders (no-op path inside the node).
+    text_out_node = "5"
+    guidance_input = ["5", 0]
+    extra: dict = {}
+    if edit_npz_path is not None:
+        extra["10"] = {
+            "class_type": "ApplyConditioningEdit",
+            "inputs": {
+                "conditioning": ["5", 0],
+                "edit_npz_path": edit_npz_path,
+                "strength": edit_strength,
+            },
+        }
+        guidance_input = ["10", 0]
+    _ = text_out_node  # debug aid
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": unet_name, "weight_dtype": "fp8_e4m3fn"}},
         "2": {"class_type": "VAELoader", "inputs": {"vae_name": FLUX_VAE}},
         "3": {"class_type": "DualCLIPLoader", "inputs": {"clip_name1": FLUX_CLIP_L, "clip_name2": FLUX_T5, "type": "flux"}},
         "4": {"class_type": "EmptySD3LatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}},
         "5": {"class_type": "CLIPTextEncode", "inputs": {"text": positive, "clip": ["3", 0]}},
-        "6": {"class_type": "FluxGuidance", "inputs": {"conditioning": ["5", 0], "guidance": guidance}},
+        **extra,
+        "6": {"class_type": "FluxGuidance", "inputs": {"conditioning": guidance_input, "guidance": guidance}},
         "7": {
             "class_type": "KSampler",
             "inputs": {

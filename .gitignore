@@ -38,6 +38,9 @@ docs/design/comfyui-shard-windows.md
 docs/runbooks/telejobs-db.md
 v1/plans/superpowers/2026-04-09-v6-clip-interpolation.md
 
+# Agent / session state
+.claude/
+
 # OS / editor
 .DS_Store
 Thumbs.db
