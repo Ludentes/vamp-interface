@@ -25,5 +25,7 @@ dependencies = [
     "dlib>=20.0.1",
     "insightface>=0.7.3",
     "onnxruntime-gpu>=1.24.4",
+    "einops>=0.8.2",
+    "sentencepiece>=0.2.1",
 ]
 
