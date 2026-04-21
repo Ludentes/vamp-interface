@@ -1,10 +1,10 @@
-# Demographic-PC Extraction, End to End: Ridge Beats Prompt-Pair on Five of Six Metrics
+# Demographic-PC Extraction, End to End: Ridge vs Prompt-Pair, Two Kinds of Cliff
 
 **Date:** 2026-04-20
 **Series:** Follows [Perception Before Training](2026-04-20-perception-before-training.md). That post framed a six-level perception curriculum gated on a Level-0 engineering task: build a demographic subspace in Flux conditioning space so trial-sampling doesn't secretly measure "find the young face." This post covers the whole build — Stage 0 (install) through Stage 4.5 (sanity-check our direction against a published baseline).
 **Status:** Stages 0–4.5 complete. Stage 5 (orthogonalized Δ sampling) not yet started.
 
-![Ours vs FluxSpace-coarse: single portrait, age direction, λ ∈ {−3, −2, −1, 0, +1, +2, +3}. Ours (top): monotone aging, identity preserved. FluxSpace-coarse (bottom): λ=−3 collapses to solid colour, λ=−1 flips ethnicity, λ=+3 is noise.](images/2026-04-20-demographic-pc-sanity-check-cover.png)
+![Ours vs FluxSpace-coarse: single portrait, age direction, λ ∈ {−3, −2, −1, 0, +1, +2, +3}. Ours (top): monotone aging, identity preserved. FluxSpace-coarse (bottom): λ=−3 collapses to solid colour, λ=−1 flips ethnicity, λ=+3 is noise.](images/2026-04-20-demographic-pc-extraction-end-to-end-cover.png)
 
 The cover is the whole post in one frame. Same portrait, same conditioning layer, same λ range. Top row stays a plausible human across seven age steps; bottom row has already flipped race at λ=−1 and is noise static by λ=+3.
 
@@ -12,7 +12,7 @@ The cover is the whole post in one frame. Same portrait, same conditioning layer
 
 ## Why we're doing this at all
 
-The perception curriculum samples perturbations `Δ` around an anchor in Flux's conditioning space and asks humans to discriminate them. For the task to measure *perception of the axis we care about*, `Δ` must not secretly align with apparent age, gender, or ethnicity — a direction that's objectively small in L2 but aligned with "15 years older" will feel enormous to a viewer and collapse the task to a demographic shibboleth.
+The perception curriculum samples perturbations `Δ` around an anchor in Flux's conditioning space and asks humans to discriminate them. For the task to measure *perception of the axis we care about*, `Δ` must not secretly align with apparent age, gender, or race — a direction that's objectively small in L2 but aligned with "15 years older" will feel enormous to a viewer and collapse the task to a demographic shibboleth.
 
 The mitigation: find the directions in conditioning space that predict classifier-judged demographics, project them out of the `Δ` distribution, sample in the orthogonal complement. For that to work we need actual directions, measured on the actual generator, produced by classifiers that actually work on the generator's output. All three clauses load-bearing. Stage 1 checked the third; Stages 2–4 produced the first two; Stage 4.5 asked whether our directions are any good compared to something off the shelf.
 
@@ -92,28 +92,28 @@ Full numbers: [research/2026-04-20-demographic-pc-stage2-4-report.md](../researc
 
 ## Stage 4.5: but is our direction actually good?
 
-Stage 4 gives a direction. Before building Stage 5 on top of it we wanted to know whether the regression approach beats something simpler. The nearest comparable method at the same conditioning layer is **FluxSpace-coarse** (Dalva et al., CVPR 2025): encode a target prompt ("elderly person portrait…") and a base prompt ("young adult person portrait…"), take the component of the target not aligned with the base, use that as the edit direction.
+Stage 4 gives a direction. Before building Stage 5 on top of it we wanted to know whether the regression approach beats something simpler. The nearest comparable baseline at the same conditioning layer is a **prompt-pair contrast** — encode a target prompt ("elderly person portrait…") and a base prompt ("young adult person portrait…"), take the component of the target not aligned with the base, use that as the edit direction. This is the direction-extraction step from FluxSpace (Dalva et al., CVPR 2025); we call it "FluxSpace-coarse" in the tables, but note the honest framing: the *published* FluxSpace contribution is block-specific injection with timestep gating, which we did **not** test. What we tested is the prompt-pair contrast that FluxSpace's own paper compares against as a baseline. "Ours vs FluxSpace-coarse" is really "ridge-regression-on-observed-conditionings vs two-prompt contrast at the same layer."
 
 Setup: 20 held-out adult portraits (seeds 2000–2019, disjoint from the 1785 training seeds). 9 λ levels `{−3, −2, −1, −0.5, 0, +0.5, +1, +2, +3}`. Inner range |λ|≤1 is the published-editing regime; |λ|>1 deliberately probes off-manifold territory. Both methods inject their direction at the same conditioning layer via a custom ComfyUI node (`ApplyConditioningEdit`).
 
 Per-unit scale chosen so λ=±1 produces a visually meaningful shift: Ours = 45 years/λ, FluxSpace = 2 pair-magnitudes/λ. Different absolute scales; the evaluator rescales to matched *local* (tangent-at-origin) target-slope for the attribute-entanglement comparison.
 
-### The Mahalanobis prediction
+### The Mahalanobis geometry
 
 Before running a single image, we can ask: in the training conditioning's own covariance, how far off-manifold does each direction point *per unit ambient step*?
 
 Fit Σ on the 1785 training conditionings (Ledoit-Wolf shrinkage; α came out 0.005 — Σ was well-conditioned). For a direction `w`, the per-unit-strength Mahalanobis step is `√(wᵀΣ⁻¹w)`. Ratio to Euclidean norm tells you whether the direction lives along high-variance axes (manifold-aligned) or crosses low-variance axes (off-manifold).
+
+**Caveat worth stating up front:** Ours is built by ridge regression on the same 1785 conditionings whose Σ we're using, so the representer theorem forces `w` into their span with shrinkage onto high-variance axes — making `wᵀΣ⁻¹w` low *by construction*. The prompt-pair contrast has no such constraint. So the Mahalanobis number is not an independent prediction of image behaviour; it's a geometric *description* of the same manifold-alignment property the image metrics *test*. The two numbers agree because they measure the same underlying fact from two angles, not because one predicted the other.
 
 | | Euclidean ‖w‖ | √(wᵀΣ⁻¹w) | **Mahal / Eucl** |
 |---|---|---|---|
 | Ours | 0.141 | 0.270 | **1.92** |
 | FluxSpace | 14.75 | 405.6 | **27.49** |
 
-**FluxSpace's direction carries 14.3× more standard-deviation cost per unit Euclidean step than Ours'.**
+**The prompt-pair contrast carries 14.3× more standard-deviation cost per unit Euclidean step than Ours does.** Also worth noting: the two directions aren't remotely the same size in ambient space either (0.14 vs 14.75 Euclidean). The prompt-pair direction is a small *angular* tangent to the huge common-mode vector shared by any two similarly-phrased prompts, but its absolute Euclidean magnitude dwarfs Ours. Scale differences are handled by λ during injection, but they matter when interpreting "per unit step."
 
-This is a prediction from direction geometry alone — no renders, no classifiers. Ridge regularization (α=316) + representer theorem force Ours' `w` into the span of observed conditionings with weight concentrated on the high-variance axes of that distribution. A single prompt-pair contrast has no such constraint; it picks up tokenizer idiosyncrasies and stylistic co-loadings on axes the data distribution doesn't populate.
-
-The prediction: FluxSpace will leave the empirical conditioning hull at smaller λ, and the decoder will have less training signal telling it what to do there. Let's see whether images and classifiers agree.
+With that in hand, the expectation is that the prompt-pair direction leaves the empirical conditioning hull at smaller λ, so the decoder has less training signal telling it what to render there. Image-level metrics below are consistent with that.
 
 ### Image-level results
 
@@ -134,7 +134,9 @@ The prediction: FluxSpace will leave the empirical conditioning hull at smaller 
 | **ArcFace drift @ λ=−3 / +3** | 0.319 / 0.443 | **0.976 / 0.996** | |
 | ArcFace drift @ λ=−1 / +1 | 0.155 / 0.143 | 0.463 / 0.412 | Even inside the published regime |
 
-Every image-level metric favours Ours except local age-slope near the origin, which is a gain choice — relabel λ_ours and it's closed. At matched target-slope, AD and identity-drift go the way the table says.
+Every image-level metric favours Ours except local age-slope near the origin, which is a gain choice (rescale λ and it's closed). At matched target-slope, AD goes the way the table says.
+
+**Scale caveat on the |λ|=3 rows.** Ours' λ is rescaled to matched *target-slope* for the AD comparison; the flip-rate and ArcFace-drift numbers at |λ|=3 are **not** rematched. At OURS_SCALE=45, λ=3 asks for +135 years (classifier-ceiling-capped age push); at FLUXSPACE_SCALE=2·‖target−base‖, λ=3 is a pure off-manifold extrapolation with no semantic anchor. So "100% race flip vs 12.5%" and "0.996 vs 0.443 drift" should be read as "at each method's own extreme-λ setting," not as apples-to-apples at the same semantic request. They still say something — Ours *has* a λ that produces a plausible +135y attempt; the prompt-pair contrast at its equivalent setting produces noise static — but a clean rematch would require picking λ per method to equalize some specific quantity, and we didn't.
 
 ### What the cover shows, quantitatively
 

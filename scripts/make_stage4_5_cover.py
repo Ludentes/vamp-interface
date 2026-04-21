@@ -2,8 +2,8 @@
 
 Columns: λ ∈ {−3, −2, −1, 0, +1, +2, +3}. Rows: Ours, FluxSpace.
 λ=0 column is the shared baseline, shown in both rows.
-Saved at docs/blog/images/2026-04-20-demographic-pc-sanity-check-cover.png, overwriting
-the Stage-1-era placeholder.
+Saved at docs/blog/images/2026-04-20-demographic-pc-extraction-end-to-end-cover.png,
+overwriting the Stage-1-era placeholder.
 """
 
 from pathlib import Path
@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 RENDERS = ROOT / "output" / "demographic_pc" / "stage4_5" / "renders"
-OUT = ROOT / "docs" / "blog" / "images" / "2026-04-20-demographic-pc-sanity-check-cover.png"
+OUT = ROOT / "docs" / "blog" / "images" / "2026-04-20-demographic-pc-extraction-end-to-end-cover.png"
 
 PORTRAIT = "p03_0_4_s2003"
 LAMS = [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]

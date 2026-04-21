@@ -3,7 +3,7 @@
 **Date:** 2026-04-20
 **Reviewer:** general-purpose subagent (independent read; no context from the session that produced the artifacts).
 **Subjects:**
-- [Blog: Demographic-PC Extraction, End to End](../blog/2026-04-20-demographic-pc-sanity-check.md)
+- [Blog: Demographic-PC Extraction, End to End](../blog/2026-04-20-demographic-pc-extraction-end-to-end.md)
 - [Report: Stage 4.5 — Ours vs FluxSpace on a single axis](2026-04-20-demographic-pc-stage4_5-comparison.md)
 
 Findings are preserved verbatim so the weaknesses are auditable. Follow-up work to address these is tracked separately.
