@@ -5,6 +5,8 @@
 **Audience:** same as Part 1 — CS seniors, technical PMs, data scientists. Neural networks are black boxes; linear algebra and basic probability are fine; diffusion-model specifics are unpacked as they come up.
 **Status:** draft for self-audit. Every ⚠ claim and 🔍 assumption is there *to be challenged*.
 
+![One portrait, seven age steps along a measured demographic direction, identity preserved throughout: pattern preservation under continuous transformation, visualized.](images/2026-04-16-part-2-math-of-pattern-preservation-cover.png)
+
 ---
 
 ## 1. Recap and the question Part 2 actually answers

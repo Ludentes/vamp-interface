@@ -5,6 +5,8 @@
 **Audience:** same as Parts 1 and 2.
 **Status:** Interlude memo, written same day the pivot happened. Revised post-adversarial-review.
 
+![An 8×8 glance grid of 64 portraits with three boxed as anomalies: the Level-5 target the curriculum is working up to — can humans spot odd-ones-out in a face grid where chart encodings fail?](images/2026-04-20-perception-before-training-cover.png)
+
 ---
 
 ## The pivot

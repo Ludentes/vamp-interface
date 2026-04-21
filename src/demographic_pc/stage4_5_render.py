@@ -37,13 +37,27 @@ from src.demographic_pc.comfy_flux import ComfyClient, flux_txt2img_workflow
 from src.demographic_pc.prompts import ETHNICITIES, GENDERS, PROMPT_TEMPLATE
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT_DIR = ROOT / "output" / "demographic_pc" / "stage4_5"
-RENDERS = OUT_DIR / "renders"
+STAGE_DIR = ROOT / "output" / "demographic_pc" / "stage4_5"
 EDITS_DIR = ROOT / "output" / "demographic_pc" / "edits"
 
 LAMBDAS = [-3.0, -2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 3.0]  # extremes probe off-manifold / uncanny
-OURS_SCALE = 45.0       # strength = λ * 45 years  (±45y at λ=±1, spans child→elderly)
-FLUXSPACE_SCALE = 2.0   # strength = λ * 2 pair-magnitudes
+
+# Per-axis scales chosen so |λ|=1 produces a visually meaningful semantic step for Ours,
+# and |λ|=1 corresponds to one pair-magnitude for FluxSpace-coarse (its "native" unit).
+AXIS_CONFIG: dict[str, dict] = {
+    "age": {
+        "ours_scale": 45.0,        # 45y/λ — spans child↔elderly at |λ|=1
+        "fluxspace_scale": 2.0,    # 2 pair-magnitudes/λ
+        "ours_npz": "age_ours.npz",
+        "fluxspace_npz": "age_fluxspace_coarse.npz",
+    },
+    "gender": {
+        "ours_scale": 4.0,         # 4 logits/λ — crosses binary decision boundary comfortably
+        "fluxspace_scale": 2.0,    # same convention as age
+        "ours_npz": "gender_ours.npz",
+        "fluxspace_npz": "gender_fluxspace_coarse.npz",
+    },
+}
 
 WIDTH, HEIGHT = 768, 1024
 
@@ -87,25 +101,31 @@ async def run_batch(client: ComfyClient, jobs: list[dict]) -> None:
             print(f"  [{done}/{len(jobs)}]  rate={done/dt:.2f}/s  eta={(len(jobs)-done)/(done/dt)/60:.1f}min")
 
 
-async def run(limit: int | None = None) -> None:
+async def run(axis: str, limit: int | None = None) -> None:
+    if axis not in AXIS_CONFIG:
+        raise ValueError(f"unknown axis {axis!r}; choose from {list(AXIS_CONFIG)}")
+    cfg = AXIS_CONFIG[axis]
+    axis_dir = STAGE_DIR / axis
+    renders = axis_dir / "renders"
+
     portraits = portrait_grid()
     if limit:
         portraits = portraits[:limit]
 
     edits = {
-        "ours": str(EDITS_DIR / "age_ours.npz"),
-        "fluxspace": str(EDITS_DIR / "age_fluxspace_coarse.npz"),
+        "ours": str(EDITS_DIR / cfg["ours_npz"]),
+        "fluxspace": str(EDITS_DIR / cfg["fluxspace_npz"]),
     }
-    scales = {"ours": OURS_SCALE, "fluxspace": FLUXSPACE_SCALE}
+    scales = {"ours": cfg["ours_scale"], "fluxspace": cfg["fluxspace_scale"]}
 
     jobs: list[dict] = []
     for p in portraits:
-        # Baseline (λ=0) — one render shared across methods
+        # Baseline (λ=0) — one render shared across methods.
         jobs.append({
             "portrait_id": p["portrait_id"], "prompt": p["prompt"], "seed": p["seed"],
             "method": "baseline", "lam": 0.0, "strength": 0.0,
             "edit_npz_path": edits["ours"],  # file provided so node is present, strength=0 no-op
-            "dest": RENDERS / "baseline" / f"{p['portrait_id']}__lam+0.00.png",
+            "dest": renders / "baseline" / f"{p['portrait_id']}__lam+0.00.png",
         })
         for method, path in edits.items():
             scale = scales[method]
@@ -116,28 +136,28 @@ async def run(limit: int | None = None) -> None:
                     "portrait_id": p["portrait_id"], "prompt": p["prompt"], "seed": p["seed"],
                     "method": method, "lam": lam, "strength": lam * scale,
                     "edit_npz_path": path,
-                    "dest": RENDERS / method / f"{p['portrait_id']}__lam{lam:+.2f}.png",
+                    "dest": renders / method / f"{p['portrait_id']}__lam{lam:+.2f}.png",
                 })
 
-    # Save manifest for evaluator
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    axis_dir.mkdir(parents=True, exist_ok=True)
     manifest = [
         {k: str(v) if isinstance(v, Path) else v for k, v in j.items()} for j in jobs
     ]
-    with open(OUT_DIR / "render_manifest.json", "w") as f:
+    with open(axis_dir / "render_manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
-    print(f"[stage4.5] {len(portraits)} portraits × (baseline + 2 methods × 4 λ) = {len(jobs)} renders")
+    print(f"[stage4.5/{axis}] {len(portraits)} portraits × (baseline + 2 methods × 8 λ) = {len(jobs)} renders")
 
     async with ComfyClient() as client:
         await run_batch(client, jobs)
-    print(f"[stage4.5] done. manifest: {OUT_DIR / 'render_manifest.json'}")
+    print(f"[stage4.5/{axis}] done. manifest: {axis_dir / 'render_manifest.json'}")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--axis", choices=list(AXIS_CONFIG), default="age")
     ap.add_argument("--limit", type=int, default=None)
     args = ap.parse_args()
-    asyncio.run(run(limit=args.limit))
+    asyncio.run(run(axis=args.axis, limit=args.limit))
 
 
 if __name__ == "__main__":
