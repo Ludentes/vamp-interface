@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Runs Part 2's Tier 1 and Tier 2+ conditioning strategies through the framework's Decision Protocol, scoring feasibility per hard constraint and producing a Pareto comparison between candidates.
+---
+
 # Scoring Part 2's proposal against the framework protocol
 
 **Date:** 2026-04-16

@@ -1,6 +1,7 @@
 ---
 status: live
 topic: manifold-geometry
+summary: Five-phase plan to bridge FluxSpace and blendshape ecosystem via per-AU attention-cache directions; hypothesis that α-cliff is mixture-of-AUs; stopping conditions per phase.
 ---
 
 # Blendshape bridge — experiment plan
@@ -100,7 +101,13 @@ blendshapes.
 Deliverable: `docs/research/2026-04-22-inphase-monotonicity.md` with
 τ tables and the attention-projection plot.
 
-## Phase 2 — PCA→ICA on blendshape corpus
+## Phase 2 — sparse NMF on blendshape corpus
+
+**(Revised 2026-04-22 after lit read of Tripathi 2024 PCA + DFECS. Full recipe in
+`2026-04-22-blendshape-decomp-lit-read.md`. Original PCA→ICA framing below
+preserved for provenance but superseded — use the NMF recipe.)**
+
+
 
 **Goal:** Produce a 20-25 dimensional AU-like axis basis from
 measured blendshapes.

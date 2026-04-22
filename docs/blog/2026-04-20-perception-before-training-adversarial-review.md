@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Adversarial review of perception curriculum post: flags 3 issues (TDD self-validation, unflagged neuroscience borrowing, skill-investment reuse unproven). Core methodological pivot defensible; surrounding rhetoric overstated.
+---
+
 # Adversarial Review — Perception Before Training
 
 ## Summary

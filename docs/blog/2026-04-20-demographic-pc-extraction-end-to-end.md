@@ -1,3 +1,9 @@
+---
+status: live
+topic: demographic-pc-pipeline
+summary: Stage 0–4.5 documentation of demographic subspace construction in Flux conditioning space using ridge regression on face-classifier labels. Compares ridge vs prompt-pair approaches, identifies collapse modes at scale boundary, validates direction quality against FluxSpace baseline.
+---
+
 # Demographic-PC Extraction, End to End: Ridge vs Prompt-Pair, Two Kinds of Cliff
 
 **Date:** 2026-04-20

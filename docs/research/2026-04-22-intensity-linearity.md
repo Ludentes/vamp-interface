@@ -1,6 +1,7 @@
 ---
 status: live
 topic: manifold-geometry
+summary: At fixed mix_b=0.5 scale is still non-linear — 59% of 78 scale-trajectories non-monotonic. Non-linearity is three stacked engineering curves (injection threshold, saturation sigmoid, per-base baseline), not manifold curvature.
 ---
 
 # Phase-4 (redirected) — scale-sweep linearity at fixed mix_b

@@ -1,6 +1,7 @@
 ---
 status: live
 topic: manifold-geometry
+summary: Distills Hessian-Geometry, RJF, and Diffusion String Method against our α-interp finding; RJF downgraded (training-time only), Hessian requires 2D slice, String Method is closest match but operates on state space not attention cache.
 ---
 
 # Three manifold-theory papers vs. our α-interp finding — what each one actually gives us

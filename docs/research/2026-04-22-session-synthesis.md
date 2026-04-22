@@ -1,6 +1,7 @@
 ---
 status: live
 topic: manifold-geometry
+summary: Narrative of 2026-04-22 day — three hypothesis falsifications (manifold curvature → mixture of AUs → above-threshold linearity) plus documentation reorg and paper distillations. For future-session recall.
 ---
 
 # Session synthesis — 2026-04-22

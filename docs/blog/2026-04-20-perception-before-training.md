@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Perception curriculum pivot: measure human discrimination of face patterns *before* optimizing training loss. Six-level escalation from single-dial 2-AFC through oddity detection in glance grids, with inversion controls and matched comparators to isolate face-specific processing.
+---
+
 # Perception Before Training — A Curriculum Interlude Between Parts 2 and 3
 
 **Date:** 2026-04-20

@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Citation verification of perception curriculum post: 6 faithful, 2 generous citations across Kingdom & Prins, Wichmann & Hill, Macmillan & Creelman, Rossion, Richler & Gauthier. Smith & Little framing requires tightening; 3rd-edition signposting for detection-theory reference.
+---
+
 # Citation Check — Perception Before Training
 
 Source file: `docs/blog/2026-04-20-perception-before-training.md`

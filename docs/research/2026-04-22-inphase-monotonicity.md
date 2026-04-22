@@ -1,6 +1,7 @@
 ---
 status: live
 topic: manifold-geometry
+summary: Falsifies the mixture-of-AUs hypothesis — α≈0.45 cliff appears identically in same-phase smile, same-phase jaw, and cross-phase Mona→Joker sweeps. The cliff is a FluxSpace mix_b injection threshold.
 ---
 
 # Phase-1 falsification — in-phase vs cross-phase α-sweeps

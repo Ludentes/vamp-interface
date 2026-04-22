@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Part 1 of blog series on face-based EDA. Frames fraud detection as exploratory data analysis and argues that face perception—with dedicated neural machinery for parallel feature processing—offers an alternative to tabular data visualization for high-dimensional pattern discovery.
+---
+
 # Faces as a Data-Mining Puzzle — Part 1: The Case for an Unlikely Interface
 
 **Date:** 2026-04-16

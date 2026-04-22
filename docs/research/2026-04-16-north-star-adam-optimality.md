@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Distinguishes reachable from unreachable optimality claims for face pipelines. Adam-optimality for a specified loss is feasible; optimality for "best representation" or "best game" requires optimizing human perception, which is not differentiable.
+---
+
 # Is there an Adam-optimal face representation? A North-Star analysis
 
 **Date:** 2026-04-16

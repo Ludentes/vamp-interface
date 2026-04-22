@@ -1,3 +1,9 @@
+---
+status: archived
+topic: archived-threads
+summary: Part 2 of blog series on pattern preservation in face pipelines. Defines pattern recovery as requiring information preservation from source through face generation to perceptual readout, with four-term loss for supervised training and diagnostic metrics for debugging each pipeline link.
+---
+
 # Faces as a Data-Mining Puzzle — Part 2: The Math of Pattern Preservation
 
 **Date:** 2026-04-16
