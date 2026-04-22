@@ -55,5 +55,18 @@ src/               — code (projection, generation pipeline, UI)
 
 - uv for Python
 - Conventional commits: docs:, feat:, fix:, chore:
-- Research docs → docs/research/YYYY-MM-DD-<topic>.md
+- Research docs → docs/research/YYYY-MM-DD-<topic>.md (append-only evidence)
+- Topic indexes in `docs/research/_topics/` are the mutable interpretation layer — read them first on any fresh session to get current beliefs on a thread. When adding a dated research doc, update the matching topic index in the same commit.
+- Before answering a question about a past decision ("why did we X"), check the relevant `_topics/` file first.
+- **Frontmatter rule (two-strikes refactoring).** Any time you process or update a `docs/research/` or `docs/blog/` doc that has no frontmatter, add it before saving. Minimal fields:
+  ```
+  ---
+  status: live | superseded | archived
+  topic: <_topics/file-name-without-.md>   # which topic index owns this doc
+  supersedes: <dated-doc-name>             # optional
+  superseded_by: <dated-doc-name>          # optional
+  ---
+  ```
+  Don't batch-backfill. Add frontmatter only on docs being touched anyway — the classic "refactor when touched twice" rule keeps the churn proportional to actual use.
+- Load-bearing paper PDFs live in `docs/papers/` with a README index; prefer local copy over re-fetching.
 - Commit and push after each logical unit of work
