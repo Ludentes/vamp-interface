@@ -21,11 +21,20 @@
 
 ### Key findings
 
-- **Two-axis structure of "smile intensity."** The Mona-Lisa→Joker
-  pair does not trace a single intensity axis — it traces two:
-  mouth-aperture (step-function in α) and lip-corner-pull
-  (concave, peaking mid-range). Intermediate α-values are their
-  own mid-phase species, not "50% of a smile."
+- **The α≈0.45 cliff is a FluxSpace injection threshold, not a
+  manifold-curvature property of endpoints** (2026-04-22 in-phase
+  falsification). Same cliff appears in same-phase smile sweep,
+  same-phase jaw sweep, and cross-phase Mona→Joker sweep at the same
+  α-location. Below threshold the edit is invisible; above, it
+  saturates quickly. `scale` at fixed α ≈ 0.6 is the right intensity
+  control, not α-sweep at fixed scale.
+- **The mouthSmile non-monotonicity in Mona→Joker is smaller than
+  originally reported**: ~1.5% reversal, not the dominant effect.
+  The original α-interp writeup over-emphasised it. The dominant
+  effect is the jawOpen cliff at α≈0.45.
+- **Cross-AU coupling exists but is secondary**: AU12 prompts push
+  AU26 by ~10%, AU26 prompts push AU12 by ~10%. Present but not
+  large enough to explain the 40% cliff amplitude.
 - **`max_env` predicts scale-collapse edges from one s=1 render.**
   93%/82% in/out sample on glasses; unconfirmed on other axes at
   the same `T_ratio`.
