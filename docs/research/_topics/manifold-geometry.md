@@ -39,24 +39,36 @@
 
 ### Theoretical framing (from `docs/papers/`)
 
-- **Hessian Geometry of Latent Space in Generative Models** (Lobashev
-  et al., ICML 2025, `hessian-geometry-2506.10632.pdf`). Predicts the
-  α≈0.45 phase boundary: Fisher metric has fractal phase transitions,
-  geodesics are approximately linear within a phase and break at
-  boundaries where the effective Lipschitz constant diverges.
-- **Learning on the Manifold / RJF** (Kumar & Patel,
-  `learning-on-manifold-rjf-2602.10099.pdf`). Diagnoses
-  Euclidean-`mix_b` failures on hyperspherical features as
-  geometric interference; proposes Riemannian Flow Matching with
-  Jacobi regularisation. Candidate fix for our non-monotonic
-  smile trajectories.
-- **Probing Diffusion Models with the String Method** (Moreau et al.,
-  `diffusion-string-method-2602.22122.pdf`). Minimum-Energy-Path vs
-  Principal-Curve distinction; likelihood-vs-realism paradox explains
-  why straight attention-cache paths cross low-density regions.
-- **FluxSpace** (Dalva et al., CVPR 2025, `fluxspace-2412.09611.pdf`).
-  Our working baseline. Pair-averaged attention cache edits on
-  joint-attention outputs, scale 0.5–1.0 for stable edits.
+Distilled against our specific open questions in
+[2026-04-22 manifold-papers distillation](../2026-04-22-manifold-papers-distillation.md).
+Summary of each paper's actual applicability:
+
+- **Hessian Geometry** (Lobashev et al., ICML 2025). Conceptual match
+  for the α≈0.45 cliff — Proposition 4.1 (p.9) formally shows diverging
+  Lyapunov exponent at a bimodal phase boundary, structurally identical
+  to our jawOpen step. *But* validated only on 2D latent slices of
+  SD 1.5 / Ising / TASEP — not DiT, not flow matching. The Fisher
+  metric here is the Hessian of log Z fit by JSD over a 2D grid, not
+  a Jacobian of the generator and not a sample covariance. Requires
+  picking an orthogonal second parameter to form a 2D slice before
+  the metric is even defined on our 1D `mix_b` sweep.
+- **RJF** (Kumar & Patel). **Downgraded.** Training-time recipe only —
+  does not cover test-time editing, inversion, or `c + s·δ`
+  intervention on a pretrained model. Requires an analytically known
+  manifold (unit hypersphere via LayerNorm); Flux's joint-attention
+  cache has no such structure. The chord-vs-geodesic picture is a
+  useful mental model, not a usable method for our setting.
+- **Diffusion String Method** (Moreau et al.). Closest theoretical
+  match. Fig. 4 directly demonstrates **non-monotonic log-likelihood
+  along linear-initialised strings** in SiT-XL VAE latent — exactly
+  our smile phenomenology. Principal-Curve regime flattens it. Gaps:
+  operates on state space (not attention caches), runs in VAE latent
+  (not DiT T2I), requires both velocity `b_t` and score `s_t` (Flux
+  gives only `b_t`; score derivable via stochastic-interpolant
+  identities but unimplemented in the paper).
+- **FluxSpace** (Dalva et al., CVPR 2025). Our working baseline.
+  Pair-averaged attention cache edits on joint-attention outputs,
+  scale 0.5–1.0 for stable edits.
 
 ### Load-bearing dated docs (in priority order)
 
@@ -88,8 +100,19 @@
   "broad closed smile") produce a monotonic α-sweep, confirming
   that non-monotonicity is a cross-phase phenomenon? Scripted as
   `fluxspace_alpha_inphase.py`.
-- Can Riemannian `mix_b` (geodesic instead of Euclidean) remove
-  the non-monotonic smile artefact? RJF paper provides the recipe;
-  not yet implemented.
+- Can the String Method's reparametrisation + Principal-Curve ideas
+  be ported to attention-cache space as a scheduling heuristic on
+  `mix_b`? Cheapest way to test the "linear path cuts off-manifold"
+  hypothesis without retraining. See distillation doc for cost and
+  obstacles.
 - Can simplex mixing over 3 endpoints give independent control
   over mouth-aperture and lip-corner-pull? Not yet attempted.
+
+### Downgraded / paused directions
+
+- **Riemannian `mix_b` via RJF**: training-time only per the paper,
+  requires analytical hypersphere structure Flux's attention cache
+  doesn't have. Parked.
+- **Full Hessian-geometry Fisher metric**: needs a 2D slice
+  `(mix_b, <something>)` and a log-Z-fit pipeline. Viable as a
+  separate project; not on the α-interp critical path.

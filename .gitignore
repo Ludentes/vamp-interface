@@ -39,7 +39,8 @@ docs/runbooks/telejobs-db.md
 v1/plans/superpowers/2026-04-09-v6-clip-interpolation.md
 
 # Agent / session state
-.claude/
+.claude/*
+!.claude/agents/
 
 # OS / editor
 .DS_Store

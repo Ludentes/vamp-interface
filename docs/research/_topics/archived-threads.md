@@ -75,5 +75,7 @@ if we return to it.
 - `Flow-Based Generative Models for Faces... .md` — long survey,
   mostly pre-Flux; cross-reference only.
 - `Manifold-Research.md` — survey that seeded
-  [manifold-geometry](manifold-geometry.md); read via that topic
-  file, not directly.
+  [manifold-geometry](manifold-geometry.md). **Superseded 2026-04-22**
+  by `2026-04-22-manifold-papers-distillation.md` — the survey
+  oversold RJF and Hessian-Geometry applicability. Kept for its
+  reference list only.
