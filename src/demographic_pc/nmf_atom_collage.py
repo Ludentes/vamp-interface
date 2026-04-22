@@ -35,22 +35,25 @@ CORPUS_SOURCES = [
      METRICS / "crossdemo/smile/intensity_full"),
 ]
 
-# 11 atom labels from nmf-decomposition-result doc
+# Neutral atom labels — loading-based, not AU-interpreted. Our corpus is
+# smile-skewed, so AU-interpretation of atoms has been shown to overclaim
+# (see 2026-04-22 blog post). Name atoms by dominant channel until we have
+# a more diverse corpus.
 ATOM_LABELS = [
-    "AU12+AU10  broad smile",
-    "AU1+AU2    brow raise",
-    "AU7        lid tighten",
-    "AU64+AU45  gaze-down+blink",
-    "AU4        brow lower",
-    "AU12       pure smile",
-    "AU16+AU26  lower lip + jaw",
-    "AU26       pure jaw drop",
-    "AU24+AU28  lip press (fragile)",
-    "AU61/62    horizontal gaze",
-    "AU18       pucker",
+    "#00  mouthSmile + mouthUpperUp",
+    "#01  browInnerUp + browOuterUp",
+    "#02  eyeSquint",
+    "#03  eyeLookDown + eyeBlink",
+    "#04  browDown",
+    "#05  mouthSmile (alone)",
+    "#06  mouthLowerDown + jawOpen",
+    "#07  jawOpen (alone)",
+    "#08  mouthPress + mouthRoll",
+    "#09  eyeLookOut + eyeLookIn",
+    "#10  mouthPucker",
 ]
 
-N_COLS = 5
+N_COLS = 3
 THUMB = 200  # px per cell
 
 
