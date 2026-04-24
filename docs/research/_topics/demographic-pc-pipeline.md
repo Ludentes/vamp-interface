@@ -1,7 +1,84 @@
 ## Demographic-PC pipeline — current belief
 
-**Status:** live but paused at Stage 4.5 while FluxSpace work supersedes
-Stage 5. Last updated 2026-04-22.
+**Status:** live but paused at Stage 4.5; cached-δ injection falsified,
+Stage 5 path now runs through live prompt-pair composition with Concept
+Sliders distillation as the production target. Last updated 2026-04-24.
+
+### 2026-04-24 — repositioning: pipeline = training-data generator for Concept Sliders
+
+See memory [`project_editing_framework_positioning.md`](../../../.claude/projects/-home-newub-w-vamp-interface/memory/project_editing_framework_positioning.md),
+[2026-04-24-overnight-axis-screening.md](../2026-04-24-overnight-axis-screening.md),
+and [2026-04-24-flux-slider-training.md](../2026-04-24-flux-slider-training.md)
+(training recipe + cost envelope for the downstream distillation).
+
+The honest competitive-audit conclusion: our
+`FluxSpaceEditPair(Multi)` pipeline is interpretability-first upstream
+tooling, not a production inference mechanism. For serving at scale,
+Concept Sliders (ECCV 2024) trained from our characterized prompt-pair
+corpora win on inference cost (1× vs our 2N+1×) while preserving our
+axis dictionary.
+
+**What this means for the pipeline:**
+- Our per-axis characterization corpora (9 existing crossdemo + ~8
+  additional from the 2026-04-24 overnight screening) are the
+  Concept-Sliders *training data*, not the final edit mechanism.
+- Composition validation lives in our pipeline (cheap) before
+  committing to training N sliders (expensive).
+- Measurement-side of the pipeline (MediaPipe blendshapes, ArcFace
+  drift, SigLIP probes) serves as the slider eval metric.
+- Production direction: once a validated axis survives both a
+  single-axis metric check AND a multi-axis composition check, it
+  enters the slider-training queue.
+
+### 2026-04-23 — cached-δ replay falsified (terminates multiple threads)
+
+See [2026-04-23-cached-delta-replay-falsified.md](../2026-04-23-cached-delta-replay-falsified.md).
+
+Four experiments (channel-mean δ, full-(L,D) δ at K=20 sites, full-(L,D) δ + per-token
+renorm to scale=300, and on-latent sanity at the exact capture seeds)
+all show cached direction injection produces zero visible edit while
+live `FluxSpaceEditPair` produces dramatic edits at same (base, seed).
+**Editing is a stateful residual-stream cascade, not a static direction**
+— each block's edit contaminates the next block's input.
+
+**Threads this terminates:**
+- AU atom-injection pipeline (C1–C7 NMF atoms as editors) — atoms are
+  measurement readouts, never injectors. `au_inject_*.npz` files are
+  moot as edit mechanisms.
+- Anchor-cache architecture for N-variations-from-one-anchor speedup —
+  same mechanism; same reason it fails.
+- Option C (learn `g(attn_base) → δ`) — `attn_base` isn't a static
+  input under editing; it evolves through the cascade.
+
+**Threads still alive:**
+- Live `FluxSpaceEditPair` / `FluxSpaceEditPairMulti` edit primitives.
+- Channel-mean attention caches as *measurement* artefacts (ridge
+  prediction of blendshape responses at CV R² 0.82–0.97).
+- Prompt-pair axis dictionary (the 2026-04-24 overnight screening
+  shows this path is productive).
+
+### 2026-04-23 — atom-injection status: scoped failure, broader claim unverified
+
+Visual test on 2026-04-23 showed **`directions_resid_causal.npz`
+atom_16** (one of three related artefacts) fails to produce visible
+edits at any tested scale — see
+[2026-04-23-atom-inject-visual-failure.md](../2026-04-23-atom-inject-visual-failure.md).
+This conclusion was reached in a prior conversation ~20 hours earlier
+and lost across compaction, leading to a re-run of the same failing
+path on the same file.
+
+Not yet tested: `directions_k11.npz` (Phase-3-proper's explicit
+output, norm ~0.02 — needs scales ~10³ different from what we used on
+the causal file) and `directions_resid.npz` (non-causal, norm ~0.86).
+The Phase-3-proper paper's constructive claim is only partially
+falsified so far.
+
+Prompt-pair FluxSpace edits (a *different* mechanism) continue to
+work. Prompt-pair iteration
+([2026-04-23-promptpair-iterate-plan.md](../2026-04-23-promptpair-iterate-plan.md))
+is the active edit-mechanism thread. **Before any more atom-ridge
+injection work: run the Option-C gating pilot on `directions_k11.npz`
+at file-appropriate scales first.**
 
 ### TL;DR
 
