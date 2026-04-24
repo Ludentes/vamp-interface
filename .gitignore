@@ -2,6 +2,15 @@ output/
 data/*.json
 data/*.npy
 
+# Heavy model artifacts — too large for git
+models/flux_sliders/*/slider_*.safetensors
+models/flux_sliders/*/training_state_*.pt
+models/flux_sliders/*/_cache/
+models/flux_sliders/*/train_log.csv
+models/flux_sliders/*/args.json
+models/blendshape_nmf/*.parquet
+models/blendshape_nmf/*.parquet.bak.*
+
 # Python
 __pycache__/
 *.py[cod]
