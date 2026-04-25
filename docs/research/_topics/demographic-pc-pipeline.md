@@ -4,6 +4,60 @@
 Stage 5 path now runs through live prompt-pair composition with Concept
 Sliders distillation as the production target. Last updated 2026-04-24.
 
+### 2026-04-24 — distil pixel ArcFace into our cached-feature space (next-week plan)
+
+See [2026-04-24-latent-arcface-distillation-plan.md](../2026-04-24-latent-arcface-distillation-plan.md).
+
+Design doc for a custom identity loss that sidesteps PuLID-style VAE+rollout
+cost. ArcFace pretrained weights are reused as a *labelling oracle*: for each
+face image, target = φ_pixel(image); train a small head φ_ours over our
+existing cached attention features (Option A), Flux latents (B fallback), or
+noised latents (C eventual production form) to reproduce pair-cosine geometry.
+Validation gate: pair-cosine correlation r ≥ 0.9 on a 1000-pair holdout.
+Pilot uses data we already own (classifier_scores.parquet ArcFace embeddings
+× cached attn pkls). Integration: add `L_total = L_diffusion + λ_id (1 − cos)`
+to slider trainer, A/B against v1.1 on eye_squint α=1.0 pass rate (currently
+67% corpus ceiling). Picked up after eye_squint v1.1 lands.
+
+### 2026-04-24 — non-standard losses on LoRAs (PuLID mechanism deep-dive)
+
+See [2026-04-24-non-standard-losses-lora-math.md](../2026-04-24-non-standard-losses-lora-math.md).
+
+Follow-up to the identity-preserving LoRA survey. Goes deep on two
+mechanisms: (1) PuLID's actual training math — Lightning T2I 4-step
+rollout with truncated backprop (DRaFT-K style), accurate ID loss
+`L_id = 1 − cos(φ(x̂0_L), φ(I_id))` on ArcFace-50, contrastive
+alignment loss on with-ID vs without-ID cross-attention queries
+sharing prompt and noise, IP-Adapter-style parallel cross-attention
+(SDXL) / Flamingo-style inserted blocks (FLUX), 1.5M images on
+8×A100, 41–63 GB training VRAM with Lightning trick. (2) Why an
+ArcFace term can't just be added to a kohya LoRA loop — diffusion
+training never produces images, x̂0 is garbage at high t,
+backprop-through-sampling needs gradient checkpointing or truncation,
+ArcFace can collapse into memorisation without an alignment / prior
+regulariser, VAE in the gradient graph for latent diffusion, and a
+review of how DDPO / DRaFT / ReFL solve the same three problems.
+Conclusion sharpens survey recommendation: stack frozen PuLID-Flux
+with our sliders rather than trying to retrofit an ArcFace term into
+the slider training loop.
+
+### 2026-04-24 — identity-preserving LoRA survey (for high-α slider sweeps)
+
+See [2026-04-24-identity-preserving-lora-survey.md](../2026-04-24-identity-preserving-lora-survey.md).
+
+Mapped the literature on identity preservation under attribute editing:
+DreamBooth/Custom Diffusion/Celeb-Basis/Concept-Sliders carry no
+ArcFace term in training; ID-Booth (FG 2025) is the cleanest
+LoRA-shaped recipe with an explicit ArcFace triplet loss; encoder
+methods (IP-Adapter-FaceID, PhotoMaker, InstantID, PuLID, Arc2Face)
+inject ArcFace embeddings via cross-attention adapters. PuLID
+(NeurIPS 2024) trains its adapter with a contrastive-alignment +
+Lightning-branch ID loss specifically to leave non-ID model
+behaviour untouched, making it the best theoretical companion for
+our slider LoRAs. Recommended next step: stack PuLID-Flux on the
+v3 anchor + existing slider LoRAs and re-measure ArcFace ≥ 0.75
+retention at α=1.0 (currently 67%).
+
 ### 2026-04-24 — repositioning: pipeline = training-data generator for Concept Sliders
 
 See memory [`project_editing_framework_positioning.md`](../../../.claude/projects/-home-newub-w-vamp-interface/memory/project_editing_framework_positioning.md),
