@@ -46,11 +46,49 @@ def parse_args():
     p.add_argument("--tau-edit",  type=float, default=0.15,
                    help="min Δ(squint) vs α=0 anchor")
     p.add_argument("--tau-smile", type=float, default=0.15,
-                   help="max |Δ(smile)|")
+                   help="max |Δ(smile)| per cell")
     p.add_argument("--tau-gaze",  type=float, default=0.10,
-                   help="max |Δ(off-axis gaze)|")
+                   help="max |Δ(off-axis gaze)| per cell")
+    p.add_argument("--balance", action="store_true",
+                   help="v1.1.5 mode: enforce set-level confound mean ≈ 0 per α bucket")
+    p.add_argument("--balance-eps", type=float, default=0.02,
+                   help="set-level mean tolerance (default 0.02)")
     p.add_argument("--out", default=str(DEFAULT_OUT))
     return p.parse_args()
+
+
+def balance_alpha_bucket(rows: pd.DataFrame, eps: float) -> pd.DataFrame:
+    """Greedy set-level balancer.
+
+    Drops one cell at a time — the cell whose removal reduces the larger
+    of |mean_smile|, |mean_gaze| the most — until both are within ±eps
+    OR the bucket is empty. Anchors (alpha == 0) are protected; we only
+    touch non-anchor cells.
+    """
+    if len(rows) == 0:
+        return rows
+    cur = rows.copy().reset_index(drop=True)
+    while True:
+        m_s = cur["confound_smile"].mean()
+        m_g = cur["confound_gaze"].mean()
+        if abs(m_s) <= eps and abs(m_g) <= eps:
+            return cur
+        if len(cur) <= 1:
+            return cur
+        n = len(cur)
+        # For each candidate row i, compute new means after removal:
+        # new_mean = (sum - x_i) / (n - 1)  ⇒  new_score = max(|new_mean_s|, |new_mean_g|)
+        s_sum = cur["confound_smile"].sum()
+        g_sum = cur["confound_gaze"].sum()
+        new_s = (s_sum - cur["confound_smile"].values) / (n - 1)
+        new_g = (g_sum - cur["confound_gaze"].values) / (n - 1)
+        new_score = np.maximum(np.abs(new_s), np.abs(new_g))
+        cur_score = max(abs(m_s), abs(m_g))
+        # Pick the row whose removal most reduces score; bail if no improvement.
+        i_drop = int(np.argmin(new_score))
+        if new_score[i_drop] >= cur_score - 1e-9:
+            return cur
+        cur = cur.drop(index=i_drop).reset_index(drop=True)
 
 
 def compute_deltas(df: pd.DataFrame, cols: dict[str, list[str]]) -> pd.DataFrame:
@@ -128,6 +166,29 @@ def main():
                 "edit_effect", "confound_smile", "confound_gaze",
                 "identity_cos_to_base", "corpus_version"]
     manifest = df.loc[keep, out_cols].reset_index(drop=True)
+
+    # v1.1.5 — set-level balancing per α bucket
+    if args.balance:
+        print(f"\n[balance] enforcing |mean confound| ≤ {args.balance_eps} per α (anchors protected)")
+        before_per_alpha = manifest["alpha"].value_counts().sort_index()
+        is_anchor_m = manifest["alpha"].abs() < 1e-6
+        anchors_m = manifest[is_anchor_m].copy()
+        non_anchors = manifest[~is_anchor_m].copy()
+        balanced_chunks: list[pd.DataFrame] = []
+        for alpha, grp in non_anchors.groupby("alpha", sort=True):
+            ms_before = grp["confound_smile"].mean()
+            mg_before = grp["confound_gaze"].mean()
+            balanced = balance_alpha_bucket(grp, args.balance_eps)
+            ms_after = balanced["confound_smile"].mean() if len(balanced) else 0.0
+            mg_after = balanced["confound_gaze"].mean() if len(balanced) else 0.0
+            print(f"  α={alpha:.2f}: {len(grp):3d} → {len(balanced):3d}   "
+                  f"smile {ms_before:+.3f} → {ms_after:+.3f}   "
+                  f"gaze {mg_before:+.3f} → {mg_after:+.3f}")
+            balanced_chunks.append(balanced)
+        manifest = pd.concat([anchors_m, *balanced_chunks], ignore_index=True) \
+                       .sort_values(["alpha", "source", "base", "seed"]).reset_index(drop=True)
+        print(f"[balance] final manifest: {len(manifest)} rows "
+              f"(was {before_per_alpha.sum()} before balancing)")
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     manifest.to_parquet(out_path, index=False)
