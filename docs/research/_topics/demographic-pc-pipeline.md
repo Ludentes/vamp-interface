@@ -4,20 +4,96 @@
 Stage 5 path now runs through live prompt-pair composition with Concept
 Sliders distillation as the production target. Last updated 2026-04-24.
 
-### 2026-04-24 — distil pixel ArcFace into our cached-feature space (next-week plan)
+### 2026-04-27 — `arc_latent` distillation pre-flight: teacher mislabel fixed, FFHQ detection rate measured
+
+While preparing pre-flight #1 of the [arc_latent distillation plan](../2026-04-27-arc-latent-distillation-plan.md):
+
+- **Teacher identity corrected.** The plan and `project_vamp_measured_baseline` memory called the production face encoder "ArcFace IR101." It is not. ONNX inspection (130 nodes, input `(N,3,112,112)`, output `(1,512)`) confirms it is **ArcFace R50** as packaged in insightface's `buffalo_l` (recognition head `w600k_r50.onnx`, ResNet-50 backbone, ArcFace loss, WebFace600K training). The "IR101" recommended in [2026-04-07-face-recognition-embeddings.md](../2026-04-07-face-recognition-embeddings.md) (`minchul/cvlface_arcface_ir101_webface4m`) was never installed. Decision: ratify R50 as the actual teacher (every cached embedding and every ridge classifier is in R50 space; switching now would invalidate downstream for ~1pp IJB-C gain we don't need).
+- **Two preprocessing paths in repo, only one canonical.** [classifiers.py:157](../../../src/demographic_pc/classifiers.py#L157) wraps `FaceAnalysis(name="buffalo_l")` with full SCRFD detect → 5-pt similarity align → 112×112 BGR → `(x-127.5)/127.5` → R50 → L2-normed pipeline. [fluxspace_primary_metrics.py:44-48](../../../src/demographic_pc/fluxspace_primary_metrics.py#L44-L48) takes a shortcut (`Resize(112) + Normalize([0.5]*3,[0.5]*3)` without alignment, RGB instead of BGR). Embeddings from the shortcut are **not** comparable to the canonical pipeline; the distillation corpus must use canonical only.
+- **FFHQ detection rate at `det_thresh=0.5` is ~60-70%, not >99%.** See [2026-04-27-arcface-detection-threshold.md](../2026-04-27-arcface-detection-threshold.md). On 10 first images of `bitmind/ffhq` shard 0, 6/10 detected at canonical 0.5; 10/10 at 0.1. Misses are clearly visible frontal smiling faces — the detector finds them but at lower confidence, dropped by the threshold. Hypothesis: FFHQ's tight dlib alignment puts faces at face-to-frame ratios outside SCRFD's WIDER-FACE training distribution. Threshold stays at 0.5 (consistency with cached embeddings); expected effective FFHQ-distillation corpus is ~42k of 70k. Plenty for ResNet-18 distillation.
+- **Reference fixture exists** at `tests/fixtures/arc_reference.npz` — 10 FFHQ images, SHA-256-keyed, 6 valid 512-d L2-normed embeddings + 4 explicitly recorded as `detected=False`. Round-trip check for any future corpus builder.
+
+### 2026-04-27 — v5 prep: expanded glasses corpus + acetate variant + canonical dataset
+
+For the v5 slider training run:
+- **FluxSpace corpus expanded** for glasses axis: 6 missing demos rendered (latin_f, middle_f, latin_m, asian_f_elderly, young_black_m, young_european_f) at 4 seeds × 4 alphas via `expand_corpus_v3_multipair.py --axis glasses`. Index now 10 demos × 4 seeds × 4 alphas = 160 rows in `v3_1_glasses` source.
+- **Anti-zebra `glasses_acetate` variant** added to `expand_corpus_v3_multipair.AXIS_PAIRS`: thick acetate / matte tortoiseshell prompts + `start_pct=0.30` (vs 0.15) to let Flux commit to base before glasses inject. Mitigates the thin-rim moiré Flux's VAE+patch tokenisation produces. 24 renders (6 demos × 4 seeds × α=0.6) at `crossdemo_v3_1/glasses_acetate/`.
+- **`ai_toolkit_glasses_v2` dataset built** at `datasets/ai_toolkit_glasses_v2/` via `build_glasses_v2_dataset.py`: 63 pairs (39 main α=0/0.8 + 24 acetate α=0/0.6 reusing main α=0 anchor as no-edit baseline) with demographic-conditioned captions. v1 had 7 pairs × 1 caption.
+- **`glasses_slider_v5.yaml`** at `~/w/ai-toolkit/config/`: η=4.0→2.5, lr cosine to 0 (1.25e-4 base), 1500→800 steps, save_every=100→50, LoRA alpha 1→16 (principled = rank), xattn scope kept, EMA off kept, adamw8bit kept.
+- v6 will be Lion at lr ≈3e-5 (1/4 of AdamW, sign-based may push less hard into bundle directions). Lion preferred over Prodigy because we already know the right LR — Prodigy's auto-LR doesn't apply.
+- **Stereotype-bundle hypothesis update from v4-step-600 SigLIP probes**: glasses Δ=+0.054 dominates over earrings (+0.022), beard (+0.012), formal_clothing (-0.006). The visual cluster shift in collages is real but doesn't show as a measurable competing axis on bipolar SigLIP probes — bundle is a visual gestalt (background, framing, posture), not per-channel attribute drift.
+
+### 2026-04-27 — Canonical-schema LoRA eval (fusable with sample_index)
+
+`measure_slider.py` now produces the canonical FluxSpace-corpus schema (92/92 columns matching `models/blendshape_nmf/sample_index.parquet`) plus 22 LoRA-specific columns (`slider_name`, `checkpoint`, `prompt_pool`, observed-* classifier predictions). Each row carries the 20-d NMF atom projection (atom_source="pinv_lora"), 52 ARKit blendshapes, demographic intent (parsed from prompt → ethnicity/gender/age/closest-base), and demographic observations from MiVOLO + InsightFace + FairFace. **Fusion rule**: `pd.concat([sample_index, lora_eval], join="outer")` → unified corpus for Path B (forward checkpoint mix solver) and Path C (inverse training-pair selection). Schema is now the load-bearing decision; column ordering is not. Both v4 step 600 and step 1400 evals re-scored in this schema.
+
+### 2026-04-27 — Glasses v4 step 600 vs 1400: ship 600
+
+See [step 1400 eval](../2026-04-27-glasses-v4-step1400-eval.md). 1400 has worse held-out coverage despite 800 more training steps (held-out @ +1.0 = 50% for 1400 vs 67% for 600; generalization gap 39 pts vs 22 pts). Identity improves slightly (mean ArcFace 0.69 → 0.71). Classic overfit: late η=4 training tightens in-distribution at the cost of held-out generalization. **Step 600 is the candidate**. Validates v5 plan (cosine LR, lower η, fewer steps).
+
+### 2026-04-27 — Glasses v4 step 600 eval (first slider through the battery)
+
+See [2026-04-27-glasses-v4-step600-eval.md](../2026-04-27-glasses-v4-step600-eval.md).
+
+First slider evaluated under `measure_slider.py` (243 cells = 9 prompts × 9 strengths × 3 seeds). Glasses fails the original bidirectional pass criteria (separation @ ±1.5 = 0.06 vs ≥ 0.3) because the negative half is semantically empty — adding glasses is a concept, removing them from a baseline that doesn't have them isn't. Procedure now has a one-sided code path; glasses joined `ONE_SIDED_AXES`. Under one-sided metrics: engagement strength ≈ +1.0 (89% in-dist / 67% held-out cells gain glasses), saturation ≈ +1.5 (100% / 100%), identity collapses past +1.5 (mean ArcFace 0.42 → 0.30). Operating point ~+1.0; usable range +0.5 → +1.5. **Stereotype-bundle hypothesis falsified by these probes**: at s=+1.5 vs s=0, glasses Δ=+0.054 dominates over earrings (+0.022), hair_curly (+0.021), beard (+0.012), formal_clothing (-0.006). The visual cluster shift in the collage (bare → polo, hijab on `ho_middleeast_neutral`) is real but doesn't show up as a measurable competing axis on these particular SigLIP probes; bundle is a visual gestalt (background, framing, posture), not per-channel attribute drift. Step 1400 eval pending (currently rendering).
+
+### 2026-04-26 — Three solvers, only one built; v4→v5 resume notes
+
+See [2026-04-26-solvers-taxonomy-and-next-steps.md](../2026-04-26-solvers-taxonomy-and-next-steps.md).
+
+Disambiguates "the solver" into three: **A** = FluxSpace composition (built; produced sample_index.parquet + cached attn pkls + ~7652 measured renders); **B** = forward checkpoint-mixing (idea, not built; min-norm LSQ over a slider's checkpoint ladder, inputs come from quality-measurement parquet, build only if single-checkpoint fails the battery); **C** = inverse training-pair selection (idea, not built; queries the measured corpus for off-stereotype pairs that break the cluster correlation, prerequisite to a meaningful Path B). Captures Path C four-gate kill plan (φ R²≥0.85 → ∇φ visual structure → no-LoRA gradient-ascent produces real glasses → 200-step LoRA pilot; total time-to-kill ~1h before any meaningful compute). Documents the **stereotype-bundle observation** from v4 step 600 (eyewear is a feature of a cluster shift "casual↔studio-professional", not an axis; bundle lives in T5-XXL + image priors, upstream of LoRA scope; explains why Path A is structurally weak on bundled axes — not a tuning problem). Resume-here checklist for next session: confirm v4 wraps, write `measure_slider.py`, run quality battery on best v4 checkpoint, decide v5 + v6 (v6 runs regardless of v5 outcome per user instruction), discuss solver C while v5 trains.
+
+### 2026-04-26 — Slider quality measurement procedure
+
+See [2026-04-26-slider-quality-measurement.md](../2026-04-26-slider-quality-measurement.md).
+
+Per-slider eval battery: render grid (in-distribution training prompts + ≥6 held-out prompts × strengths {-2.5..+2.5} × ≥3 seeds), measurement set (intended-axis metric + ArcFace identity + SigLIP hair/accessories/clothing + MediaPipe blendshapes + lighting stats), parquet schema keyed by `(slider, checkpoint, prompt, strength, seed)`, pass criteria (monotonicity Spearman ≥ 0.9, identity ArcFace ≥ 0.4, usable range ≥ 1.0, in-dist↔held-out gap ≤ 0.15). A LoRA is "a slider" only after passing all four; eyeballing the training collage is what got us fooled across v0-v4. Multi-checkpoint solver and cross-slider comparison deliberately deferred until single-checkpoint pass exists. Implementation script (`measure_slider.py`) not built yet.
+
+### 2026-04-26 — Measurement-grounded slider training plan
+
+See [2026-04-26-measurement-grounded-slider-plan.md](../2026-04-26-measurement-grounded-slider-plan.md).
+
+Path A (prompt-pair Concept Sliders, ai-toolkit on Flux Krea) struggled across v0-v4 with guidance distillation magnitude / scope / EMA tuning. We have measurement infrastructure (SigLIP margins, MediaPipe blendshapes, ArcFace, classifier scores) for every axis we care about — using a general image method on a problem with quantitative ground truth is the wrong tool. Plan documents three measurement-grounded paths in math-level detail: **D** = ridge regression on cached attention features for direction-extraction validation (1d, no LoRA); **B** = image-pair Concept Sliders fed by pair-filtered renders (2-3d, smallest move, supervision becomes `(z_neg − z_pos)/(2w)` direct latent-space difference instead of small prompt-pair velocity diff); **C** = latent-space surrogate `φ` trained to predict measured score, used as gradient supervision for LoRA (5-7d, cleanest math, one φ per axis works for all sliders). Per-axis: same machinery, different measurement column. Blendshape axes (smile, jaw, squint) are better-conditioned than glasses and should fall out once B works.
+
+### 2026-04-26 — Slider experiments journal (append-only)
+
+See [2026-04-26-slider-experiments-journal.md](../2026-04-26-slider-experiments-journal.md).
+
+Append-only log of slider training runs: hypothesis → config delta → data → result → verdict → next. Source of truth for configs is the YAML; this doc captures *why* and *what happened*. Documented so far: `glasses_slider_v0_overshoot_lr2e-3` (FAIL — three compounding errors), `glasses_slider_v0` (in progress, partial-fail expected — degenerate direction), `glasses_slider_v1` (planned — xattn-only scope, no EMA). Backlog includes per-axis scope hypothesis, anchor class, image-pair Path B port.
+
+### 2026-04-26 — Flux MMDiT attention decomposition for slider scope
+
+See [2026-04-26-flux-attention-slider-scope.md](../2026-04-26-flux-attention-slider-scope.md).
+
+Logical decomposition of Flux's joint MMDiT attention (Q/K/V across img and txt streams) to argue which weights actually carry a concept-slider direction vs which are bleed surface. Surgical → permissive ladder: `add_k_proj`+`add_v_proj` (38 mods, most direction-pure) → +`to_q` (57) → notebook xattn (~152) → ai-toolkit default (~494, current run, blew up at lr=2e-3). Right scope likely differs by axis (smile = semantic relabel, glasses = new visual content). Triggered by `glasses_slider_v0` audit identifying 6× module inflation as one of three compounding failure modes.
+
+### 2026-04-24 — distil ArcFace AND MediaPipe into latent space; trainer rebuild plan
 
 See [2026-04-24-latent-arcface-distillation-plan.md](../2026-04-24-latent-arcface-distillation-plan.md).
 
-Design doc for a custom identity loss that sidesteps PuLID-style VAE+rollout
-cost. ArcFace pretrained weights are reused as a *labelling oracle*: for each
-face image, target = φ_pixel(image); train a small head φ_ours over our
-existing cached attention features (Option A), Flux latents (B fallback), or
-noised latents (C eventual production form) to reproduce pair-cosine geometry.
-Validation gate: pair-cosine correlation r ≥ 0.9 on a 1000-pair holdout.
-Pilot uses data we already own (classifier_scores.parquet ArcFace embeddings
-× cached attn pkls). Integration: add `L_total = L_diffusion + λ_id (1 − cos)`
-to slider trainer, A/B against v1.1 on eye_squint α=1.0 pass rate (currently
-67% corpus ceiling). Picked up after eye_squint v1.1 lands.
+Doc now covers two companion oracles:
+
+- **Latent ArcFace** (φ_id_latent) — identity-preservation regulariser, distilled
+  from pixel ArcFace via (latent, arcface_embedding) pairs; pair-cosine
+  correlation r ≥ 0.9 on holdout as the validation gate.
+- **Latent MediaPipe** (φ_bs_latent) — *primary* axis supervisor, distilled
+  from MediaPipe FaceLandmarker via (latent, 52-d blendshape) pairs;
+  per-axis MSE ≤ 0.05 on holdout as validation gate. Added after v1.1
+  image-pair training surfaced structural failure: identity contamination
+  at all α (training cells labelled α=0.15 had 9% median id drift, which
+  the LoRA reproduced as "scale 0.15 = shift toward training-mean face")
+  plus FluxSpace sublinearity (target edit grows 2× while α grows 3.3×)
+  that a linear LoRA can't fit.
+
+Composed loss: `L_total = λ_bs·L_bs + λ_id·L_id + λ_diff·L_diff_anchor`.
+Blendshape target is authored synthetically (anchor_bs + α·unit_delta),
+making α↔effect linear by construction and ARKit-compatible by
+construction — generalises to the 12-atom atlas without new rendering.
+
+Distillation corpora already exist: classifier_scores.parquet has ArcFace
+embeddings, sample_index.parquet has 52 bs_* columns, 7000+ PNGs for
+fresh VAE-encoding. Pilot-train both heads in parallel (one GPU-day),
+validate cheaply, integrate into trainer. Picked up when sliders ship.
 
 ### 2026-04-24 — non-standard losses on LoRAs (PuLID mechanism deep-dive)
 

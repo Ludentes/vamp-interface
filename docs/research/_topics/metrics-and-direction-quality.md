@@ -1,6 +1,74 @@
 ## Metrics and direction quality — current belief
 
-**Status:** live. Last updated 2026-04-22.
+**Status:** live. Last updated 2026-04-24.
+
+### 2026-04-24 addendum — 11-axis overnight screening
+
+See [2026-04-24-overnight-axis-screening.md](../2026-04-24-overnight-axis-screening.md).
+990 prompt-pair characterization renders (11 new axes × 6 bases × 3
+seeds × 5 α), scored with MediaPipe blendshapes. Key findings:
+
+- **Visual-to-metric calibration**: visual screening was right on
+  direction in all 5 measurable axes but miscalibrated on magnitude
+  for 3. Two axes were *under*-claimed as weak (eye_squint,
+  gaze_horizontal — actually monotonic with +0.9 / +1.05 effect on
+  all 6 bases). One axis was *over*-claimed as consistent
+  (brow_furrow — fails on 3/6 bases; elderly_latin_m carries it).
+- **Base-dependence is a first-class failure mode** for prompt-pair
+  axes. An axis whose mean-across-bases effect looks fine may still
+  be fitting an inconsistent per-base signal. Check per-base Δ before
+  committing an axis to the slider-training corpus.
+- **Prompt semantic vs intent drift**: "mouth stretched wide
+  horizontally" activates `jawOpen` (0.003→0.54) not `mouthStretchL/R`
+  (decreases 0.06→0.01). Rewrite prompts whose intended blendshape
+  target disagrees with the measured-maximal blendshape.
+- **Axis-count implication for slider dictionary**: several distinct
+  AU axes respond cleanly to separate text pairs (brow_lift,
+  brow_furrow, eye_squint, gaze_horizontal in addition to the 8
+  existing corpora), suggesting the production dictionary should
+  cover O(20) axes, not the NMF-k=8 compressed basis. NMF is the
+  measurement basis, not the edit basis.
+
+### 2026-04-23 addendum — vocabulary extensions log
+
+Running list of beyond-blendshape confounds surfaced during visual
+inspection lives in
+[2026-04-23-vocabulary-extensions.md](../2026-04-23-vocabulary-extensions.md).
+Hair (style, length, color), posture, skin smoothness, image
+photoreality, clothing, and background currently uncaptured.
+Append-only log; axes get promoted into `score_clip_probes.py` or
+`classifiers.py` when evidence accumulates.
+
+### 2026-04-23 addendum — effect-matrix pipeline
+
+Plan doc: [2026-04-23-effect-matrix-plan.md](../2026-04-23-effect-matrix-plan.md).
+Index now carries per-row MediaPipe blendshapes, NMF atoms, SigLIP-2
+probe margins, MiVOLO+FairFace+InsightFace age/gender/race, and ArcFace
+512-d embeddings. Still to add: identity + total-drift cosines, max_env
+stamp, prompt-provenance columns. End deliverable is per-(axis, base)
+effect-matrix report feeding a composition solver.
+
+### 2026-04-23 addendum — attribute-probe encoder choice
+
+We introduced CLIP-style zero-shot attribute probes as the continuous
+signal for edit-induced drift (bearded, smiling, open-mouth, wrinkled,
+glasses, eyes-closed…). First-pass implementation used OpenCLIP
+ViT-L/14 (`openai` weights). Smoke evidence showed the bearded/clean
+gap at only ~0.05 logit-margin — directionally correct but weak, with
+one cell (`asian_m` scale=1.0 vs `elderly_latin_m` bearded-baseline)
+actually inverting.
+
+Surveyed the 2024–2026 VLM / image-encoder landscape in
+`docs/research/2026-04-23-face-attribute-vlm-survey.md`. Conclusion:
+swap to **SigLIP-2 So400m/16** as the probe encoder — same
+logit-margin interface, +8 pts zero-shot ImageNet over OpenCLIP L/14,
+drop-in via HuggingFace Transformers. **FaRL (ViT-B/16)** is the
+face-specialist fallback if probes still underperform (+0.5 pts on
+CelebA-40 vs CLIP, 20M face-pair pretraining). VLMs
+(LLaVA/Qwen-VL/InternVL) are rejected for this role — categorical
+generation + known hallucination on subtle attributes make them the
+wrong shape for continuous drift scoring. DINOv2 rejected — no text
+interface, would need per-attribute linear probes.
 
 ### TL;DR of where we landed
 
