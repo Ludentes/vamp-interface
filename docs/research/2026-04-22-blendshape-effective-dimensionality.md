@@ -2,6 +2,7 @@
 status: live
 topic: manifold-geometry
 summary: ARKit's 52 channels are overcomplete; effective rank 20-30 at 90-95% variance. Recommends PCA→ICA or SPLOCS before ridge regression on expression targets.
+superceded_by: 2026-04-22-blendshape-decomp-lit-read
 ---
 
 # Blendshape Effective Dimensionality and Decomposition Methods

@@ -1,8 +1,19 @@
 ---
 status: live
 topic: manifold-geometry
-summary: Phase-3-proper fits full-tensor ridge on top-24 (step, block) sites per atom; CV R² 0.82–0.97 across all 11 atoms including the previously weak ones (jaw, pucker, lip-press). FluxSpace-usable edit directions saved.
+summary: Phase-3-proper fits full-tensor ridge on top-24 (step, block) sites per atom; CV R² 0.82–0.97. Predictive claim holds. Constructive claim (injection steers atom k) is UNVERIFIED on this artefact (`directions_k11.npz`). A related but different artefact (`directions_resid_causal.npz`) failed visual validation on 2026-04-23 — see the linked failure doc. The `directions_k11.npz` file itself has not been visually tested.
 ---
+
+> **⚠ CAUTION (2026-04-23).** A nearby artefact
+> (`directions_resid_causal.npz`, norm ~47 per atom, 20 atoms) was
+> visually tested on 2026-04-23 and does NOT produce visible edits
+> in any explored scale regime. That is NOT this doc's artefact.
+> This doc's `directions_k11.npz` (11 atoms, norm ~0.02 per atom)
+> has not yet been visually tested. Any follow-on work on *this*
+> file must first run the Option-C gating pilot at scales calibrated
+> to the 0.02-norm magnitudes. See
+> [2026-04-23-atom-inject-visual-failure.md](2026-04-23-atom-inject-visual-failure.md).
+
 
 # Phase 3-proper — FluxSpace-usable edit directions per NMF atom
 

@@ -109,6 +109,58 @@ Might still reveal residual issues:
   have demographic-correlated baselines that NMF can't separate
   without explicit identity residualisation.
 
+## Disk state after render (2026-04-22 21:08)
+
+The 1500-render corpus built as planned (`render_expression_corpus.py`, 4h17m,
+no failures) but consumed **~155 GB** — the per-pair measurement pkl is
+**~112 MB** on disk, not the ~7 MB the preflight assumed (15× under).
+
+- Disk is at **20 GB free / 99% used** after the render.
+- PNGs (300 KB each, ~450 MB total) are cheap; pkls are the cost.
+- Visual inspection collage
+  (`output/demographic_pc/fluxspace_metrics/crossdemo/collages/rebalance/{axis}.png`)
+  shows s ∈ {1.6, 2.0} collapsed to pixel noise on every axis × base —
+  **40% of renders (600 × ~112 MB ≈ 67 GB) are unusable** and can be
+  pkl-deleted immediately without information loss.
+- Disgust and lip_press prompts barely landed visually; need stronger
+  AU-vocabulary prompts on reshoot before those axes contribute.
+
+Before any further rendering or caching tomorrow, reclaim disk in this order:
+1. Delete pkls for s ∈ {1.6, 2.0} across all 5 axes (~67 GB). Keep PNGs
+   as visual evidence of collapse.
+2. Run scoring (`score_blendshapes.py`) on remaining 900 PNGs (cheap,
+   ~5 MB output total).
+3. If disgust / lip_press blendshape vectors are
+   indistinguishable-from-neutral, delete those axes entirely (another
+   ~24 GB reclaimed).
+4. Run `cache_attn_features.py` on the surviving paired pkls, then
+   delete the raw pkls (10× compression, ~90% disk recovered).
+
+Updated preflight rule-of-thumb lives in
+`memory/feedback_disk_preflight.md`: measurement pkl ≈ 112 MB, not 50 MB.
+
+## Phase 4 render-batch format hard rule
+
+**Before launching any Phase 4 validation run that saves measurement files,
+patch the measurement writer to:**
+
+1. Save only `delta_mix.mean_d` and `attn_base.mean_d` (drop `rms_d`,
+   `steered_at_scale`, `ab_half_diff`).
+2. Store at fp16, not fp32.
+3. **Write as `.npz` (numpy-compressed), not `.pkl`.** Version encoded in the
+   extension itself — no in-file `format_version` tag needed. Reader
+   dispatches on `Path(p).suffix`: `.pkl` = v1, `.npz` = v2. Mixed-version
+   directories auto-partition cleanly; archived v1 pkls stay under their
+   original paths and don't collide with fresh v2 npzs.
+4. Keep the v1 `.pkl` reader branch in `cache_attn_features.py` so archived
+   pkls remain restorable (see `memory/feedback_measurement_format_versioning.md`
+   and `memory/reference_external_pkl_archive.md`).
+
+Expected size impact: ~22 MB/render (vs the current 112 MB v1). Phase 4
+at 2–4 atoms × 6 bases × 5 scales × 3 seeds = ~180–360 renders would
+consume 4–8 GB instead of 20–40 GB. Fits local disk without needing the
+external drive.
+
 ## Artefacts expected
 
 - `output/demographic_pc/fluxspace_metrics/crossdemo/{expression}/...`

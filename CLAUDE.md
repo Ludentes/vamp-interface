@@ -25,6 +25,23 @@ The uncanny valley is the primary signal mechanism, not feature-by-feature readi
 - telejobs DB — `jobs` table: `raw_content`, `sus_level`, `sus_factors` (16-d factor vector), structured metadata
 - ComfyUI REST API — same server infrastructure as portrait-to-live2d
 
+## External paths (ComfyUI + custom nodes)
+
+Greppable so any session can find them without spelunking. These live *outside* the repo tree:
+
+- **ComfyUI install**: `/home/newub/w/ComfyUI/`
+- **ComfyUI custom-nodes dir**: `/home/newub/w/ComfyUI/custom_nodes/`
+- **Our FluxSpace edit nodes** (active, used by the measurement workflows): `/home/newub/w/ComfyUI/custom_nodes/demographic_pc_fluxspace/__init__.py` — defines `FluxSpaceEditSkeleton`, `FluxSpaceEdit`, `FluxSpaceEditPair`, `FluxSpaceBaseMeasure`.
+- **Our conditioning-edit node** (stage4 residual conditioning): `/home/newub/w/ComfyUI/custom_nodes/demographic_pc_edit/__init__.py` — defines `ApplyConditioningEdit`.
+- **Vendored reference FluxSpace research code** (read-only, not loaded by ComfyUI): `vendor/FluxSpace/` in the repo.
+- **Stub copy of our conditioning-edit node** (not active, may be stale): `comfyui/custom_nodes/demographic_pc_edit/__init__.py` in the repo — the live one is under `~/w/ComfyUI/custom_nodes/`. Don't edit the repo copy expecting ComfyUI to pick it up.
+
+When you need to add a new custom node for this project, create `/home/newub/w/ComfyUI/custom_nodes/<new_node>/__init__.py` and restart ComfyUI.
+
+## External archive (attention pkls)
+
+See `docs/archive-locations.md`. ~315 GB of raw per-render FluxSpace measurement pkls live at `/media/newub/Seagate Hub/vamp-interface-archive/` (USB drive, not always mounted). Layout mirrors the repo; restore via rsync.
+
 ## Key Design Decisions
 
 - **Two-channel encoding**: identity from text embedding (cluster membership), expression from factor vector (verdict)

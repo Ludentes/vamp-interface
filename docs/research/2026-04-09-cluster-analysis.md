@@ -3,7 +3,7 @@
 **Date:** 2026-04-09
 **Dataset:** `output/full_layout.parquet`
 **Corpus:** 23,777 job postings, cutoff 2026-02-15
-**Layout:** PaCMAP on 1024-d mxbai-embed-large embeddings, `n_neighbors=15`, seed=42
+**Layout:** PaCMAP on 1024-d qwen embeddings, `n_neighbors=15`, seed=42
 **Clustering:** HDBSCAN on PaCMAP 2D coordinates
   - Fine clusters: 195 (+ noise)
   - Coarse clusters: 42
