@@ -1,0 +1,21 @@
+axis: age
+# No single target_probe — age readouts are mv_age, ins_age, siglip_wrinkled_margin.
+# target_atom is left blank: age isn't a blendshape, so primary atom will be picked empirically.
+target_probe: siglip_wrinkled_margin
+
+variants:
+  # Age-up: explicit "elderly" language should pull every base toward elderly.
+  # Best case: large +mv_age on young/adult bases; bounded on elderly (already old).
+  age_up_elderly:
+    pos: "An elderly person with deep wrinkles and grey hair."
+    neg: "A photorealistic portrait photograph of an elderly person with deep wrinkles and grey hair, plain grey background, studio lighting, sharp focus."
+
+  # Age-down: "young" language pulling toward young. Best on elderly (biggest flip).
+  age_down_young:
+    pos: "A young person with smooth skin and dark hair."
+    neg: "A photorealistic portrait photograph of a young person with smooth skin and dark hair, plain grey background, studio lighting, sharp focus."
+
+  # Mechanistic variant: anchor on wrinkles specifically (decouple from hair, skin tone).
+  age_up_wrinkles_only:
+    pos: "A person with many deep facial wrinkles."
+    neg: "A person with completely smooth unwrinkled skin."

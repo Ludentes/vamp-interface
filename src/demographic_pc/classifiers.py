@@ -155,24 +155,35 @@ class FairFaceClassifier:
 # ── InsightFace ───────────────────────────────────────────────────────────────
 
 class InsightFaceClassifier:
-    """buffalo_l: SCRFD detection + genderage. Runs own alignment internally."""
+    """buffalo_l: SCRFD detection + genderage (+ optional ArcFace r50 recognition).
 
-    def __init__(self, ctx_id: int = 0):
+    With `with_embedding=True` the w600k_r50 recognition head is enabled and
+    `predict()` returns a normalised 512-d ArcFace embedding under "embedding"
+    for identity-drift cosines.
+    """
+
+    def __init__(self, ctx_id: int = 0, with_embedding: bool = False):
         from insightface.app import FaceAnalysis
-        self.app = FaceAnalysis(name="buffalo_l", allowed_modules=["detection", "genderage"])
+        modules = ["detection", "genderage"] + (["recognition"] if with_embedding else [])
+        self.app = FaceAnalysis(name="buffalo_l", allowed_modules=modules)
         self.app.prepare(ctx_id=ctx_id, det_size=(640, 640))
+        self.with_embedding = with_embedding
 
     def predict(self, bgr: np.ndarray) -> dict[str, Any]:
         faces = self.app.get(bgr)
         if not faces:
-            return {"age": None, "gender": None, "bbox": None, "detected": False}
-        # pick largest
+            return {"age": None, "gender": None, "bbox": None, "detected": False,
+                    "embedding": None}
         f = max(faces, key=lambda x: (x.bbox[2] - x.bbox[0]) * (x.bbox[3] - x.bbox[1]))
+        emb = None
+        if self.with_embedding and getattr(f, "normed_embedding", None) is not None:
+            emb = np.asarray(f.normed_embedding, dtype=np.float32)
         return {
             "age": float(f.age),
             "gender": "M" if f.sex == "M" else "F",
             "bbox": tuple(int(v) for v in f.bbox),
             "detected": True,
+            "embedding": emb,
         }
 
 

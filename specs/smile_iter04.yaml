@@ -1,0 +1,26 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# iter_04: test whether pre-emptive demographic anchoring kills the race drift.
+# iter_03 best (v4_base_matched_age @ scale 0.5) showed Middle Eastern → White
+# on elderly_latin_m. Hypothesis: putting ethnicity + gender in the positive
+# prompt pins those dims the way {age} pinned age.
+#
+# Controls:
+#   v4_age_only     — iter_03 winner, re-rendered here for side-by-side
+#   v6_full_demo    — age + ethnicity + gender
+#   v7_demo_no_age  — ethnicity + gender only (isolate ethnicity contribution)
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  v4_age_only:
+    pos: "A {age} person smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v6_full_demo:
+    pos: "A {age} {ethnicity} {gender} smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} {ethnicity} {gender} smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v7_demo_no_age:
+    pos: "A {ethnicity} {gender} smiling warmly."
+    neg: "A photorealistic portrait photograph of a {ethnicity} {gender} smiling warmly, plain grey background, studio lighting, sharp focus."

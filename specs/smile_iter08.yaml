@@ -1,0 +1,36 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# smile_iter_08 — does the adjacency rule generalise off-Latino?
+#
+# iter_07 winner on elderly_latin_m: v_la_me (Latin American + Middle Eastern
+# halves). Rule we want to validate: the clean pair is the base's race + one
+# "bucket" away on the race-classifier axis, in the direction Flux already
+# drifts the base under a plain smile prompt.
+#
+# Test on european_m. Four candidate negs, each one step further from
+# European on FairFace's race space in a different direction. Also a generic
+# control to compare against "no demographic anchor in neg".
+#
+# Predict (tentative): if the "past-the-drift" rule holds, whichever neg
+# sits on the same side as Flux's native smile-drift for a European man will
+# cancel cleanly; the others should either over-cancel (flip race) or
+# under-cancel (still drift).
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  v_eur_southern:
+    pos: "An {age} {ethnicity} {gender} smiling warmly."
+    neg: "An {age} Southern European {gender} smiling warmly."
+
+  v_eur_mediterranean:
+    pos: "An {age} {ethnicity} {gender} smiling warmly."
+    neg: "An {age} Mediterranean {gender} smiling warmly."
+
+  v_eur_me:
+    pos: "An {age} {ethnicity} {gender} smiling warmly."
+    neg: "An {age} Middle Eastern {gender} smiling warmly."
+
+  v_eur_generic_control:
+    pos: "An {age} {ethnicity} {gender} smiling warmly."
+    neg: "A person smiling warmly."

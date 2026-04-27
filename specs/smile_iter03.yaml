@@ -1,0 +1,16 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# Lower-scale sweep — testing the hypothesis that there's an identity-preserving
+# regime below scale 0.5 where a visible smile still fires on some bases.
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  # Re-test the two strongest variants from iter 01/02 at fine-grained lower scales.
+  v1_baseline:
+    pos: "A person smiling warmly."
+    neg: "A photorealistic portrait photograph of an adult person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v4_base_matched_age:
+    pos: "A {age} person smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} person smiling warmly, plain grey background, studio lighting, sharp focus."

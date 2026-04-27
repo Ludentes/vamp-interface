@@ -1,0 +1,26 @@
+axis: race
+# race_iter_02 — correct construction for pair-averaged FluxSpace.
+# iter_01 mistake: contrastive pos/neg (e.g. "Latin American" vs "East Asian")
+# averages the two attention patterns and pushes toward the mixture — which in
+# practice is dominated by East Asian. Pair-averaging is NOT subtraction.
+#
+# Correct idiom: both halves point at the SAME target with DIFFERENT secondary
+# phrasing, so the shared direction reinforces and the ambient confounds cancel.
+#
+# Variants here all target "Latin American". They differ in how the two halves
+# are phrased. At positive scale we expect a tilt toward Latin American
+# features on all three bases.
+scales: [0.0, 0.5, 1.0]
+
+variants:
+  v1_la_hispanic:
+    pos: "A Latin American person."
+    neg: "A Hispanic person."
+
+  v2_la_countries:
+    pos: "A person from Mexico."
+    neg: "A person from Argentina."
+
+  v3_la_gendered:
+    pos: "A Latin American {gender}."
+    neg: "A Hispanic-looking {gender}."

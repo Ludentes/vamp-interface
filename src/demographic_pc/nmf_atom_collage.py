@@ -33,6 +33,16 @@ CORPUS_SOURCES = [
      METRICS / "crossdemo/smile/jaw_inphase"),
     (METRICS / "crossdemo/smile/intensity_full/blendshapes.json",
      METRICS / "crossdemo/smile/intensity_full"),
+    (METRICS / "crossdemo/anger/rebalance/blendshapes.json",
+     METRICS / "crossdemo/anger/rebalance"),
+    (METRICS / "crossdemo/surprise/rebalance/blendshapes.json",
+     METRICS / "crossdemo/surprise/rebalance"),
+    (METRICS / "crossdemo/disgust/rebalance/blendshapes.json",
+     METRICS / "crossdemo/disgust/rebalance"),
+    (METRICS / "crossdemo/pucker/rebalance/blendshapes.json",
+     METRICS / "crossdemo/pucker/rebalance"),
+    (METRICS / "crossdemo/lip_press/rebalance/blendshapes.json",
+     METRICS / "crossdemo/lip_press/rebalance"),
 ]
 
 # Neutral atom labels — loading-based, not AU-interpreted. Our corpus is
@@ -40,25 +50,26 @@ CORPUS_SOURCES = [
 # (see 2026-04-22 blog post). Name atoms by dominant channel until we have
 # a more diverse corpus.
 ATOM_LABELS = [
-    "#00  mouthSmile + mouthUpperUp",
-    "#01  browInnerUp + browOuterUp",
-    "#02  eyeSquint",
-    "#03  eyeLookDown + eyeBlink",
-    "#04  browDown",
+    "#00  mouthUpperUp + mouthSmile",
+    "#01  browDown + eyeSquint",
+    "#02  eyeSquint + eyeLookUp",
+    "#03  browOuterUp + browInnerUp",
+    "#04  eyeLookDown + eyeBlink",
     "#05  mouthSmile (alone)",
     "#06  mouthLowerDown + jawOpen",
-    "#07  jawOpen (alone)",
-    "#08  mouthPress + mouthRoll",
+    "#07  mouthPucker",
+    "#08  jawOpen (alone)",
     "#09  eyeLookOut + eyeLookIn",
-    "#10  mouthPucker",
+    "#10  dead",
+    "#11  dead",
 ]
 
-N_COLS = 3
+N_COLS = 4
 THUMB = 200  # px per cell
 
 
 def load_corpus() -> tuple[np.ndarray, list[str], list[Path]]:
-    W_basis = np.load(NMF_DIR / "W_nmf_k11.npy")
+    W_basis = np.load(NMF_DIR / "W_nmf.npy")
     meta = json.loads((NMF_DIR / "manifest.json").read_text())
     channels = meta["channels"]
     rows = []
@@ -81,7 +92,7 @@ def load_corpus() -> tuple[np.ndarray, list[str], list[Path]]:
 def main() -> None:
     print("[collage] loading corpus + basis")
     X, channels, paths = load_corpus()
-    W_basis = np.load(NMF_DIR / "W_nmf_k11.npy")
+    W_basis = np.load(NMF_DIR / "W_nmf.npy")
     atoms = np.clip(X @ np.linalg.pinv(W_basis), 0.0, None)  # (N, k)
     n_atoms = atoms.shape[1]
     print(f"  [load] atoms shape = {atoms.shape}")

@@ -1,0 +1,16 @@
+intent: smile
+
+target:
+  siglip_smiling_margin: 0.07
+  bs_mouthSmileLeft: 0.4
+  bs_mouthSmileRight: 0.4
+
+constraints:
+  mv_age: {"abs<=": 3.0}                     # age must stay within ±3y per unit scale
+  identity_cos_to_base: {">=": -0.5}         # identity drift ≤ 0.5 per unit scale
+  siglip_img_cos_to_base: {">=": -0.15}      # overall SigLIP drift ≤ 0.15
+
+solver:
+  lambda_l1: 0.03
+  max_pairs: 3
+  scale_cap: 1.0

@@ -1,0 +1,33 @@
+axis: race
+# race_iter_01 — first race-only edit directions, intended as counter-edits
+# to cancel the Latino_Hispanic → East Asian drift iter_04 showed is baked
+# into the smile δ on elderly_latin_m.
+#
+# Direction convention: pos - neg. Positive scale pushes toward Latin American,
+# away from the contrast class.
+#
+# Variants:
+#   v1_la_vs_person   — "Latin American person" vs generic "person"; baseline.
+#                       Ambient δ — measures what "Latin American" adds on top
+#                       of an unspecified human.
+#   v2_la_vs_ea       — "Latin American person" vs "East Asian person"; the
+#                       targeted counter for the smile-drift destination.
+#   v3_la_vs_ea_gend  — same as v2 but gender-anchored to the base. Tests
+#                       whether pairing gender tightens the race δ.
+#
+# Scales go slightly wider than smile because we don't know the magnitude;
+# we'll trim later once we see where identity collapses.
+scales: [0.0, 0.5, 1.0]
+
+variants:
+  v1_la_vs_person:
+    pos: "A Latin American person."
+    neg: "A person."
+
+  v2_la_vs_ea:
+    pos: "A Latin American person."
+    neg: "An East Asian person."
+
+  v3_la_vs_ea_gend:
+    pos: "A Latin American {gender}."
+    neg: "An East Asian {gender}."

@@ -34,6 +34,16 @@ PAIRED_SOURCES = [
      METRICS / "crossdemo/smile/jaw_inphase", "jaw_inphase"),
     (METRICS / "crossdemo/smile/alpha_interp_attn/blendshapes.json",
      METRICS / "crossdemo/smile/alpha_interp_attn", "alpha_interp_attn"),
+    (METRICS / "crossdemo/anger/rebalance/blendshapes.json",
+     METRICS / "crossdemo/anger/rebalance", "anger_rebalance"),
+    (METRICS / "crossdemo/surprise/rebalance/blendshapes.json",
+     METRICS / "crossdemo/surprise/rebalance", "surprise_rebalance"),
+    (METRICS / "crossdemo/disgust/rebalance/blendshapes.json",
+     METRICS / "crossdemo/disgust/rebalance", "disgust_rebalance"),
+    (METRICS / "crossdemo/pucker/rebalance/blendshapes.json",
+     METRICS / "crossdemo/pucker/rebalance", "pucker_rebalance"),
+    (METRICS / "crossdemo/lip_press/rebalance/blendshapes.json",
+     METRICS / "crossdemo/lip_press/rebalance", "lip_press_rebalance"),
 ]
 
 

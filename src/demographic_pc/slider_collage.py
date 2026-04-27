@@ -35,12 +35,28 @@ AXIS_TITLES = {
 }
 
 BASE_PROMPTS = {
+    # v1 ecosystem
     "asian_m":         "A photorealistic portrait photograph of an adult East Asian man, neutral expression, plain grey background, studio lighting, sharp focus.",
     "black_f":         "A photorealistic portrait photograph of an adult Black woman, neutral expression, plain grey background, studio lighting, sharp focus.",
     "european_m":      "A photorealistic portrait photograph of an adult European man, neutral expression, plain grey background, studio lighting, sharp focus.",
-    "elderly_latin_m": "A photorealistic portrait photograph of an elderly Latin American man, neutral expression, plain grey background, studio lighting, sharp focus.",
-    "young_european_f":"A photorealistic portrait photograph of a young European woman, neutral expression, plain grey background, studio lighting, sharp focus.",
     "southasian_f":    "A photorealistic portrait photograph of an adult South Asian woman, neutral expression, plain grey background, studio lighting, sharp focus.",
+    # v2/v3/v3.1 ecosystem
+    "adult_latin_f":     "A photorealistic portrait photograph of an adult Latin American woman, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "adult_asian_m":     "A photorealistic portrait photograph of an adult East Asian man, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "adult_black_f":     "A photorealistic portrait photograph of an adult Black woman, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "adult_european_m":  "A photorealistic portrait photograph of an adult European man, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "adult_middle_f": (  # v3.1 Lebanese override matching the trainer
+        "A photorealistic portrait photograph of a Lebanese woman with "
+        "long dark wavy hair flowing past her shoulders, olive skin, dark "
+        "almond eyes, defined eyebrows, neutral expression, plain grey "
+        "background, studio lighting, sharp focus, close-up head-and-"
+        "shoulders, face fills frame."
+    ),
+    "elderly_latin_m":   "A photorealistic portrait photograph of an elderly Latin American man, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "elderly_asian_f":   "A photorealistic portrait photograph of an elderly East Asian woman, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "young_black_m":     "A photorealistic portrait photograph of a young Black man, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "young_european_f":  "A photorealistic portrait photograph of a young European woman, neutral expression, plain grey background, studio lighting, sharp focus.",
+    "adult_southasian_f":"A photorealistic portrait photograph of an adult South Asian woman, neutral expression, plain grey background, studio lighting, sharp focus.",
 }
 
 # Same regex as trainer

@@ -1,0 +1,16 @@
+intent: smile
+base: elderly_latin_m
+
+target:
+  siglip_smiling_margin: 0.07
+  bs_mouthSmileLeft: 0.4
+  bs_mouthSmileRight: 0.4
+
+constraints:
+  mv_age: {"abs<=": 3.0}
+  identity_cos_to_base: {">=": -0.5}
+
+solver:
+  lambda_l1: 0.03
+  max_pairs: 2
+  scale_cap: 1.0

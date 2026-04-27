@@ -297,6 +297,20 @@ def load_image_tensor(path: Path, resolution: int) -> torch.Tensor:
 # Precompute cache — VAE latents + text embeddings
 # ------------------------------------------------------------------
 
+def _atomic_save(obj, path: Path):
+    """torch.save → os.replace so a power loss mid-write can't truncate
+    the destination. Writes to a sibling .tmp and atomically renames."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    torch.save(obj, tmp)
+    os.replace(tmp, path)
+
+
+def _atomic_save_safetensors(state_dict, path: Path):
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    save_safetensors(state_dict, str(tmp))
+    os.replace(tmp, path)
+
+
 def precompute_cache(args, samples: list[Sample], device: torch.device) -> dict:
     """Encode images with VAE and prompts with T5+CLIP. Returns cache dict."""
     dtype = torch.bfloat16 if args.precision == "bf16" else torch.float16
@@ -313,20 +327,6 @@ def precompute_cache(args, samples: list[Sample], device: torch.device) -> dict:
         embeds_cache = torch.load(embeds_file, map_location="cpu")
         sample_meta = torch.load(samples_file, map_location="cpu")
         return {"latents": latents_cache, "embeds": embeds_cache, "samples": sample_meta}
-
-
-def _atomic_save(obj, path: Path):
-    """torch.save → os.replace so a power loss mid-write can't truncate
-    the destination. Writes to a sibling .tmp and atomically renames."""
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    torch.save(obj, tmp)
-    os.replace(tmp, path)
-
-
-def _atomic_save_safetensors(state_dict, path: Path):
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    save_safetensors(state_dict, str(tmp))
-    os.replace(tmp, path)
 
     print("[cache] miss — encoding")
 
@@ -619,6 +619,12 @@ def training_loop(args, transformer, cache, device):
             load_checkpoint(transformer, args.output_dir, latest, optimizer, lr_scheduler, py_rng=rng)
             start_step = latest
             resumed = True
+            # CLI --lr overrides whatever was saved in the optimizer state.
+            for pg in optimizer.param_groups:
+                if abs(pg["lr"] - args.lr) > 1e-12:
+                    print(f"[resume] overriding saved lr={pg['lr']:.2e} → CLI lr={args.lr:.2e}")
+                    pg["lr"] = args.lr
+                    pg["initial_lr"] = args.lr
         else:
             print("[resume] no checkpoint found; starting fresh")
 

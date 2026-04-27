@@ -1,0 +1,35 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# smile_iter_07 — refine the adjacency rule discovered in iter_06.
+#
+# iter_06 winner: v_la_vs_eur (Latino + European halves) = race visually
+# preserved, detector says minor Latin→Middle Eastern drift. Rule: pair halves
+# adjacent on the race axis cancel; diametric halves collapse to Flux's default.
+#
+# Hypothesis: tighter adjacencies may preserve Latino even more precisely.
+# Test four candidate halves for the neg side, all paired against the same
+# Latino pos. Each neg sits at a different distance from Latino on FairFace's
+# race space: Mediterranean (closest), Middle Eastern, South Asian, European
+# (iter_06 winner, re-rendered here as control).
+#
+# Predict: v_la_mediterranean ≥ v_la_me ≥ v_la_eur (iter_06) ≥ v_la_sa, with
+# identity drift tracking adjacency — closer halves = less identity loss.
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  v_la_mediterranean:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} Mediterranean {gender} smiling warmly."
+
+  v_la_me:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} Middle Eastern {gender} smiling warmly."
+
+  v_la_sa:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} South Asian {gender} smiling warmly."
+
+  v_la_eur_control:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} European {gender} smiling warmly."

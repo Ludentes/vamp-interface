@@ -1,0 +1,16 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+
+variants:
+  v1_baseline:
+    pos: "A person smiling warmly."
+    neg: "A photorealistic portrait photograph of an adult person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v2_age_language:
+    pos: "A middle-aged person smiling warmly."
+    neg: "A photorealistic portrait photograph of a middle-aged person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v3_mechanistic:
+    pos: "A person with upturned lip corners."
+    neg: "A person with lips drawn horizontally."

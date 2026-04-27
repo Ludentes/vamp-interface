@@ -1,0 +1,31 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# smile_iter_06 — explicit race-axis opposites for pair cancellation.
+#
+# iter_05 showed the glasses template (generic-short vs full-base-splice) reroutes
+# race drift but doesn't cancel it — elderly_latin_m still drifts Latino → White
+# instead of → East Asian. For real cancellation we need two smile halves whose
+# race-axis deltas are actually opposite in sign, not just different in phrasing.
+#
+# v_la_vs_ea:        Latino half + East-Asian half. Most aggressive test.
+#                    If race axes truly cancel: elderly_latin_m stays Latino.
+# v_la_vs_eur:       Latino half + European half. Average race should sit between,
+#                    expected closer to base than v_la_vs_ea.
+# v_la_vs_generic:   Latino half + short-generic (iter_05 neg style swapped).
+#                    Sanity check: how much does just adding the Latino anchor
+#                    to one side (vs both sides being demographic) help?
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  v_la_vs_ea:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} East Asian {gender} smiling warmly."
+
+  v_la_vs_eur:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "An {age} European {gender} smiling warmly."
+
+  v_la_vs_generic:
+    pos: "An {age} Latin American {gender} smiling warmly."
+    neg: "A person smiling warmly."

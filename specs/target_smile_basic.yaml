@@ -1,0 +1,6 @@
+intent: smile
+
+solver:
+  lambda_l1: 0.05
+  max_pairs: 2
+  scale_cap: 1.0

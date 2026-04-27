@@ -57,6 +57,28 @@ AXIS_CONFIG: dict[str, dict] = {
         "ours_npz": "gender_ours.npz",
         "fluxspace_npz": "gender_fluxspace_coarse.npz",
     },
+    "smile": {
+        "ours_scale": 1.5,         # 1.5 smile-units/λ — smile target ~[0,2], 1.5 spans neutral→full
+        "fluxspace_scale": 2.0,
+        "ours_npz": "smile_ours.npz",
+        "fluxspace_npz": "smile_fluxspace_coarse.npz",
+        "paired_npz": "smile_ours_paired.npz",
+        "paired_scale": 1.0,       # 1 pair-magnitude/λ — native unit of prompt-pair contrast
+    },
+    "glasses": {
+        "ours_scale": 1.0,         # 1.0 prob-unit/λ — prob target ∈ [0,1]
+        "fluxspace_scale": 2.0,
+        "ours_npz": "glasses_ours.npz",
+        "fluxspace_npz": "glasses_fluxspace_coarse.npz",
+        "paired_npz": "glasses_ours_paired.npz",
+        "paired_scale": 1.0,
+    },
+    "black": {
+        "ours_scale": 16.0,        # larger because Black-vs-rest direction has small ||dir||
+        "fluxspace_scale": 2.0,
+        "ours_npz": "black_ours.npz",
+        "fluxspace_npz": "black_fluxspace_coarse.npz",
+    },
 }
 
 WIDTH, HEIGHT = 768, 1024
@@ -101,7 +123,7 @@ async def run_batch(client: ComfyClient, jobs: list[dict]) -> None:
             print(f"  [{done}/{len(jobs)}]  rate={done/dt:.2f}/s  eta={(len(jobs)-done)/(done/dt)/60:.1f}min")
 
 
-async def run(axis: str, limit: int | None = None) -> None:
+async def run(axis: str, limit: int | None = None, variant: str = "ridge") -> None:
     if axis not in AXIS_CONFIG:
         raise ValueError(f"unknown axis {axis!r}; choose from {list(AXIS_CONFIG)}")
     cfg = AXIS_CONFIG[axis]
@@ -112,19 +134,26 @@ async def run(axis: str, limit: int | None = None) -> None:
     if limit:
         portraits = portraits[:limit]
 
-    edits = {
-        "ours": str(EDITS_DIR / cfg["ours_npz"]),
-        "fluxspace": str(EDITS_DIR / cfg["fluxspace_npz"]),
-    }
-    scales = {"ours": cfg["ours_scale"], "fluxspace": cfg["fluxspace_scale"]}
+    if variant == "paired":
+        if "paired_npz" not in cfg:
+            raise ValueError(f"axis {axis!r} has no paired variant")
+        edits = {"ours_paired": str(EDITS_DIR / cfg["paired_npz"])}
+        scales = {"ours_paired": cfg["paired_scale"]}
+    else:
+        edits = {
+            "ours": str(EDITS_DIR / cfg["ours_npz"]),
+            "fluxspace": str(EDITS_DIR / cfg["fluxspace_npz"]),
+        }
+        scales = {"ours": cfg["ours_scale"], "fluxspace": cfg["fluxspace_scale"]}
 
     jobs: list[dict] = []
+    any_edit = next(iter(edits.values()))
     for p in portraits:
         # Baseline (λ=0) — one render shared across methods.
         jobs.append({
             "portrait_id": p["portrait_id"], "prompt": p["prompt"], "seed": p["seed"],
             "method": "baseline", "lam": 0.0, "strength": 0.0,
-            "edit_npz_path": edits["ours"],  # file provided so node is present, strength=0 no-op
+            "edit_npz_path": any_edit,  # file provided so node is present, strength=0 no-op
             "dest": renders / "baseline" / f"{p['portrait_id']}__lam+0.00.png",
         })
         for method, path in edits.items():
@@ -156,8 +185,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--axis", choices=list(AXIS_CONFIG), default="age")
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--variant", choices=["ridge", "paired"], default="ridge")
     args = ap.parse_args()
-    asyncio.run(run(axis=args.axis, limit=args.limit))
+    asyncio.run(run(axis=args.axis, limit=args.limit, variant=args.variant))
 
 
 if __name__ == "__main__":

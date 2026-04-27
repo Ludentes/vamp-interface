@@ -45,6 +45,37 @@ AXIS_PAIRS = {
             "edit_b": "softly squinted eyes as if shielding against bright sunlight, looking at the camera",
         },
     ],
+    "glasses": [
+        {
+            "label": "glasses_clear",
+            "edit_a": "no eyewear, bare face, no glasses",
+            "edit_b": "wearing clear-rimmed prescription eyeglasses with thin black frames",
+        },
+        {
+            "label": "glasses_horn",
+            "edit_a": "no eyewear, bare face, no glasses",
+            "edit_b": "wearing thick horn-rimmed eyeglasses with rectangular frames",
+        },
+    ],
+    # 2026-04-27 — anti-zebra variant. Flux's VAE + patch tokenisation
+    # aliases on thin frames + reflective lenses. Two fixes applied:
+    # (1) prompts emphasize chunky acetate / matte plastic to avoid
+    # invoking thin parallel structures and lens-reflection priors;
+    # (2) caller should pass --start-pct 0.30 (later than 0.15) so
+    # Flux commits to base skin/face frequency content before the
+    # glasses prompt-pair injects.
+    "glasses_acetate": [
+        {
+            "label": "acetate_chunky",
+            "edit_a": "no eyewear, bare face, no glasses",
+            "edit_b": "wearing thick uniform jet-black plastic eyeglass frames, solid black, no patterns, no marbling, no highlights",
+        },
+        {
+            "label": "acetate_tortoise",
+            "edit_a": "no eyewear, bare face, no glasses",
+            "edit_b": "wearing thick rectangular black plastic eyeglass frames, uniform solid black material, smooth flat surface, no texture, no spots",
+        },
+    ],
 }
 
 # Per-base prompt overrides (replace CALIBRATION_PROMPTS entries for v3.1).

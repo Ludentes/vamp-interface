@@ -39,6 +39,16 @@ CORPUS_SOURCES = [
     METRICS / "crossdemo/smile/smile_inphase/blendshapes.json",
     METRICS / "crossdemo/smile/jaw_inphase/blendshapes.json",
     METRICS / "crossdemo/smile/intensity_full/blendshapes.json",
+    # 2026-04-22 rebalance — 5 non-smile expression axes × 6 bases × 5 seeds
+    # × 5 scales × 2 start_pcts. Only s ∈ {0.4, 0.8, 1.2} yield face
+    # detections; s ≥ 1.6 collapsed to noise. All 5 axes included for NMF —
+    # prompt-level axis failure (lip_press loads onto pucker) is irrelevant
+    # to NMF; the added demographic/expression variance is what we need.
+    METRICS / "crossdemo/anger/rebalance/blendshapes.json",
+    METRICS / "crossdemo/surprise/rebalance/blendshapes.json",
+    METRICS / "crossdemo/disgust/rebalance/blendshapes.json",
+    METRICS / "crossdemo/pucker/rebalance/blendshapes.json",
+    METRICS / "crossdemo/lip_press/rebalance/blendshapes.json",
 ]
 
 K_SWEEP = [6, 8, 10, 12, 14, 16, 20]
@@ -67,7 +77,10 @@ def load_corpus() -> tuple[np.ndarray, list[str], list[str]]:
             print(f"  [skip] missing: {src}")
             continue
         data = json.loads(src.read_text())
-        tag = src.parent.name  # e.g. 'alpha_interp', 'intensity_full'
+        # Tag must disambiguate: rebalance/anger vs rebalance/surprise share
+        # parent.name='rebalance' and collide. Use grandparent/parent.
+        parts = src.parts
+        tag = f"{parts[-3]}/{parts[-2]}" if parts[-2] == "rebalance" else parts[-2]
         for rel, scores in data.items():
             samples[f"{tag}/{rel}"] = scores
     print(f"  [load] {len(samples)} scored samples across {len(CORPUS_SOURCES)} sources")

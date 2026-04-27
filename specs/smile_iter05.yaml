@@ -1,0 +1,30 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+# smile_iter_05 — apply the original glasses-pair template verbatim.
+#
+# The glasses pair that canceled age drift:
+#   edit_a = "A person wearing thick-rimmed eyeglasses."                    (generic-short)
+#   edit_b = "A photorealistic portrait photograph of an adult Latin American woman
+#            wearing thick-rimmed eyeglasses, neutral expression, plain grey
+#            background, studio lighting, sharp focus."                      (full-base splice)
+# Same target in both → reinforced. Opposite ambient biases on the unwanted
+# axis (age, in the glasses case) → cancel in the pair-average.
+#
+# Hypothesis: the same construction applied to smile cancels the East Asian
+# race drift we saw on elderly_latin_m — generic-short vs full-base-splice
+# have opposite ambient race tendencies.
+#
+# v_template_placeholder: canonical glasses template with demographic placeholders
+# v_iter03_winner:       iter_03's v4_base_matched_age, re-rendered with caching,
+#                         as the control (age-matched but not full-base splice)
+scales: [0.0, 0.25, 0.5, 0.75]
+
+variants:
+  v_iter03_control:
+    pos: "A {age} person smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  v_glasses_template:
+    pos: "A person smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} {ethnicity} {gender} smiling warmly, neutral expression, plain grey background, studio lighting, sharp focus."

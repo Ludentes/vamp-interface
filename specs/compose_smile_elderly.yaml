@@ -1,0 +1,33 @@
+name: smile_on_elderly_latin_m_with_age_hold_elderly
+base: elderly_latin_m
+seed: 2026
+max_iters: 4
+
+# Primary: v_eur_me smile pair at 0.5 — on elderly_latin_m, iter_07 showed
+# this pushes mv_age DOWN (smile-as-de-aging: 82 → 80 at s=0.29; expect
+# larger at s=0.5). We want to hold him at his elderly baseline.
+primary:
+  label: smile_v_eur_me
+  target_readout: siglip_smiling_margin
+  pos: "An {age} {ethnicity} {gender} smiling warmly."
+  neg: "An {age} Middle Eastern {gender} smiling warmly."
+  scale: 0.5
+
+confounds:
+  # Signed threshold: only violate if mv_age drifts DOWN (younger than anchor).
+  # This demo is about smile-as-de-aging; positive drift would be fine.
+  - name: age_drift_down
+    readout: mv_age
+    threshold:
+      "<": -2.0
+    diff_from_anchor: true
+    # Adjacency-compliant age-up counter: both halves elderly-side
+    # (seventies + eighties). Average ~75, pushes age UP when smile
+    # tries to drift it younger.
+    counter:
+      label: age_hold_elderly_adjacent
+      pos: "An elderly {ethnicity} {gender} in his seventies, neutral expression."
+      neg: "An elderly {ethnicity} {gender} in his eighties, neutral expression."
+    scale_init: 0.2
+    scale_step: 0.15
+    scale_max: 0.6

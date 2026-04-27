@@ -12,10 +12,11 @@ from pathlib import Path
 
 import httpx
 
-FLUX_CHECKPOINT = "FLUX1/flux1-krea-dev_fp8_scaled.safetensors"
-FLUX_VAE = "FLUX1/ae.safetensors"
-FLUX_CLIP_L = "clip_l.safetensors"
-FLUX_T5 = "t5/t5xxl_fp8_e4m3fn.safetensors"
+import os as _os
+FLUX_CHECKPOINT = _os.environ.get("COMFY_UNET", "FLUX1/flux1-krea-dev_fp8_scaled.safetensors")
+FLUX_VAE = _os.environ.get("COMFY_VAE", "FLUX1/ae.safetensors")
+FLUX_CLIP_L = _os.environ.get("COMFY_CLIP_L", "clip_l.safetensors")
+FLUX_T5 = _os.environ.get("COMFY_T5", "t5/t5xxl_fp8_e4m3fn.safetensors")
 FLUX_STEPS = 20
 FLUX_GUIDANCE = 3.5
 FLUX_SAMPLER = "euler"
@@ -29,7 +30,7 @@ def flux_txt2img_workflow(
     checkpoint: str = FLUX_CHECKPOINT,
     edit_npz_path: str | None = None, edit_strength: float = 0.0,
 ) -> dict:
-    unet_name = checkpoint.removeprefix("FLUX1/")
+    unet_name = checkpoint if _os.environ.get("COMFY_UNET") else checkpoint.removeprefix("FLUX1/")
     # Optionally insert demographic_pc ApplyConditioningEdit between CLIPTextEncode
     # and FluxGuidance. When edit_strength == 0 we still route through the node so
     # the graph shape is identical across renders (no-op path inside the node).
@@ -74,7 +75,7 @@ def flux_img2img_workflow(
     sampler: str = FLUX_SAMPLER, scheduler: str = FLUX_SCHEDULER,
     checkpoint: str = FLUX_CHECKPOINT,
 ) -> dict:
-    unet_name = checkpoint.removeprefix("FLUX1/")
+    unet_name = checkpoint if _os.environ.get("COMFY_UNET") else checkpoint.removeprefix("FLUX1/")
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": unet_name, "weight_dtype": "fp8_e4m3fn"}},
         "2": {"class_type": "VAELoader", "inputs": {"vae_name": FLUX_VAE}},
@@ -97,7 +98,9 @@ def flux_img2img_workflow(
 
 
 class ComfyClient:
-    def __init__(self, base_url: str = "http://localhost:8188"):
+    def __init__(self, base_url: str | None = None):
+        import os
+        base_url = base_url or os.environ.get("COMFY_URL", "http://localhost:8188")
         self._http = httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=180.0)
 
     async def close(self) -> None:

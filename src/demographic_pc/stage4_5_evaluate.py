@@ -42,17 +42,53 @@ from src.demographic_pc.classifiers import (
     MiVOLOClassifier,
     predict_all,
 )
+from src.demographic_pc.extras_classifiers import CLIPZeroShotGlasses, MediaPipeBlendshapes
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT_DIR = ROOT / "output" / "demographic_pc" / "stage4_5"
-MANIFEST = OUT_DIR / "render_manifest.json"
-EVAL_PARQUET = OUT_DIR / "eval.parquet"
-EVAL_JSON = OUT_DIR / "eval_summary.json"
-
+STAGE_DIR = ROOT / "output" / "demographic_pc" / "stage4_5"
 DEMO_PC_DIR = ROOT / "output" / "demographic_pc"
 CONDITIONING_NPY = DEMO_PC_DIR / "conditioning.npy"
 EDITS_DIR = DEMO_PC_DIR / "edits"
 CLIP_DIM = 768
+
+AXIS_CONFIG: dict[str, dict] = {
+    "age": {
+        "ours_npz": "age_ours.npz",
+        "fluxspace_npz": "age_fluxspace_coarse.npz",
+        # stage 4.5 age was produced before the axis-subdir refactor; keep legacy path.
+        "manifest": STAGE_DIR / "render_manifest.json",
+        "eval_parquet": STAGE_DIR / "eval.parquet",
+        "eval_json": STAGE_DIR / "eval_summary.json",
+    },
+    "gender": {
+        "ours_npz": "gender_ours.npz",
+        "fluxspace_npz": "gender_fluxspace_coarse.npz",
+        "manifest": STAGE_DIR / "gender" / "render_manifest.json",
+        "eval_parquet": STAGE_DIR / "gender" / "eval.parquet",
+        "eval_json": STAGE_DIR / "gender" / "eval_summary.json",
+    },
+    "smile": {
+        "ours_npz": "smile_ours.npz",
+        "fluxspace_npz": "smile_fluxspace_coarse.npz",
+        "manifest": STAGE_DIR / "smile" / "render_manifest.json",
+        "eval_parquet": STAGE_DIR / "smile" / "eval.parquet",
+        "eval_json": STAGE_DIR / "smile" / "eval_summary.json",
+    },
+    "glasses": {
+        "ours_npz": "glasses_ours.npz",
+        "fluxspace_npz": "glasses_fluxspace_coarse.npz",
+        "manifest": STAGE_DIR / "glasses" / "render_manifest.json",
+        "eval_parquet": STAGE_DIR / "glasses" / "eval.parquet",
+        "eval_json": STAGE_DIR / "glasses" / "eval_summary.json",
+    },
+    "black": {
+        "ours_npz": "black_ours.npz",
+        "fluxspace_npz": "black_fluxspace_coarse.npz",
+        "manifest": STAGE_DIR / "black" / "render_manifest.json",
+        "eval_parquet": STAGE_DIR / "black" / "eval.parquet",
+        "eval_json": STAGE_DIR / "black" / "eval_summary.json",
+    },
+}
 
 ARCFACE_HF = "minchul/cvlface_arcface_ir101_webface4m"
 ARCFACE_SIZE = 112
@@ -93,7 +129,7 @@ def arcface_embed(model, device, path: Path) -> np.ndarray:
     return e.squeeze(0).float().cpu().numpy()
 
 
-def mahalanobis_direction_analysis() -> dict:
+def mahalanobis_direction_analysis(axis: str) -> dict:
     """Compute Mahalanobis norm of each method's edit direction under the
     training-conditioning covariance. Low value → direction aligned with
     high-variance (manifold) axes; high value → direction exits the manifold fast.
@@ -115,8 +151,9 @@ def mahalanobis_direction_analysis() -> dict:
 
     eucl_mu_offset = float(np.sqrt((mu @ prec @ mu)))  # d_M(0, μ) sanity check; should be 0
 
-    results: dict = {"shrinkage": float(lw.shrinkage_)}
-    for method, fname in [("ours", "age_ours.npz"), ("fluxspace", "age_fluxspace_coarse.npz")]:
+    cfg = AXIS_CONFIG[axis]
+    results: dict = {"shrinkage": float(lw.shrinkage_), "axis": axis}
+    for method, fname in [("ours", cfg["ours_npz"]), ("fluxspace", cfg["fluxspace_npz"])]:
         data = np.load(EDITS_DIR / fname)
         pooled_delta = data["pooled_delta"].astype(np.float64)    # (768,)
         seq_delta = data["seq_delta"].astype(np.float64)          # (4096,)
@@ -154,6 +191,9 @@ def classify_all(manifest: list[dict]) -> pd.DataFrame:
     mv = MiVOLOClassifier()
     ff = FairFaceClassifier()
     ins = InsightFaceClassifier()
+    print("[eval] loading MediaPipe + CLIP extras…")
+    blend = MediaPipeBlendshapes()
+    glasses = CLIPZeroShotGlasses()
     print("[eval] loading ArcFace IR101…")
     arc_model, arc_dev = load_arcface()
 
@@ -167,6 +207,8 @@ def classify_all(manifest: list[dict]) -> pd.DataFrame:
         bgr = cv2.imread(str(p))
         rec = predict_all(bgr, mv, ff, ins)
         emb = arcface_embed(arc_model, arc_dev, p)
+        bs = blend.predict(bgr)
+        gl = glasses.predict(bgr)
         rows.append({
             "portrait_id": j["portrait_id"],
             "method": j["method"],
@@ -180,6 +222,11 @@ def classify_all(manifest: list[dict]) -> pd.DataFrame:
             "fairface_gender": rec.fairface_gender,
             "insightface_age": rec.insightface_age,
             "arcface_emb": emb,
+            "smile": bs["smile"],
+            "brow_raise": bs["brow_raise"],
+            "eye_open": bs["eye_open"],
+            "jaw_open": bs["jaw_open"],
+            "glasses_prob": gl["glasses_prob"],
         })
         if i % 20 == 0 or i == len(manifest):
             dt = time.time() - t0
@@ -234,58 +281,79 @@ def _inner_outer_slopes(x: np.ndarray, y: np.ndarray, inner_abs: float = 1.0) ->
     return s_in, s_out
 
 
-def summarize(df: pd.DataFrame) -> dict:
-    # For each method, compute per-portrait slope on the method's own λ grid
-    # (baseline=λ=0 is method="baseline" and shared — merge it into each method).
+def _pad(vals, dim):
+    """Replace None rows with NaN vectors so vector columns stack cleanly."""
+    out = np.full((len(vals), dim), np.nan, dtype=float)
+    for i, v in enumerate(vals):
+        if v is not None and hasattr(v, "__len__") and len(v) == dim:
+            out[i] = np.asarray(v, dtype=float)
+    return out
+
+
+def _on_axis_series(axis: str, g: pd.DataFrame) -> np.ndarray:
+    """Return the per-row on-axis signal for each axis.
+    age:    MiVOLO predicted age (years).
+    gender: FairFace P(male) − P(female) ∈ [−1, +1].
+    """
+    if axis == "age":
+        return g.mivolo_age.to_numpy(dtype=float)
+    if axis == "gender":
+        ff_gp = _pad(g.fairface_gender_probs.to_list(), 2)
+        return ff_gp[:, 0] - ff_gp[:, 1]
+    if axis == "smile":
+        return g.smile.to_numpy(dtype=float)
+    if axis == "glasses":
+        return g.glasses_prob.to_numpy(dtype=float)
+    if axis == "black":
+        ff_rp = _pad(g.fairface_race_probs.to_list(), 7)
+        black_idx = FAIRFACE_RACE.index("Black")
+        return ff_rp[:, black_idx]
+    raise ValueError(axis)
+
+
+def summarize(df: pd.DataFrame, axis: str) -> dict:
+    """Per-axis metric roll-up. On-axis slope unit depends on axis
+    (yr/λ for age, (P_M−P_F)/λ for gender); AD normalizes it out."""
     baseline = df[df.method == "baseline"].set_index("portrait_id")
-    out: dict = {"methods": {}}
+    out: dict = {"axis": axis, "methods": {}}
 
     for method in ["ours", "fluxspace"]:
         mdf = df[df.method == method].copy()
-        # Add baseline rows as λ=0 for this method
         b = baseline.reset_index().assign(method=method, lam=0.0, strength=0.0)
         mdf = pd.concat([mdf, b[mdf.columns]], ignore_index=True)
 
-        # Per-portrait slopes — both global (linear assumption) and local
-        # (tangent at λ=0, robust to saturation/sigmoid shape).
-        age_slopes_global: list[float] = []
-        age_slopes_local: list[float] = []
-        age_linear_r2: list[float] = []
-        age_inner, age_outer = [], []
-        # For AD we use signed continuous scores:
-        #   gender: P(male) − P(female)  (∈ [−1,1])
-        #   race: a 7-vector of per-class probs; we track each class slope
-        male_slopes_local, race_slopes_local = [], []
+        on_slopes_global: list[float] = []
+        on_slopes_local: list[float] = []
+        on_linear_r2: list[float] = []
+        on_inner, on_outer = [], []
+        # Off-axis slopes we track regardless of the on-axis signal.
+        age_slopes_local: list[float] = []                 # MiVOLO-age tangent slope (yr/λ)
+        gender_slopes_local: list[float] = []              # P(M)-P(F) tangent slope
+        race_slopes_local: list[np.ndarray] = []           # per-class FF race tangent slope (7,)
         id_drifts: dict[float, list[float]] = {}
 
         for _pid, g in mdf.groupby("portrait_id"):
             g = g.sort_values("lam")
             lam = g.lam.to_numpy()
-            age = g.mivolo_age.to_numpy(dtype=float)
-            age_slopes_global.append(_slope(lam, age))
-            age_slopes_local.append(_local_slope(lam, age))
-            age_linear_r2.append(_linear_r2(lam, age))
-            si, so = _inner_outer_slopes(lam, age, inner_abs=1.0)
-            age_inner.append(si); age_outer.append(so)
+            on = _on_axis_series(axis, g)
+            on_slopes_global.append(_slope(lam, on))
+            on_slopes_local.append(_local_slope(lam, on))
+            on_linear_r2.append(_linear_r2(lam, on))
+            si, so = _inner_outer_slopes(lam, on, inner_abs=1.0)
+            on_inner.append(si); on_outer.append(so)
 
-            # FairFace probs can be None when face-detect failed; replace with NaN vectors
-            def _pad(vals, dim):
-                out = np.full((len(vals), dim), np.nan, dtype=float)
-                for i, v in enumerate(vals):
-                    if v is not None and hasattr(v, "__len__") and len(v) == dim:
-                        out[i] = np.asarray(v, dtype=float)
-                return out
+            age = g.mivolo_age.to_numpy(dtype=float)
+            age_slopes_local.append(_local_slope(lam, age))
 
             ff_gp = _pad(g.fairface_gender_probs.to_list(), 2)
             male_minus_female = ff_gp[:, 0] - ff_gp[:, 1]
-            male_slopes_local.append(_local_slope(lam, male_minus_female))
+            gender_slopes_local.append(_local_slope(lam, male_minus_female))
 
             ff_rp = _pad(g.fairface_race_probs.to_list(), 7)
             race_slopes_local.append(
                 np.array([_local_slope(lam, ff_rp[:, k]) for k in range(7)])
             )
 
-            # ArcFace identity drift vs λ=0
             base_row = g[g.lam == 0.0]
             if len(base_row) == 0:
                 continue
@@ -299,22 +367,24 @@ def summarize(df: pd.DataFrame) -> dict:
                 cos = float(np.dot(base_emb, np.asarray(e, dtype=float)))
                 id_drifts.setdefault(float(row.lam), []).append(1.0 - cos)
 
-        age_slope_global = float(np.nanmean(age_slopes_global))
-        age_slope_local = float(np.nanmean(age_slopes_local))
-        age_lin_r2_mean = float(np.nanmean(age_linear_r2))
-        inner_mean = float(np.nanmean(age_inner))
-        outer_mean = float(np.nanmean(age_outer))
+        on_slope_global = float(np.nanmean(on_slopes_global))
+        on_slope_local = float(np.nanmean(on_slopes_local))
+        on_lin_r2_mean = float(np.nanmean(on_linear_r2))
+        inner_mean = float(np.nanmean(on_inner))
+        outer_mean = float(np.nanmean(on_outer))
         saturation_ratio = outer_mean / inner_mean if inner_mean else float("nan")
 
-        male_slope_mean = float(np.nanmean(male_slopes_local))
+        age_slope_mean = float(np.nanmean(age_slopes_local))
+        gender_slope_mean = float(np.nanmean(gender_slopes_local))
         race_slope_mean = np.nanmean(np.stack(race_slopes_local), axis=0)  # (7,)
 
-        # AD at matched target-slope: use local (tangent) slopes so the comparison
-        # is meaningful even if response saturates at extreme λ.
-        ad_gender = abs(male_slope_mean) / max(abs(age_slope_local), 1e-9)
-        ad_race = np.abs(race_slope_mean) / max(abs(age_slope_local), 1e-9)
+        # AD per off-axis head, target-slope-matched.
+        denom = max(abs(on_slope_local), 1e-9)
+        ad_age = abs(age_slope_mean) / denom
+        ad_gender = abs(gender_slope_mean) / denom
+        ad_race = np.abs(race_slope_mean) / denom
 
-        # Off-axis flip rates at extreme |λ|
+        # Off-axis flip rates at extreme |λ|.
         extreme = mdf.lam.abs().max()
         ext = mdf[mdf.lam.abs() == extreme]
         base_gender = baseline.fairface_gender.to_dict()
@@ -330,19 +400,27 @@ def summarize(df: pd.DataFrame) -> dict:
 
         id_drift_mean = {str(k): float(np.mean(v)) for k, v in sorted(id_drifts.items())}
 
+        off_axis: dict = {
+            "AD_race_max": float(ad_race.max()),
+            "AD_race_mean": float(ad_race.mean()),
+            "AD_race_by_class": {FAIRFACE_RACE[k]: float(ad_race[k]) for k in range(7)},
+        }
+        if axis == "age":
+            off_axis["AD_gender_male_minus_female"] = ad_gender
+        elif axis == "gender":
+            off_axis["AD_age_mivolo_years"] = ad_age
+        else:  # smile, glasses, black — track both age and gender as off-axis
+            off_axis["AD_age_mivolo_years"] = ad_age
+            off_axis["AD_gender_male_minus_female"] = ad_gender
+
         out["methods"][method] = {
-            "on_axis_age_slope_local": age_slope_local,     # tangent at λ=0
-            "on_axis_age_slope_global": age_slope_global,   # polyfit over full λ range
-            "linearity_r2_mean": age_lin_r2_mean,           # 1.0 = perfectly linear
+            "on_axis_slope_local": on_slope_local,
+            "on_axis_slope_global": on_slope_global,
+            "linearity_r2_mean": on_lin_r2_mean,
             "slope_inner_abs_lam_le_1": inner_mean,
             "slope_outer_abs_lam_gt_1": outer_mean,
-            "saturation_ratio_outer_over_inner": saturation_ratio,  # <1 = saturating, >1 = accelerating
-            "off_axis": {
-                "AD_gender_male_minus_female": ad_gender,
-                "AD_race_max": float(ad_race.max()),
-                "AD_race_mean": float(ad_race.mean()),
-                "AD_race_by_class": {FAIRFACE_RACE[k]: float(ad_race[k]) for k in range(7)},
-            },
+            "saturation_ratio_outer_over_inner": saturation_ratio,
+            "off_axis": off_axis,
             "flip_rate_at_lam_extreme": {
                 "lam": float(extreme),
                 "gender": g_flip,
@@ -354,28 +432,43 @@ def summarize(df: pd.DataFrame) -> dict:
 
 
 def main() -> None:
-    # Mahalanobis is pure direction analysis — no renders needed, do it first.
-    print("\n== Mahalanobis direction analysis ==")
-    mahal = mahalanobis_direction_analysis()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--axis", choices=list(AXIS_CONFIG), default="age")
+    args = ap.parse_args()
+    axis = args.axis
+    cfg = AXIS_CONFIG[axis]
 
-    manifest = json.loads(MANIFEST.read_text())
-    print(f"\n[eval] manifest entries: {len(manifest)}")
+    print(f"\n== Mahalanobis direction analysis ({axis}) ==")
+    mahal = mahalanobis_direction_analysis(axis)
+
+    manifest = json.loads(Path(cfg["manifest"]).read_text())
+    print(f"\n[eval] axis={axis}  manifest entries: {len(manifest)}")
     df = classify_all(manifest)
-    df.to_parquet(EVAL_PARQUET, index=False)
-    print(f"[eval] wrote {EVAL_PARQUET}  rows={len(df)}")
+    Path(cfg["eval_parquet"]).parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(cfg["eval_parquet"], index=False)
+    print(f"[eval] wrote {cfg['eval_parquet']}  rows={len(df)}")
 
-    summary = summarize(df)
+    summary = summarize(df, axis)
     summary["mahalanobis"] = mahal
-    EVAL_JSON.write_text(json.dumps(summary, indent=2, default=float))
-    print(f"[eval] wrote {EVAL_JSON}")
+    Path(cfg["eval_json"]).write_text(json.dumps(summary, indent=2, default=float))
+    print(f"[eval] wrote {cfg['eval_json']}")
+
+    on_axis_unit = {
+        "age": "yr/λ", "gender": "(P_M−P_F)/λ",
+        "smile": "smile-unit/λ", "glasses": "P(glasses)/λ",
+        "black": "P(Black)/λ",
+    }[axis]
     for method, s in summary["methods"].items():
-        print(f"\n--- {method} ---")
-        print(f"  age slope local (yr/λ, tangent):  {s['on_axis_age_slope_local']:+.3f}")
-        print(f"  age slope global (yr/λ, linear):  {s['on_axis_age_slope_global']:+.3f}")
-        print(f"  linearity R²:                     {s['linearity_r2_mean']:.3f}")
-        print(f"  slope inner(|λ|≤1) / outer(|λ|>1): {s['slope_inner_abs_lam_le_1']:+.2f} / {s['slope_outer_abs_lam_gt_1']:+.2f}  (sat={s['saturation_ratio_outer_over_inner']:.2f})")
-        print(f"  AD gender (|slope|/age):    {s['off_axis']['AD_gender_male_minus_female']:.4f}")
-        print(f"  AD race max / mean:         {s['off_axis']['AD_race_max']:.4f} / {s['off_axis']['AD_race_mean']:.4f}")
+        print(f"\n--- {method} ({axis}) ---")
+        print(f"  on-axis slope local ({on_axis_unit}, tangent):   {s['on_axis_slope_local']:+.4f}")
+        print(f"  on-axis slope global ({on_axis_unit}, polyfit):  {s['on_axis_slope_global']:+.4f}")
+        print(f"  linearity R²:                                    {s['linearity_r2_mean']:.3f}")
+        print(f"  slope inner(|λ|≤1) / outer(|λ|>1): {s['slope_inner_abs_lam_le_1']:+.4f} / {s['slope_outer_abs_lam_gt_1']:+.4f}  (sat={s['saturation_ratio_outer_over_inner']:.2f})")
+        for k, v in s["off_axis"].items():
+            if k.startswith("AD_") and not k.endswith("by_class"):
+                print(f"  {k}:  {v:.4f}")
+        print(f"  AD race max / mean:  {s['off_axis']['AD_race_max']:.4f} / {s['off_axis']['AD_race_mean']:.4f}")
         flip = s["flip_rate_at_lam_extreme"]
         print(f"  flip@|λ|={flip['lam']}:  gender={flip['gender']:.2f}  race={flip['race']:.2f}")
         print(f"  identity drift by λ: {s['identity_drift_by_lam']}")

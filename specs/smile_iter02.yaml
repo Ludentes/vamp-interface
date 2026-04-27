@@ -1,0 +1,21 @@
+axis: smile
+target_probe: siglip_smiling_margin
+target_atom: 16
+
+variants:
+  # Carried over from iter 01 as reference anchor for cross-iteration comparison.
+  v1_baseline:
+    pos: "A person smiling warmly."
+    neg: "A photorealistic portrait photograph of an adult person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  # Base-matched age language: {age} is substituted per base — young / adult / elderly.
+  # Hypothesis: anchors each base's age rather than pulling all bases toward one state.
+  v4_base_matched_age:
+    pos: "A {age} person smiling warmly."
+    neg: "A photorealistic portrait photograph of a {age} person smiling warmly, plain grey background, studio lighting, sharp focus."
+
+  # Identity-anchor language: "the same person". Tests whether explicit identity-preserving
+  # language reduces ArcFace drift (currently ~0.67 per unit scale across variants).
+  v5_identity_anchor:
+    pos: "The same person, smiling warmly."
+    neg: "A photorealistic portrait photograph of the same person smiling warmly, plain grey background, studio lighting, sharp focus."
