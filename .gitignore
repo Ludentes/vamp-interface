@@ -80,3 +80,23 @@ vendor/MiVOLO/
 vendor/FairFace/
 vendor/pytorch-DEX/
 docs/research/external/
+
+# vendored research code (not loaded by ComfyUI; reference only, multi-GB)
+vendor/FluxSpace/
+
+# generated datasets (regenerable from corpus pipelines)
+datasets/
+
+# slider training artifacts (safetensors, eval parquets, sample grids)
+models/sliders/
+models/flux_sliders/eye_squint_*/
+models/flux_sliders/collages/*.log
+models/flux_sliders/collages/*.txt
+
+# downloaded models (mediapipe, etc.)
+models/mediapipe/
+
+# blendshape NMF measurement caches and per-run JSON reports
+models/blendshape_nmf/attn_cache/
+models/blendshape_nmf/*.json
+models/blendshape_nmf/*.txt
