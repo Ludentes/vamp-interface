@@ -100,3 +100,6 @@ models/mediapipe/
 models/blendshape_nmf/attn_cache/
 models/blendshape_nmf/*.json
 models/blendshape_nmf/*.txt
+
+# research-doc supporting images (regenerable from scripts; covers stay tracked)
+docs/research/images/
