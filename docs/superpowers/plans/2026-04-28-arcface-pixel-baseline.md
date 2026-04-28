@@ -1,3 +1,5 @@
+> **SUPERSEDED by [`2026-04-29-arcface-frozen-adapter.md`](2026-04-29-arcface-frozen-adapter.md).** This plan executed; the gate failed (val cos 0.377 unaligned, 0.323 aligned). Square-1 verification ([scripts/check_arc_oracle.py](../../../scripts/check_arc_oracle.py)) showed the pipeline is byte-perfect — the failure is that the experiment answered the wrong question (can a fresh ResNet-18 learn ArcFace from scratch) rather than the intended one (can we transfer ArcFace's pretrain to a latent-input student). The successor plan trains an adapter in front of the frozen ArcFace R50 backbone instead.
+
 # ArcFace-Pixel Sanity Baseline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

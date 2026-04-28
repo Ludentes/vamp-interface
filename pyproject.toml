@@ -34,5 +34,11 @@ dependencies = [
     "bitsandbytes>=0.49.2",
     "accelerate>=1.13.0",
     "protobuf>=7.34.1",
+    "onnx2torch>=1.5.15",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
 ]
 

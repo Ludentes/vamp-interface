@@ -73,3 +73,46 @@ def test_cosine_distance_loss_zero_when_aligned():
 def test_cosine_distance_loss_two_when_opposite():
     a = F.normalize(torch.randn(4, 512), dim=-1)
     assert abs(cosine_distance_loss(a, -a).item() - 2.0) < 1e-5
+
+
+def test_adapter_pixel_a_shapes_and_grads():
+    from arc_distill.adapter import AdapterStudent
+    m = AdapterStudent(variant="pixel_a")
+    x = torch.randn(2, 3, 112, 112)
+    z = m(x)
+    assert z.shape == (2, 512)
+    assert torch.allclose(z.norm(dim=-1), torch.ones(2), atol=1e-5)
+    z.sum().backward()
+    deep = [n for n, p in m.named_parameters()
+            if p.grad is not None and ("Conv_3" in n or "BatchNormalization_8" in n or "Conv_124" in n)]
+    assert deep == [], f"deep backbone params received gradient: {deep[:3]}"
+
+
+def test_adapter_latent_a_up_shapes():
+    from arc_distill.adapter import AdapterStudent
+    m = AdapterStudent(variant="latent_a_up")
+    z = m(torch.randn(2, 16, 14, 14))
+    assert z.shape == (2, 512)
+    assert torch.allclose(z.norm(dim=-1), torch.ones(2), atol=1e-5)
+
+
+def test_adapter_latent_a_native_shapes():
+    from arc_distill.adapter import AdapterStudent
+    m = AdapterStudent(variant="latent_a_native")
+    z = m(torch.randn(2, 16, 14, 14))
+    assert z.shape == (2, 512)
+    assert torch.allclose(z.norm(dim=-1), torch.ones(2), atol=1e-5)
+
+
+def test_adapter_train_mode_keeps_backbone_in_eval():
+    """When the trainer calls m.train(), only stem submodules switch; deep BN
+    must stay in eval so its running stats don't drift."""
+    from arc_distill.adapter import AdapterStudent
+    m = AdapterStudent(variant="pixel_a")
+    m.train()
+    # stem is in train
+    assert m.backbone.Conv_0.training is True
+    assert m.backbone.BatchNormalization_2.training is True
+    # a deep BN is in eval
+    assert m.backbone.BatchNormalization_8.training is False
+    assert m.backbone.BatchNormalization_126.training is False
