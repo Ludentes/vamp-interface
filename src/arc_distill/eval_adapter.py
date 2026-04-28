@@ -16,7 +16,7 @@ from .dataset import CompactFFHQDataset, CompactLatentDataset
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--variant", required=True,
-                   choices=["pixel_a", "latent_a_up", "latent_a_native"])
+                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow"])
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--compact", type=Path, required=True)
     p.add_argument("--out-json", type=Path, required=True)

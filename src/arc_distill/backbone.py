@@ -20,9 +20,16 @@ DEFAULT_ONNX_PATH = Path.home() / ".insightface" / "models" / "buffalo_l" / "w60
 
 
 def load_frozen_iresnet50(onnx_path: Path = DEFAULT_ONNX_PATH) -> nn.Module:
-    """Convert w600k_r50.onnx to PyTorch via onnx2torch and freeze all parameters."""
+    """Convert w600k_r50.onnx to PyTorch via onnx2torch and freeze all parameters.
+
+    Loads as ModelProto first (rather than passing the path) to avoid
+    onnx2torch's safe_shape_inference temp-file path, which fails on Windows
+    due to NamedTemporaryFile locking.
+    """
+    import onnx
     from onnx2torch import convert
-    model = convert(str(onnx_path)).eval()
+    onnx_model = onnx.load(str(onnx_path))
+    model = convert(onnx_model).eval()
     for p in model.parameters():
         p.requires_grad_(False)
     for b in model.buffers():
@@ -70,6 +77,36 @@ def attach_stem(
         backbone.PRelu_1 = _IgnoreSecondArg()
         backbone.BatchNormalization_2 = nn.Identity()
     return backbone
+
+
+LAYER1_PARAM_MODULES = (
+    "Conv_3", "Conv_5", "Conv_6",
+    "BatchNormalization_8", "Conv_9", "Conv_11",
+    "BatchNormalization_13", "Conv_14", "Conv_16",
+)
+LAYER1_PRELU_SLOPES = ("onnx_initializer_1", "onnx_initializer_2", "onnx_initializer_3")
+LAYER1_BN_MODULES = ("BatchNormalization_8", "BatchNormalization_13")
+
+
+def unfreeze_layer1(backbone: nn.Module) -> list[torch.Tensor]:
+    """Unfreeze the 3 residual blocks of IResNet50's layer-1.
+
+    Touches Conv_3..Conv_16, BatchNormalization_8/13, and PReLU slopes
+    (initializers.onnx_initializer_1/2/3) — see graph trace in backbone tests.
+    BN running stats are NOT reset and stay frozen via eval mode (managed by
+    AdapterStudent.train); only the affine params train.
+    """
+    trainable: list[torch.Tensor] = []
+    for mod_name in LAYER1_PARAM_MODULES:
+        mod = getattr(backbone, mod_name)
+        for p in mod.parameters():
+            p.requires_grad_(True)
+            trainable.append(p)
+    for slope_name in LAYER1_PRELU_SLOPES:
+        slope = getattr(backbone.initializers, slope_name)
+        slope.requires_grad_(True)
+        trainable.append(slope)
+    return trainable
 
 
 def mark_stem_trainable(backbone: nn.Module, *, retrain_prelu_bn: bool) -> list[nn.Parameter]:

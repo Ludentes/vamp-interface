@@ -60,12 +60,20 @@ def evaluate(model, loader, device):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--variant", required=True,
-                   choices=["pixel_a", "latent_a_up", "latent_a_native"])
+                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow"])
     p.add_argument("--compact", type=Path, required=True)
     p.add_argument("--out-dir", type=Path, required=True)
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--batch-size", type=int, default=256)
-    p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--lr", type=float, default=1e-3,
+                   help="LR for the stem (and Pixel-A's PRelu_1+BN_2). Used as-is for non-A2 variants.")
+    p.add_argument("--backbone-lr", type=float, default=1e-4,
+                   help="LR for unfrozen backbone params (latent_a2_shallow only).")
+    p.add_argument("--init-from", type=Path, default=None,
+                   help="Optional path to a prior checkpoint.pt (e.g. latent_a_native's). "
+                        "state_dict is loaded into the new model before training; "
+                        "frozen weights stay at ArcFace-pretrained values regardless. "
+                        "Skipped silently if --out-dir/last.pt exists (resume takes priority).")
     p.add_argument("--workers", type=int, default=0)
     p.add_argument("--device", default="cuda")
     p.add_argument("--smoke", action="store_true")
@@ -90,7 +98,11 @@ def main():
     n_train = sum(p.numel() for p in model.trainable_parameters())
     print(f"trainable params: {n_train:,}")
 
-    opt = torch.optim.AdamW(model.trainable_parameters(), lr=args.lr, weight_decay=1e-4)
+    groups = model.parameter_groups(stem_lr=args.lr, backbone_lr=args.backbone_lr)
+    for i, g in enumerate(groups):
+        n = sum(p.numel() for p in g["params"])
+        print(f"  group {i}: {n:,} params at lr={g['lr']:g}")
+    opt = torch.optim.AdamW(groups, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
     start_epoch = 0
@@ -103,6 +115,11 @@ def main():
         start_epoch = ck["epoch"] + 1
         best_val = ck.get("best_val", -float("inf"))
         print(f"resumed from epoch {start_epoch} best_val={best_val:.4f}")
+    elif args.init_from is not None:
+        ck = torch.load(args.init_from, map_location=device, weights_only=False)
+        missing, unexpected = model.load_state_dict(ck["model"], strict=False)
+        print(f"init from {args.init_from} (epoch {ck.get('epoch', '?')})  "
+              f"missing={len(missing)} unexpected={len(unexpected)}")
 
     for epoch in range(start_epoch, args.epochs):
         model.train()

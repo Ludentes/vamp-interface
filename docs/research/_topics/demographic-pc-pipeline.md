@@ -4,6 +4,17 @@
 Stage 5 path now runs through live prompt-pair composition with Concept
 Sliders distillation as the production target. Last updated 2026-04-24.
 
+### 2026-04-30 — ArcFace frozen-backbone adapter: aligned-crop VAE identity tax measured + half-recovered
+
+Pivot from "ResNet-18 from scratch" to "frozen IResNet50 + trainable stem" (transfer learning to reuse the 25M ArcFace pretrained params instead of throwing them away). Four variants trained on 24,182/1,514 aligned-112² FFHQ rows:
+
+- **Pixel-A** (1.9K trainable params, native pixel input): val cos **0.960** — clears 0.95 gate; validates the frozen-backbone-with-stem-swap recipe.
+- **Latent-A-up** (9.4K, bilinear-upsample stem on `(16,14,14)`): val cos 0.577 — fails gate.
+- **Latent-A-native** (271K, ConvTranspose stride-8 stem): val cos 0.805 — fails 0.86 gate by 0.055; **raw frozen-backbone VAE identity tax = 0.155 cosine**.
+- **Latent-A2-shallow** (498K, native stem + IResNet50 layer-1 unfrozen, init-from-native, two-group AdamW stem 1e-3 / backbone 1e-4): val cos **0.882** — clears Pixel-A − 0.10 gate; layer-1 unfreeze recovers half the VAE identity tax.
+
+Read: early IResNet50 residual blocks expect pixel-statistic input distribution; allowing them to remap pulls A2 within 0.078 cos of pixel parity. Remaining gap is some combination of genuine VAE info loss at 14×14 and deeper-layer mismatch. Code at [src/arc_distill/](../../../src/arc_distill/); 11/11 tests pass. **Scope caveat:** this is at aligned-crop resolution, NOT slider-training resolution — the canonical [arc_latent plan](../2026-04-27-arc-latent-distillation-plan.md) targets `(16, 64, 64)` latents from full 1024² images, which is what slider-training loss heads actually need. The 14×14 result is a recipe-validation milestone, not the deliverable. Next: build the (16, 64, 64) corpus, train an A2-shaped student on slider-training-resolution latents, then replicate the recipe for MediaPipe and SigLIP loss heads. Doc: [2026-04-30-arcface-frozen-adapter.md](../2026-04-30-arcface-frozen-adapter.md).
+
 ### 2026-04-29 — arc_distill step-2 ArcFace-pixel baseline: gate FAILED at full-image input
 
 ResNet-18 (ImageNet pretrained) student trained on FFHQ 224² → InsightFace `buffalo_l` ArcFace 512-d teacher; 24,182 train + 1,514 val rows (SHA-prefix split, 'f' held out). Result: **val cosine mean = 0.377**, far below the 0.9 gate. Train cos loss kept dropping to 0.42 while val plateaued at 0.377 by epoch 5/8 — real overfit gap, but both sides too weak for the gate. Dominant suspect: input format mismatch — ArcFace was trained on aligned 112² face crops, we hand the student whole-image 224² portraits. Recommended next: rebuild compact dataset with SCRFD-bbox-aligned 112² crops (bboxes already in `output/reverse_index/reverse_index.parquet`), re-run gate. Cheap (~15 min). Defer arc_latent (step 3) until alignment question resolved — latent path inherits the same no-alignment handicap on top of less identity-aware input. Doc: [2026-04-29-arcface-pixel-baseline.md](../2026-04-29-arcface-pixel-baseline.md). Plan: [2026-04-28-arcface-pixel-baseline.md](../../superpowers/plans/2026-04-28-arcface-pixel-baseline.md).
