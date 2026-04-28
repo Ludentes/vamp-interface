@@ -1,14 +1,20 @@
-"""Pre-pack detected FFHQ rows into one compact file for arc_pixel training.
+"""Pre-pack FFHQ rows into one compact file for arc_pixel training.
 
-Scans every shard pair (parquet + encoded .pt), decodes + resizes detected
-images once, and writes a single .pt holding:
-  images_u8:   (N, 3, 224, 224) uint8
-  arcface:     (N, 512) float32
-  shas:        list[str] of length N
-  format_version: 1
+Two modes:
 
-At 224² uint8 + fp32 target this is ~3.7 GB for ~25k detected FFHQ rows —
-fits in RAM, so subsequent training avoids per-step parquet/PIL costs entirely.
+  default (no --align):
+    decode + resize detected rows to --resolution × --resolution uint8.
+    Writes (N, 3, R, R) uint8.
+
+  --align (canonical ArcFace input):
+    re-run InsightFace SCRFD detection on each image to get 5 landmarks,
+    then `face_align.norm_crop(bgr, kps, 112)` to produce the same aligned
+    112² BGR crop ArcFace consumes internally. Convert BGR→RGB. Writes
+    (N, 3, 112, 112) uint8. Drops rows where current detection misses
+    (may diverge slightly from the original `detected` mask).
+
+In either mode the output also carries the matching arcface_fp32 teacher
+target per kept row.
 """
 from __future__ import annotations
 
@@ -18,6 +24,7 @@ import re
 import time
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pyarrow.parquet as pq
 import torch
@@ -26,12 +33,26 @@ from PIL import Image
 _SHARD_RE = re.compile(r"train-(\d{5})-of-\d{5}\.parquet$")
 
 
+def _build_aligner(ctx_id: int = 0):
+    """Return (FaceAnalysis, norm_crop_fn). detection-only buffalo_l."""
+    from insightface.app import FaceAnalysis
+    from insightface.utils import face_align
+
+    app = FaceAnalysis(name="buffalo_l", allowed_modules=["detection"])
+    app.prepare(ctx_id=ctx_id, det_size=(640, 640))
+    return app, face_align.norm_crop
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shards-dir", type=Path, required=True)
     ap.add_argument("--encoded-dir", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--resolution", type=int, default=224)
+    ap.add_argument("--resolution", type=int, default=224,
+                    help="Output side length in default (no-align) mode.")
+    ap.add_argument("--align", action="store_true",
+                    help="Produce 112² ArcFace-aligned crops via InsightFace "
+                         "SCRFD landmarks + norm_crop.")
     ap.add_argument("--limit-shards", type=int, default=0,
                     help="Process only the first N shards (0=all). Smoke flag.")
     args = ap.parse_args()
@@ -42,10 +63,18 @@ def main() -> None:
     if args.limit_shards:
         shards = shards[: args.limit_shards]
     print(f"scanning {len(shards)} shards under {args.shards_dir}")
+    print(f"mode: {'aligned 112x112' if args.align else f'resize {args.resolution}x{args.resolution}'}")
+
+    aligner = None
+    norm_crop = None
+    if args.align:
+        aligner, norm_crop = _build_aligner()
+        print("InsightFace detector ready")
 
     out_imgs: list[np.ndarray] = []
     out_arc: list[torch.Tensor] = []
     out_shas: list[str] = []
+    miss_realign = 0
 
     t_start = time.time()
     for s_idx, p in enumerate(shards):
@@ -72,19 +101,38 @@ def main() -> None:
         for i, (sha, d) in enumerate(zip(shas, det)):
             if not d:
                 continue
-            img = Image.open(io.BytesIO(img_col[i]["bytes"])).convert("RGB")
-            img = img.resize((args.resolution, args.resolution), Image.Resampling.BILINEAR)
-            arr = np.asarray(img, dtype=np.uint8).transpose(2, 0, 1)  # CHW
+            rgb = np.asarray(
+                Image.open(io.BytesIO(img_col[i]["bytes"])).convert("RGB"),
+                dtype=np.uint8,
+            )
+
+            if args.align:
+                bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                faces = aligner.get(bgr)
+                if not faces:
+                    miss_realign += 1
+                    continue
+                # largest face by bbox area
+                f = max(faces, key=lambda x: (x.bbox[2] - x.bbox[0]) * (x.bbox[3] - x.bbox[1]))
+                aligned_bgr = norm_crop(bgr, f.kps, image_size=112)
+                aligned_rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB)
+                arr = aligned_rgb.transpose(2, 0, 1)  # CHW
+            else:
+                resized = Image.fromarray(rgb).resize(
+                    (args.resolution, args.resolution), Image.Resampling.BILINEAR
+                )
+                arr = np.asarray(resized, dtype=np.uint8).transpose(2, 0, 1)
+
             out_imgs.append(arr)
             out_arc.append(arc[i].clone())
             out_shas.append(sha)
             kept += 1
 
-        # release the parquet table before next iter
         del table, img_col
         elapsed = time.time() - t_start
         print(f"  [{s_idx+1}/{len(shards)}] {p.name} kept={kept} "
-              f"total={len(out_imgs)} elapsed={elapsed:.1f}s")
+              f"total={len(out_imgs)} miss_realign={miss_realign} "
+              f"elapsed={elapsed:.1f}s")
 
     print(f"packing {len(out_imgs)} rows into tensors...")
     images_u8 = torch.from_numpy(np.stack(out_imgs))
@@ -92,12 +140,15 @@ def main() -> None:
     print(f"images_u8: {images_u8.shape} {images_u8.dtype} "
           f"({images_u8.numel() / 1e9:.2f} GB)")
     print(f"arcface:   {arcface.shape}")
+    if args.align:
+        print(f"miss_realign (was detected at encode time but not now): {miss_realign}")
 
     torch.save({
         "images_u8": images_u8,
         "arcface": arcface,
         "shas": out_shas,
-        "resolution": args.resolution,
+        "resolution": 112 if args.align else args.resolution,
+        "aligned": args.align,
         "format_version": 1,
     }, args.out)
     print(f"wrote {args.out} ({args.out.stat().st_size / 1e9:.2f} GB)")
