@@ -3,7 +3,10 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import torch
 
+import torch.nn.functional as F
+
 from arc_distill.dataset import FFHQPixelDataset, is_held_out
+from arc_distill.model import ArcStudentResNet18, cosine_distance_loss
 
 
 def test_is_held_out_f_prefix_held():
@@ -82,3 +85,22 @@ def test_dataset_row_count_mismatch_raises(tmp_path):
     import pytest
     with pytest.raises(ValueError, match="row count"):
         FFHQPixelDataset(parquet_path=smoke, encoded_pt_path=pt, split="train")
+
+
+def test_model_output_shape_and_l2_norm():
+    m = ArcStudentResNet18(pretrained=False).eval()
+    with torch.no_grad():
+        out = m(torch.randn(2, 3, 224, 224))
+    assert out.shape == (2, 512)
+    norms = out.norm(dim=-1)
+    assert torch.allclose(norms, torch.ones_like(norms), atol=1e-5)
+
+
+def test_cosine_distance_loss_zero_when_aligned():
+    a = F.normalize(torch.randn(4, 512), dim=-1)
+    assert cosine_distance_loss(a, a).item() < 1e-6
+
+
+def test_cosine_distance_loss_two_when_opposite():
+    a = F.normalize(torch.randn(4, 512), dim=-1)
+    assert abs(cosine_distance_loss(a, -a).item() - 2.0) < 1e-5
