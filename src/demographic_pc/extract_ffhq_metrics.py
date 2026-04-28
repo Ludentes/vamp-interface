@@ -265,7 +265,7 @@ def main() -> None:
     log.info(f"device={device}")
 
     log.info("loading MiVOLO...");        mv = MiVOLOClassifier(device=device)
-    log.info("loading FairFace...");      ff = FairFaceClassifier(device=device)
+    log.info("loading FairFace (HOG)...");      ff = FairFaceClassifier(device=device, use_hog=True)
     log.info("loading InsightFace...");   ins = InsightFaceClassifier(ctx_id=0, with_embedding=False)
     log.info("loading SigLIP-2...");      siglip = Siglip2Backend(device=device)
     log.info("loading FaceLandmarker..."); landmarker, mp = build_landmarker(args.mediapipe_model)

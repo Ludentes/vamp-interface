@@ -95,15 +95,27 @@ AGE_BINS = ["0-2", "3-9", "10-19", "20-29", "30-39",
 
 
 class FairFaceClassifier:
-    """res34 FairFace 7-race model. Uses dlib CNN-detect + 5-landmark align."""
+    """res34 FairFace 7-race model. Uses dlib detect + 5-landmark align.
 
-    def __init__(self, device: str | None = None):
+    `use_hog=False` (default) uses the dlib CNN MMOD detector — most accurate
+    but 1-15 seconds per image on CPU.
+
+    `use_hog=True` uses the dlib HOG frontal-face detector — ~50ms per image,
+    suitable for high-quality frontal datasets like FFHQ. Less accurate on
+    profile / occluded / small faces.
+    """
+
+    def __init__(self, device: str | None = None, use_hog: bool = False):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.use_hog = use_hog
         model = tvm.resnet34(weights=None)
         model.fc = nn.Linear(model.fc.in_features, 18)
         model.load_state_dict(torch.load(FAIRFACE_CKPT, map_location="cpu", weights_only=True))
         self.model = model.to(self.device).eval()
-        self.detector = dlib.cnn_face_detection_model_v1(str(DLIB_DET))
+        if use_hog:
+            self.detector = dlib.get_frontal_face_detector()
+        else:
+            self.detector = dlib.cnn_face_detection_model_v1(str(DLIB_DET))
         self.sp = dlib.shape_predictor(str(DLIB_SP))
         self.trans = T.Compose([
             T.Resize((224, 224)),
@@ -112,7 +124,7 @@ class FairFaceClassifier:
         ])
 
     def _align(self, bgr: np.ndarray, size: int = 300, padding: float = 0.25) -> np.ndarray | None:
-        """dlib CNN detect + 5-landmark align. Returns aligned RGB crop or None."""
+        """dlib detect + 5-landmark align. Returns aligned RGB crop or None."""
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         h, w = rgb.shape[:2]
         max_side = 800
@@ -122,9 +134,16 @@ class FairFaceClassifier:
         dets = self.detector(rgb, 1)
         if not dets:
             return None
-        det = max(dets, key=lambda d: (d.rect.right() - d.rect.left()) * (d.rect.bottom() - d.rect.top()))
+        if self.use_hog:
+            # HOG returns dlib.rectangle directly
+            det = max(dets, key=lambda r: (r.right() - r.left()) * (r.bottom() - r.top()))
+            rect = det
+        else:
+            # CNN returns dlib.mmod_rectangle (.rect attr)
+            det = max(dets, key=lambda d: (d.rect.right() - d.rect.left()) * (d.rect.bottom() - d.rect.top()))
+            rect = det.rect
         faces = dlib.full_object_detections()
-        faces.append(self.sp(rgb, det.rect))
+        faces.append(self.sp(rgb, rect))
         chips = dlib.get_face_chips(rgb, faces, size=size, padding=padding)
         return chips[0] if chips else None
 
