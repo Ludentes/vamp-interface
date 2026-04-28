@@ -10,15 +10,20 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from .adapter import AdapterStudent
-from .dataset import CompactFFHQDataset, CompactLatentDataset
+from .dataset import CompactFFHQDataset, CompactLatentDataset, CompactLatentRoiDataset
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--variant", required=True,
-                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow"])
+                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow",
+                            "latent_a_full_pool", "latent_a2_full_pool_shallow",
+                            "latent_a_full_native", "latent_a2_full_native_shallow",
+                            "latent_a_full_crop", "latent_a2_full_crop_shallow",
+                            "latent_a_full_roi", "latent_a2_full_roi_shallow"])
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--compact", type=Path, required=True)
+    p.add_argument("--face-attrs", type=Path, default=None)
     p.add_argument("--out-json", type=Path, required=True)
     p.add_argument("--device", default="cuda")
     p.add_argument("--batch-size", type=int, default=256)
@@ -29,6 +34,10 @@ def main():
     device = torch.device(args.device)
     if args.variant == "pixel_a":
         ds = CompactFFHQDataset(args.compact, "val", normalisation="arcface")
+    elif args.variant in ("latent_a_full_roi", "latent_a2_full_roi_shallow"):
+        if args.face_attrs is None:
+            raise ValueError(f"variant {args.variant} requires --face-attrs")
+        ds = CompactLatentRoiDataset(args.compact, args.face_attrs, "val", output_size=28)
     else:
         ds = CompactLatentDataset(args.compact, "val")
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=False,

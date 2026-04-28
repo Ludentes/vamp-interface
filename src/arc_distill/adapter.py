@@ -19,10 +19,31 @@ from .backbone import (
     mark_stem_trainable,
     unfreeze_layer1,
 )
-from .stems import LatentStemNative, LatentStemUpsample, PixelStem
+from .stems import (
+    LatentStemFull64Crop,
+    LatentStemFull64Native,
+    LatentStemFull64Pool,
+    LatentStemNative,
+    LatentStemRoi28,
+    LatentStemUpsample,
+    PixelStem,
+)
 
 
-VARIANTS = {"pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow"}
+VARIANTS = {
+    "pixel_a",
+    "latent_a_up",
+    "latent_a_native",
+    "latent_a2_shallow",
+    "latent_a_full_pool",
+    "latent_a2_full_pool_shallow",
+    "latent_a_full_native",
+    "latent_a2_full_native_shallow",
+    "latent_a_full_crop",
+    "latent_a2_full_crop_shallow",
+    "latent_a_full_roi",
+    "latent_a2_full_roi_shallow",
+}
 
 
 class AdapterStudent(nn.Module):
@@ -61,8 +82,52 @@ class AdapterStudent(nn.Module):
             stem = LatentStemNative()
             attach_stem(backbone, stem, bypass_native_prelu_bn=True)
             self.trainable = mark_stem_trainable(backbone, retrain_prelu_bn=False)
-        else:  # latent_a2_shallow
+        elif variant == "latent_a2_shallow":
             stem = LatentStemNative()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            stem_params = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+            self.layer1_unfrozen = unfreeze_layer1(backbone)
+            self.trainable = stem_params + self.layer1_unfrozen
+            self._stem_params = stem_params
+        elif variant == "latent_a_full_pool":
+            stem = LatentStemFull64Pool()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            self.trainable = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+        elif variant == "latent_a2_full_pool_shallow":
+            stem = LatentStemFull64Pool()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            stem_params = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+            self.layer1_unfrozen = unfreeze_layer1(backbone)
+            self.trainable = stem_params + self.layer1_unfrozen
+            self._stem_params = stem_params
+        elif variant == "latent_a_full_native":
+            stem = LatentStemFull64Native()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            self.trainable = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+        elif variant == "latent_a2_full_native_shallow":
+            stem = LatentStemFull64Native()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            stem_params = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+            self.layer1_unfrozen = unfreeze_layer1(backbone)
+            self.trainable = stem_params + self.layer1_unfrozen
+            self._stem_params = stem_params
+        elif variant == "latent_a_full_crop":
+            stem = LatentStemFull64Crop()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            self.trainable = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+        elif variant == "latent_a2_full_crop_shallow":
+            stem = LatentStemFull64Crop()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            stem_params = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+            self.layer1_unfrozen = unfreeze_layer1(backbone)
+            self.trainable = stem_params + self.layer1_unfrozen
+            self._stem_params = stem_params
+        elif variant == "latent_a_full_roi":
+            stem = LatentStemRoi28()
+            attach_stem(backbone, stem, bypass_native_prelu_bn=True)
+            self.trainable = mark_stem_trainable(backbone, retrain_prelu_bn=False)
+        else:  # latent_a2_full_roi_shallow
+            stem = LatentStemRoi28()
             attach_stem(backbone, stem, bypass_native_prelu_bn=True)
             stem_params = mark_stem_trainable(backbone, retrain_prelu_bn=False)
             self.layer1_unfrozen = unfreeze_layer1(backbone)
@@ -83,7 +148,9 @@ class AdapterStudent(nn.Module):
 
         For other variants returns a single group at stem_lr (acts like a regular
         opt over trainable_parameters)."""
-        if self.variant != "latent_a2_shallow":
+        if self.variant not in ("latent_a2_shallow", "latent_a2_full_pool_shallow",
+                                "latent_a2_full_native_shallow", "latent_a2_full_crop_shallow",
+                                "latent_a2_full_roi_shallow"):
             return [{"params": self.trainable_parameters(), "lr": stem_lr}]
         return [
             {"params": self._stem_params, "lr": stem_lr},

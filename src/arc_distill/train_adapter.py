@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from .adapter import AdapterStudent
-from .dataset import CompactFFHQDataset, CompactLatentDataset
+from .dataset import CompactFFHQDataset, CompactLatentDataset, CompactLatentRoiDataset
 
 
 def cosine_distance_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -28,6 +28,11 @@ def build_loaders(args):
     if args.variant == "pixel_a":
         train_ds = CompactFFHQDataset(args.compact, "train", normalisation="arcface")
         val_ds = CompactFFHQDataset(args.compact, "val", normalisation="arcface")
+    elif args.variant in ("latent_a_full_roi", "latent_a2_full_roi_shallow"):
+        if args.face_attrs is None:
+            raise ValueError(f"variant {args.variant} requires --face-attrs")
+        train_ds = CompactLatentRoiDataset(args.compact, args.face_attrs, "train", output_size=28)
+        val_ds = CompactLatentRoiDataset(args.compact, args.face_attrs, "val", output_size=28)
     else:
         train_ds = CompactLatentDataset(args.compact, "train")
         val_ds = CompactLatentDataset(args.compact, "val")
@@ -60,8 +65,14 @@ def evaluate(model, loader, device):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--variant", required=True,
-                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow"])
+                   choices=["pixel_a", "latent_a_up", "latent_a_native", "latent_a2_shallow",
+                            "latent_a_full_pool", "latent_a2_full_pool_shallow",
+                            "latent_a_full_native", "latent_a2_full_native_shallow",
+                            "latent_a_full_crop", "latent_a2_full_crop_shallow",
+                            "latent_a_full_roi", "latent_a2_full_roi_shallow"])
     p.add_argument("--compact", type=Path, required=True)
+    p.add_argument("--face-attrs", type=Path, default=None,
+                   help="face_attrs.pt with bboxes_latent (required for latent_a*_full_roi*).")
     p.add_argument("--out-dir", type=Path, required=True)
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--batch-size", type=int, default=256)

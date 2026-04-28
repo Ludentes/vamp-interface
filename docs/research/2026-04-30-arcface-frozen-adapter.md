@@ -162,6 +162,163 @@ teacher is a regression metric. The downstream questions are:
 
 Until at least the first two are checked, A2 is a regressor, not a loss.
 
+## Update 2026-04-28 — full-image (16, 64, 64) corpus
+
+Built the canonical-plan corpus per [`arc_latent` plan](2026-04-27-arc-latent-distillation-plan.md):
+26,108 FFHQ rows VAE-encoded at 512² → `(16, 64, 64)` bf16 latents on shard at
+`C:\arc_distill\arc_full_latent\compact.pt` (3.48 GB). Same SHAs and arcface
+teacher embeddings as the aligned-crop 14×14 corpus, so results are directly
+comparable.
+
+**Run log (chronological).**
+
+| Variant | Stem | Mean | Median | Frac>0.9 | Status / note |
+|---|---|---:|---:|---:|---|
+| latent_a_full_pool | adaptive-pool 64→14 + LatentStemNative | 0.298 | — | — | killed at epoch 7; pool destroys spatial info |
+| **latent_a_full_native** | ConvT k=8 s=2 p=3 (64→128) + crop 112 | **0.874** | 0.931 | 83.1% | 20 epoch full run, plateaued ~epoch 14 |
+| **latent_a2_full_native_shallow** | latent_a_full_native + layer-1 unfrozen, init-from base | **0.881** | 0.939 | 87.6% | small lift over base; train-val gap closed |
+| latent_a_full_crop | center-crop 64→32 + ConvT k=8 s=4 p=2 + crop 112 | 0.534 | — | — | killed at epoch 13; loses face content |
+| latent_a_full_roi | RoIAlign 64→28 (SCRFD bbox) + ConvT k=8 s=4 p=2 (28→112) | 0.687 | 0.744 | 0.1% | 20 epoch full run; bbox crop ≠ similarity-aligned crop (teacher's frame) |
+
+**Reading on each.**
+
+- **full_pool fails.** The 64×64 latent encodes the whole frame; pooling
+  averages background/hair/shoulders into the channel distribution and the
+  frozen IResNet50 receives input that doesn't look like any face's stem
+  output. Stem capacity alone can't fix it.
+- **full_native works.** ConvTranspose stride-2 preserves all spatial info.
+  Already higher fraction-above-0.9 than 14×14 A2-shallow (83% vs 31.6%); mean
+  0.874 is dragged by a long left tail (p05 = 0.061, min = -0.13).
+- **A2 over full_native.** Small +0.007 mean lift (vs +0.077 at 14×14). Train
+  loss now ≈ val cos — no overfit room. Layer-1 unfreeze isn't the right
+  knob anymore; the bottleneck has shifted.
+- **full_crop fails.** Fixed center-crop (32×32) chops face content from many
+  rows where the face isn't dead-center, throws away background that doesn't
+  bother the previous setup. Net: large step backwards.
+- **full_roi underperforms.** Per-row RoIAlign using the SCRFD bbox (re-run
+  on 512², saved to `face_attrs.pt`) gives the student a face-centred crop
+  but in a *different reference frame from the teacher*: bbox crop is
+  axis-aligned + variably scaled; teacher's input is a 5-keypoint
+  similarity-aligned 112² crop (rotated upright, eyes/nose at canonical
+  positions). Different operation, plateaus at ~0.69.
+
+**Diagnostic on the long left tail (full_native A2 checkpoint):**
+the bottom-50 rows by val cos cluster around catastrophic predictions
+(mean = -0.02), are not clustered together identity-wise (intra-band teacher
+cos ≈ 0.017 — diverse failures), and visually share a structural pattern:
+older men with **beards/hats/headwear**, sunglasses, scarves, costume
+headgear. Failure mode is **localization**, not distribution mismatch —
+the stem can't isolate the face the teacher saw on rows where non-face
+content occupies a big fraction of the latent.
+
+**Side artefact:** `face_attrs.pt` saves bbox/kps_5/landmark_2d_106/pose/
+age/gender/det_score/n_faces per row, written for the RoI experiment but
+useful well beyond that (latent-space similarity-warp, demographic ridge
+heads, pose-conditional analyses).
+
+Next experiment slot: similarity-warp (16, 64, 64) → (16, 14, 14) using the
+5 keypoints in `face_attrs.pt` (the principled fix vs RoI bbox) and reuse
+the existing latent_a_native variant. Predicted: val cos ≈ original 14×14
+result (0.805 / A2: 0.882) since this reproduces the teacher's reference
+frame in latent space.
+
+## Validation as a loss head — Layer 1 + Layer 2 results
+
+Ran [`validate_as_loss.py`](../../src/arc_distill/validate_as_loss.py) on the
+`latent_a2_full_native_shallow` checkpoint (val n=1514). Full report in
+`C:\arc_distill\arc_adapter\latent_a2_full_native_shallow\validation_report.json`.
+
+**Layer 1.1 — teacher cosine.** mean 0.881 / median 0.939 / frac>0.9 = 87.6% /
+p05 = 0.063 / min = -0.148. Reproduces eval.json.
+
+**Layer 1.2 — k-fold ridge transfer (λ=100, k=5, out-of-fold R²).**
+
+| target | R²(student) | R²(teacher) | note |
+|---|---:|---:|---|
+| age | 0.037 | 0.037 | linear projection to age is weak in either embedding; matched |
+| gender | 0.014 | 0.011 | binary target — linear ridge is the wrong tool, both ≈0; matched |
+| det_score | 0.003 | 0.003 | no signal in either; matched |
+| yaw / pitch | — | — | dropped: `face_attrs.pose` is all zeros (precompute didn't enable `landmark_3d_68`) |
+
+Demographic ridge transfer is "the student does whatever the teacher does."
+Within the limits of linear ridge, no measurable transfer gap. To say anything
+stronger about gender preservation needs logistic regression, which is out of
+scope here.
+
+**Layer 1.3 — augmentation invariance (TAR@FAR=1e-3, AUC).**
+
+Hard negatives = teacher's top-5 nearest neighbours (excl. self). Random
+negatives = a random other identity.
+
+| perturbation | pos cos | rand neg | hard neg | AUC random | AUC hard |
+|---|---:|---:|---:|---:|---:|
+| gauss σ=0.02 | 0.999 | 0.008 | 0.186 | 1.000 | 1.000 |
+| gauss σ=0.05 | 0.993 | 0.008 | 0.186 | 1.000 | 1.000 |
+| hflip | 0.877 | 0.008 | 0.171 | 1.000 | 0.99994 |
+| roll ±1 (H) | 0.972 | 0.007 | 0.186 | 1.000 | 0.99999996 |
+| roll ±1 (W) | 0.978 | 0.008 | 0.186 | 1.000 | 1.000 |
+
+Hard-negative AUC ≥ 0.9999 across all 5 perturbations. The student preserves
+identity geometry under realistic latent-space perturbations even when scored
+against teacher's nearest-neighbour identities (mean cos 0.18 vs random 0.008).
+The hflip drop in pos-cos to 0.877 is realistic — real ArcFace also drops
+slightly under symmetry breaks; the student inherits this.
+
+Caveat: hard negatives here are FFHQ singletons, not multi-shot identities. A
+true 1:1 verification benchmark (LFW / CFP-FP) would put genuine same-person /
+different-person pairs through the student. We don't have a multi-shot dataset
+on shard yet. This Layer 1.3 result is "preserves teacher discrimination on
+augmented FFHQ singletons," not "passes LFW."
+
+**Layer 2 — gradient sanity.** Single (16, 64, 64) latent x, target =
+teacher_emb of a random different row, loss = `1 − cos(student(x), target)`.
+- gradient finite ✓
+- grad norm 0.14 (reasonable, neither vanishing nor exploding)
+- 100 SGD steps at lr=0.05 reduce loss 1.081 → 0.986 (~9% drop toward an
+  arbitrary cross-identity target)
+- backprop through onnx2torch FX graph works as expected
+
+**Verdict for Use A.** Green light. The student passes the cheap proxies for
+"usable as a slider/LoRA training loss head" — invariance is robust, gradient
+flows, demographic content tracks teacher within the limits of linear probing.
+The real test is Layer 3 (slider A/B with vs without student loss), specced at
+[2026-04-30-layer3-slider-ab-spec.md](2026-04-30-layer3-slider-ab-spec.md).
+
+**Use B (inference-time guidance) untouched** — see "Possible uses" below for
+why 0.881 is more concerning under operating conditions there.
+
+## Possible uses and their fidelity demands
+
+The 0.881 mean teacher cosine of `latent_a2_full_native_shallow` is a single
+scalar that means different things to different downstream uses. The two
+candidate uses we care about:
+
+**Use A: identity-preservation loss during slider/LoRA training.**
+The student is queried inside the training loop on edited and anchor latents;
+loss = `1 − cos(student(x_edited), student(x_anchor))` (or similar),
+backprop'd into the trainable weights. Each batch averages over many samples,
+and only the *direction* of the gradient needs to track ArcFace — absolute
+fidelity is much less load-bearing. **0.881 is plausibly fine here.** The
+load-bearing question is whether same-source perturbed pairs rank above
+cross-identity pairs at usable margin (Layer 1.3, this validation suite).
+
+**Use B: classifier-guidance / inference-time identity steering.**
+The student is queried during sampling, on a single denoising step's predicted
+x₀ or latent; gradient steers the noise prediction toward an identity target.
+Here the 0.119 off-direction component biases every step on every sample;
+errors don't average out the way they do across a training batch. A 0.881
+student may pull samples toward "ArcFace-shaped but not-quite-identity"
+attractors, and those biases compound across 20–50 sampling steps. **Use B
+needs a higher fidelity bar than 0.881 implies, and should be measured under
+operating conditions before being trusted** — by, e.g., taking a target
+identity, running classifier guidance on a fixed seed with both the
+real teacher and our student, and comparing the rendered face to the target
+on a held-out set with a different ArcFace instance as the judge.
+
+The validation suite in this thread (Layer 1.1–1.3 + Layer 2 + Layer 3
+slider A/B) is squarely aimed at Use A. Use B remains an open question;
+nothing in `validate_as_loss.py` directly probes it.
+
 ## Next steps
 
 The user reframed the goal: "We want ArcNet, MediaPipe, and SigLIP to be

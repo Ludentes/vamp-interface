@@ -1,0 +1,11 @@
+{
+  "n": 1514,
+  "cosine_mean": 0.8814424872398376,
+  "cosine_median": 0.9391740560531616,
+  "cosine_p05": 0.06257005035877228,
+  "cosine_p95": 0.9619489908218384,
+  "cosine_min": -0.1483873724937439,
+  "frac_above_0p9": 0.8764861226081848,
+  "variant": "latent_a2_full_native_shallow",
+  "checkpoint_epoch": 19
+}

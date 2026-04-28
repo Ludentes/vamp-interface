@@ -10,6 +10,7 @@ models/flux_sliders/*/train_log.csv
 models/flux_sliders/*/args.json
 models/blendshape_nmf/*.parquet
 models/blendshape_nmf/*.parquet.bak.*
+models/arc_distill/*.pt
 
 # Python
 __pycache__/
