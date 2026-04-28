@@ -1,0 +1,10 @@
+{
+  "n": 1514,
+  "cosine_mean": 0.37679004669189453,
+  "cosine_median": 0.3777341842651367,
+  "cosine_p05": 0.10306555777788162,
+  "cosine_p95": 0.6145888566970825,
+  "cosine_min": -0.09419983625411987,
+  "frac_above_0p9": 0.0,
+  "gate_passed_mean_gt_0p9": false
+}
