@@ -102,8 +102,8 @@ def build_ffhq_concat(
         m = _SHARD_RE.search(p.name)
         if not m:
             continue
-        idx = int(m.group(1))
-        pt = encoded_dir / f"shard-{idx:05d}.pt"
+        # Encoded .pt filenames mirror the parquet basename (train-00000-of-00190.pt).
+        pt = encoded_dir / (p.stem + ".pt")
         if not pt.exists():
             continue
         parts.append(FFHQPixelDataset(p, pt, split=split, resolution=resolution))
