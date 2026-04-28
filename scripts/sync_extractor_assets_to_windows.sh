@@ -27,4 +27,7 @@ scp models/blendshape_nmf/au_library.npz "$REMOTE:$DST_ROOT/models/blendshape_nm
 echo "[sync] src/demographic_pc -> $DST_ROOT/src/demographic_pc"
 scp -r src/demographic_pc             "$REMOTE:$DST_ROOT/src/demographic_pc"
 
+echo "[sync] src/arc_distill -> $DST_ROOT/src/arc_distill"
+scp -r src/arc_distill                "$REMOTE:$DST_ROOT/src/arc_distill"
+
 echo "[sync] done"

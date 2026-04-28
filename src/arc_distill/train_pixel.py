@@ -13,7 +13,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from arc_distill.dataset import build_ffhq_concat
+from arc_distill.dataset import CompactFFHQDataset
 from arc_distill.model import ArcStudentResNet18, cosine_distance_loss
 
 
@@ -34,32 +34,28 @@ def evaluate(model, loader, device) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shards-dir", type=Path, required=True)
-    ap.add_argument("--encoded-dir", type=Path, required=True)
+    ap.add_argument("--compact", type=Path, required=True,
+                    help="Path to packed file from prepare_compact.py.")
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--epochs", type=int, default=8)
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--lr", type=float, default=3e-4)
-    ap.add_argument("--resolution", type=int, default=224)
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=0,
+                    help="Default 0: with the tensor already in RAM the loader "
+                         "is fast enough single-process; on Windows (spawn) "
+                         "workers >0 would each duplicate the ~3.7 GB tensor.")
     ap.add_argument("--device", type=str, default="cuda")
     ap.add_argument("--smoke", action="store_true",
-                    help="Use a single sub-dataset, 1 epoch — sanity only.")
+                    help="1 epoch with a small batch for sanity.")
     args = ap.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     log_path = args.out_dir / "train_log.jsonl"
 
-    print(f"[{time.strftime('%H:%M:%S')}] building datasets...")
-    train_full = build_ffhq_concat(args.shards_dir, args.encoded_dir, "train", args.resolution)
-    val = build_ffhq_concat(args.shards_dir, args.encoded_dir, "val", args.resolution)
-
-    if args.smoke:
-        train = train_full.datasets[0]
-        epochs = 1
-    else:
-        train = train_full
-        epochs = args.epochs
+    print(f"[{time.strftime('%H:%M:%S')}] loading compact dataset {args.compact}...")
+    train = CompactFFHQDataset(args.compact, split="train")
+    val = CompactFFHQDataset(args.compact, split="val")
+    epochs = 1 if args.smoke else args.epochs
 
     print(f"train={len(train)} val={len(val)}")
 
