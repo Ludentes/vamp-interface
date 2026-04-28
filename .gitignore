@@ -103,3 +103,7 @@ models/blendshape_nmf/*.txt
 
 # research-doc supporting images (regenerable from scripts; covers stay tracked)
 docs/research/images/
+
+# FFHQ shard-0 kept locally for repeated smoke runs (~458 MB, gitignored;
+# covered by *.parquet above but listed explicitly so its purpose is obvious)
+tests/fixtures/ffhq_shard0.parquet

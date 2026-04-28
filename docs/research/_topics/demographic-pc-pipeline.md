@@ -4,6 +4,10 @@
 Stage 5 path now runs through live prompt-pair composition with Concept
 Sliders distillation as the production target. Last updated 2026-04-24.
 
+### 2026-04-28 — FFHQ reverse-index extension
+
+All five reverse-index metric families (mivolo + fairface + insightface attrs + siglip-2 attribute probes + ARKit blendshapes + NMF atom projection from `au_library.npz`) now extracted over the 70k FFHQ corpus at 512² to match Flux dimensions. Single-pass extractor at [extract_ffhq_metrics.py](../../../src/demographic_pc/extract_ffhq_metrics.py); merger at [build_unified_reverse_index.py](../../../src/demographic_pc/build_unified_reverse_index.py). Output: `output/reverse_index/reverse_index.parquet` (sources: `flux_corpus_v3`, `ffhq`; join key: `image_sha256`). FFHQ detection rates: ArcFace/SCRFD ~60% (det_thresh=0.5; per [2026-04-27-arcface-detection-threshold.md](../2026-04-27-arcface-detection-threshold.md)); MediaPipe FaceLandmarker has different priors and recovers a different (typically wider) subset. MiVOLO predicts on every row — interpret accordingly. See [2026-04-28-ffhq-reverse-index-extension.md](../2026-04-28-ffhq-reverse-index-extension.md).
+
 ### 2026-04-27 — `arc_latent` distillation pre-flight: teacher mislabel fixed, FFHQ detection rate measured
 
 While preparing pre-flight #1 of the [arc_latent distillation plan](../2026-04-27-arc-latent-distillation-plan.md):
