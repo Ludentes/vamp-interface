@@ -33,15 +33,48 @@ FPS ships, 15-22 means tune, <15 advances to next probe.
   forces fp32 BN inputs against fp16 weights → falsified, set to False.
   Lands in 15-22 tune zone, still below ≥22 ship gate.
 
+### Verdict (2026-05-04)
+
+Working estimate: this stack tops out at **20-21 FPS** on RTX 5090,
+short of the ≥22 ship gate. Per-module ttrt already captured the
+fallback-boundary win Probe C was supposed to add, so further gains
+have to come from the model side (fewer steps, smaller VAE) — not
+the runtime side. **No further runtime tuning is planned;** if we
+need to ship ≥22, the path is architectural (see options below).
+
+### Options to push further (not actively pursued)
+
+Cheap (hours, runtime-only — pre-test ceiling ~20-21 FPS):
+
+- TAESD swap for `vae.decode` (PersonaLive ships `vae_tiny_path`
+  in offline config); ~10× faster decoder, slight quality loss.
+- Probe B engine config tuning: `optimization_level=5`, narrower
+  dynamic-shape range, `enable_autocast`, `decompose_attention=True`.
+  Each lever ~2-5%, stacked ~10-15%, ~30s/iter with cache warm.
+- TRT engine inspector to find slowest subgraph (likely temporal
+  attention or VAE upsamples), apply layer-specific overrides.
+- CUDA graphs around the per-frame call to drop launch overhead
+  for the surrounding torch ops (~5-15%, low risk).
+
+Medium (1-2 days, model-level — could clear 22 FPS):
+
+- Drop denoising steps from 4 to 2 with proper schedule re-tune;
+  near-doubling of throughput if quality holds. Risk: flicker /
+  identity drift.
+- Smaller temporal window (`temporal_window_size`,
+  `temporal_adaptive_step`); trades quality for FPS.
+
+Expensive (week+, architectural):
+
+- Re-distill PersonaLive at 2-step target (Hyper-SD style on top
+  of its existing temporal distillation).
+- Re-check xformers / flash-attn / SageAttention 2 source build
+  for sm_120 in a few weeks (currently falsified).
+- Pivot to a warp-based path (LivePortrait / X-Nemo) — already
+  an active thread, see `_topics/neural-deformation-control.md`.
+
 ### Open
 
-- Probe B tuning: try larger `min_block_size`, `enable_autocast`,
-  `optimization_level=5`, `decompose_attention=True`. Each iteration
-  is ~5 min once cache is warm.
-- Probe B and Probe C both in tune zone; cheapest next step is to
-  tune one of them (autocast, larger min_block_size, optimization_level=5,
-  decompose_attention=True). Probe C has the smaller surface area for
-  tuning since only the engine config matters.
 - Visual artifact comparison across modes (videos exist, side-by-side
   pending).
 
