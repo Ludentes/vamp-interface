@@ -24,16 +24,24 @@ FPS ships, 15-22 means tune, <15 advances to next probe.
   zone, not yet ship target. Engine cache enabled; rebuilds skipped on
   subsequent runs.
 - **Probe C — bundled torch2trt.py + ONNX → polygraphy → TRT engine**:
-  not yet attempted. Higher prior of acceleration since it bypasses
-  TRT↔PyTorch fallback boundaries, but ~1-2 h setup (onnx, polygraphy,
-  pycuda, custom UNet wrapper).
+  works, **+88% (18.87 FPS)**. Single 3.7 GB engine fuses denoising_unet
+  + vae.decode + scheduler.step. Only +6.5% over Probe B — the
+  "no PyTorch fallback" advantage netted less than expected; most
+  gain was already captured by per-module ttrt compile. Build cost:
+  ~10 min (ONNX export + polygraphy autotune over 16 dynamic-shape
+  inputs). Detours: upstream's `auto_cast=True` flag on `export_onnx`
+  forces fp32 BN inputs against fp16 weights → falsified, set to False.
+  Lands in 15-22 tune zone, still below ≥22 ship gate.
 
 ### Open
 
 - Probe B tuning: try larger `min_block_size`, `enable_autocast`,
   `optimization_level=5`, `decompose_attention=True`. Each iteration
   is ~5 min once cache is warm.
-- Probe C run-through.
+- Probe B and Probe C both in tune zone; cheapest next step is to
+  tune one of them (autocast, larger min_block_size, optimization_level=5,
+  decompose_attention=True). Probe C has the smaller surface area for
+  tuning since only the engine config matters.
 - Visual artifact comparison across modes (videos exist, side-by-side
   pending).
 
@@ -41,7 +49,8 @@ FPS ships, 15-22 means tune, <15 advances to next probe.
 
 - [`docs/research/2026-05-04-personalive-tensorrt-plan.md`](../2026-05-04-personalive-tensorrt-plan.md) — the 3-probe plan with gates
 - [`docs/research/personalive-trt-logs/`](../personalive-trt-logs/) — raw bench logs (01-sdpa, 02-compile, 03c-torch_trt)
-- [`docs/blog/2026-05-04-personalive-trt-probe-b.md`](../../blog/2026-05-04-personalive-trt-probe-b.md) — journal of the Probe B journey
+- [`docs/research/2026-05-04-personalive-trt-probe-c.md`](../2026-05-04-personalive-trt-probe-c.md) — Probe C (bundled torch2trt) result + detours
+- [`docs/blog/2026-05-04-personalive-trt-probe-b.md`](../../blog/2026-05-04-personalive-trt-probe-b.md) — journal of the Probe B/C journey
 
 ### Environment notes
 

@@ -1,16 +1,16 @@
 ---
 status: live
 topic: personalive-acceleration
-summary: How torch_tensorrt 2.11 went from "all three submodules fail to compile" to "+77% over SDPA" with three small fixes — contiguous tensors, manual torch.export with no dynamic shapes, and a one-line monkey-patch of diffusers' `_execution_device` property. With detours through a CUDA 13 vs CUDA 12.8 wheel mismatch (solved by letting both runtime libraries co-exist) and a torch.compile dynamic=True trap that turned a 10-second compile into a 90-minute one.
+summary: Walking PersonaLive up the gate-driven probe ladder — torch.compile (+21%) → torch_tensorrt (+77%) → bundled torch2trt.py (+88%). The big delta lives in Probe B, with three small fixes (contiguous tensors, manual torch.export with no dynamic shapes, and a one-line monkey-patch of diffusers' `_execution_device`). Probe C — single TRT engine, no PyTorch fallback — only nets +6.5% on top, falsifying our prior that bypassing fallback boundaries was the high-ceiling move.
 ---
 
-![PersonaLive inference: 3 probes, 1 working acceleration. SDPA 10.03 FPS → torch.compile 12.10 FPS (+21%) → torch_tensorrt 17.72 FPS (+46%). Lands in 15-22 tune zone, below the ≥22 ship gate.](images/2026-05-04-personalive-trt-probe-b-cover.png)
+![PersonaLive inference: 4 probes on the gate-driven ladder. SDPA 10.03 FPS → torch.compile 12.10 (+21%) → torch_tensorrt 17.72 (+46%) → bundled torch2trt 18.87 (+6.5%). Both Probe B and Probe C land in 15-22 tune zone, below the ≥22 ship gate.](images/2026-05-04-personalive-trt-probe-b-cover.png)
 
-# Three falsifications, three fixes — getting torch_tensorrt to actually accelerate PersonaLive
+# Four probes, three falsifications, three fixes — accelerating PersonaLive
 
-PersonaLive is a recent portrait-animation diffusion stack — reference UNet, denoising UNet with a temporal module, motion encoder, pose guider, VAE — that ships at ~10 FPS on an RTX 5090 with stock SDPA attention. We want ≥25 FPS for a webcam pipeline. This is the journal of the second optimization probe, the one that actually moved the number.
+PersonaLive is a recent portrait-animation diffusion stack — reference UNet, denoising UNet with a temporal module, motion encoder, pose guider, VAE — that ships at ~10 FPS on an RTX 5090 with stock SDPA attention. We want ≥25 FPS for a webcam pipeline. This is the journal of climbing the optimization ladder.
 
-The plan was a three-probe ladder with a hard gate — each probe ships if it hits ≥22 FPS, tunes if it lands 15-22, and advances to the next probe under 15. The first probe was `torch.compile`. The second was `torch_tensorrt`. The third — bundled ONNX → TensorRT engine with PersonaLive's own converter — is still on the bench.
+The plan was a probe ladder with a hard gate — each probe ships if it hits ≥22 FPS, tunes if it lands 15-22, and advances to the next probe under 15. The first probe was `torch.compile`. The second was `torch_tensorrt`. The third was the bundled ONNX → polygraphy → single-TRT-engine driver that ships with PersonaLive itself. We're going to walk through all three.
 
 ## The xformers detour, briefly
 
@@ -116,8 +116,42 @@ The static-shape specialization via manual `torch.export.export` was load-bearin
 
 The contiguous-clone and the `_execution_device` patch were both ten-second fixes that would have been completely opaque without reading the actual error and tracing what the call path expects. Each one was the difference between "Probe B is falsified" and "Probe B works."
 
+## Probe C: bypass PyTorch entirely
+
+Probe B replaces three nn.Modules with TRT-wrapped runtimes but the diffusers pipeline still drives the loop — `scheduler.step` runs in eager torch, there are per-call boundary copies between TRT and torch tensors, and a Python frame surrounds every call. Probe C collapses all of that into a single TRT engine.
+
+Specifically, PersonaLive ships its own converter at `torch2trt.py` that builds an `unet_work` composite — `pose_guider → motion_encoder → unet_3d → scheduler.step → vae.decode` chained in one fused forward — exports it to ONNX, and hands the ONNX to polygraphy to build a single TRT engine. The runtime wrapper (`src.wrapper_trt.PersonaLive`) prefills the 16 reference-cache tensors once per reference image, binds output tensors as inputs so the latent / pose-feature / motion-state feedback loops never copy, and the per-frame call is: 4 inputs in, 6 outputs out, no torch ops in between.
+
+Going in we expected this to be the big win. The hypothesis: per-module ttrt is leaving acceleration on the table at the boundaries, and a single fused engine should reclaim it.
+
+It doesn't. Probe C lands at **18.87 FPS — only +6.5% over Probe B.**
+
+What this tells us: the per-module ttrt approach already captured almost all of the achievable speedup. The remaining headroom was in scheduler arithmetic and cross-graph boundary tax — both small fractions of the 5.3-second run. The "no PyTorch fallback" theoretical advantage was real but quantitatively small.
+
+The build cost was real too: 30 seconds for ONNX export, 10 seconds for the external-data resave, ~9 minutes for polygraphy + TRT autotune over 16 dynamic-shape inputs. 3.6 GB ONNX external data plus 3.7 GB engine on disk. About ten minutes of wall time and 7 GB of artifacts for a 6.5% delta.
+
+Probe C did surface one detour worth keeping. Upstream's `torch2trt.py` passes `auto_cast=True` into `export_onnx`, which wraps the trace in `torch.autocast("cuda")`. The wrapper holds fp16 weights and feeds fp16 inputs already; autocast forces BatchNorm inputs through fp32, and the motion_encoder's FAN feature extractor crashes during ONNX trace with a half-vs-float type mismatch. Set `auto_cast=False`. Trace passes cleanly, and the engine builds.
+
+## What was actually load-bearing
+
+Three things mattered, in order of how far the budget would have run without them:
+
+The CUDA 13 / CUDA 12.8 hybrid runtime trick was load-bearing for both Probe B and Probe C — without it, neither torch_tensorrt 2.11 nor TensorRT 10.15 (cu13) could resolve their dynamic links. There is no version of either for cu128 that matches torch 2.11. The dlopen-by-SONAME co-existence is what kept both probes alive.
+
+The static-shape specialization via manual `torch.export.export` was load-bearing for one of the three Probe B submodules and is the "hardest" fix in the sense that it required understanding *why* the default behavior failed — symbolic shapes are usually a feature, not a bug, and it's not obvious from the error message that turning them off is the right move.
+
+The contiguous-clone, the `_execution_device` patch, and the `auto_cast=False` flip were each ten-second fixes that would have been completely opaque without reading the actual error and tracing what the call path expects. Each one was the difference between "this probe is falsified" and "this probe works."
+
+## What we got wrong about the ladder
+
+We marked Probe C as the high-ceiling path. The reasoning was that bypassing TRT↔PyTorch fallback boundaries should compound — every boundary you eliminate is a copy you don't pay, and there are a lot of boundaries in a diffusion loop with 4 timesteps × 16-frame temporal windows × VAE decode.
+
+The reality is that 80% of those boundary costs were already inside the tensor-staying-on-GPU regime that Probe B set up. ttrt's `cache_built_engines=True` plus `min_block_size=1` aggressively folds operations into TRT subgraphs whenever it can, so by the time Probe B finished compiling, only scheduler arithmetic and tensor metadata operations were left in eager torch. Those are cheap.
+
+The lesson generalizes: when stacking optimizations on a diffusion pipeline, measure each one against the previous floor, not against the unoptimized baseline. The 17.72 → 18.87 jump is what we paid 9 minutes of build time and 7 GB of disk for; the 10.03 → 17.72 jump is what we paid three small fixes for.
+
 ## Next
 
-Probe B is in the tune zone. The cheapest path forward is to stay there — try `min_block_size=5` (less PyTorch fallback overhead at TRT subgraph boundaries), `enable_autocast`, `optimization_level=5`, `decompose_attention=True`. Each iteration is now ~30 seconds because the engines are cached. If that gets us to ≥22, we're done. If not, Probe C — the bundled `torch2trt.py` driver, which goes through ONNX → polygraphy → a single TRT engine with no PyTorch fallback boundaries — is the path with the highest ceiling and the largest activation energy.
+Both Probe B and Probe C are in the tune zone. The cheapest iteration loop is Probe B (each retry ~30s with cached engines), so that's where we tune first — `optimization_level=5`, narrower dynamic-shape range, engine inspector to find the slowest subgraph (probably temporal attention or the VAE upsamples). If neither probe reaches 22 FPS after tuning, the more interesting question becomes whether the model architecture has 22 FPS in it on this hardware at all, or whether we need a smaller model.
 
 The gate is what it is. We'll see which side we land on.
