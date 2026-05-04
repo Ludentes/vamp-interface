@@ -1,0 +1,47 @@
+name: squint_compose_iter01_seed4242
+base: european_m
+seed: 4242
+max_iters: 4
+
+# Solver A composition test on squint axis. Hypothesis: the Duchenne
+# bundle (squint co-firing with smile + cheek raise) can be cancelled
+# at render time by additive counter-edits, so we don't need a slider
+# trainer for this axis. If the t=0 (primary-only) render shows squint
+# bundling smile/cheek, the loop activates the counters; if t=N
+# converges with squint engaged and smile/cheek near-anchor, Solver A
+# wins this axis.
+#
+# Primary scale chosen at 1.0 (full edit) since squint is subtle —
+# weaker primary tends to under-engage the eye region.
+
+primary:
+  label: squint_v_eyes_open
+  target_readout: bs_eyeSquintLeft
+  pos: "An {age} {ethnicity} {gender} with eyes squinted tightly together, mouth completely neutral and relaxed, plain grey background, studio lighting, sharp focus."
+  neg: "An {age} {ethnicity} {gender} with eyes wide open and relaxed, mouth completely neutral and relaxed, plain grey background, studio lighting, sharp focus."
+  scale: 1.0
+
+confounds:
+  - name: smile_drift
+    readout: siglip_smiling_margin
+    threshold: 0.04
+    diff_from_anchor: true
+    counter:
+      label: smile_hold_neutral
+      pos: "An {age} {ethnicity} {gender} with neutral relaxed mouth and no smile, plain grey background."
+      neg: "An {age} {ethnicity} {gender} smiling broadly with teeth visible, plain grey background."
+    scale_init: 0.30
+    scale_step: 0.15
+    scale_max: 0.80
+
+  - name: cheek_drift
+    readout: bs_cheekSquintLeft
+    threshold: 0.15
+    diff_from_anchor: true
+    counter:
+      label: cheek_hold_relaxed
+      pos: "An {age} {ethnicity} {gender} with relaxed cheek muscles and smooth under-eye area, plain grey background, studio lighting."
+      neg: "An {age} {ethnicity} {gender} with raised tense cheek muscles and bunched skin around the eyes, plain grey background, studio lighting."
+    scale_init: 0.25
+    scale_step: 0.15
+    scale_max: 0.70

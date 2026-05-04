@@ -136,6 +136,10 @@ def process_shard(shard_path, out_path, *, mv, ff, ins, siglip, probe_feats,
         "ins_gender":      np.full(n, "", dtype=object),
         "bs_detected":     np.zeros(n, dtype=bool),
     }
+    emit_arcface = bool(getattr(ins, "with_embedding", False))
+    if emit_arcface:
+        payload["arcface_fp32"] = [None] * n
+        payload["ffhq_arcface_detected"] = np.zeros(n, dtype=bool)
     for name in ARKIT_BLENDSHAPE_NAMES:
         payload[f"bs_{name}"] = np.zeros(n, dtype=np.float32)
     for k in range(H.shape[0]):
@@ -171,6 +175,11 @@ def process_shard(shard_path, out_path, *, mv, ff, ins, siglip, probe_feats,
         if ins_out["detected"]:
             payload["ins_age"][i] = ins_out["age"]
             payload["ins_gender"][i] = ins_out["gender"]
+        if emit_arcface:
+            emb = ins_out.get("embedding") if ins_out["detected"] else None
+            if emb is not None:
+                payload["arcface_fp32"][i] = np.asarray(emb, dtype=np.float32).tolist()
+                payload["ffhq_arcface_detected"][i] = True
 
         sg_out = score_siglip_image(siglip, probe_feats, rgb)
         for k, v in sg_out.items():

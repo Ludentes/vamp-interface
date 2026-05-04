@@ -115,11 +115,15 @@ def _score_one(png_path: Path, anchor_png: Path | None, scorers) -> dict:
                 na = float(np.linalg.norm(a)); nb = float(np.linalg.norm(b))
                 if na * nb > 1e-9:
                     cur[out_key] = float((a * b).sum() / (na * nb))
-        # anchor-relative numeric deltas for readouts the spec compares via diff_from_anchor
-        for k in ("mv_age", "ins_age"):
-            if k in cur and k in anc:
-                cur[f"{k}__anchor"] = anc[k]
-                cur[f"{k}__delta"] = cur[k] - anc[k]
+        # anchor-relative numeric deltas for any readout the spec compares
+        # via diff_from_anchor (covers mv_age, ins_age, bs_*, siglip_*_margin, etc.)
+        for k in list(anc.keys()):
+            if k.startswith("_") or k in ("img_path",):
+                continue
+            av = anc.get(k); cv = cur.get(k)
+            if isinstance(av, (int, float)) and isinstance(cv, (int, float)):
+                cur[f"{k}__anchor"] = av
+                cur[f"{k}__delta"] = cv - av
     for k in ("_ins_embedding", "_siglip_feat"):
         cur.pop(k, None)
     return cur
