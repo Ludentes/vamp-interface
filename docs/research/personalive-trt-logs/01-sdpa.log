@@ -1,0 +1,30 @@
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/dual_transformer_2d.py:20: FutureWarning: `DualTransformer2DModel` is deprecated and will be removed in version 0.29. Importing `DualTransformer2DModel` from `diffusers.models.dual_transformer_2d` is deprecated and this will be removed in a future version. Please use `from diffusers.models.transformers.dual_transformer_2d import DualTransformer2DModel`, instead.
+  deprecate("DualTransformer2DModel", "0.29", deprecation_message)
+[bench] building pipeline mode=sdpa
+Some weights of the model checkpoint were not used when initializing UNet2DConditionModel: 
+ ['conv_norm_out.weight, conv_norm_out.bias, conv_out.weight, conv_out.bias']
+[bench] preparing 100 driving frames
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1777882893.002616  554914 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1777882893.047471  558245 gl_context.cc:369] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 590.48.01), renderer: NVIDIA GeForce RTX 5090/PCIe/SSE2
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1777882893.051197  558244 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1777882893.057953  558238 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1777882893.059639  558233 landmark_projection_calculator.cc:186] Using NORM_RECT without IMAGE_DIMENSIONS is only supported for the square ROI. Provide IMAGE_DIMENSIONS or use PROJECTION_MATRIX.
+[bench] warmup call with 16 frames
+/home/newub/w/PersonaLive/src/models/motion_encoder/FAN_feature_extractor.py:100: UserWarning: `nn.functional.upsample` is deprecated. Use `nn.functional.interpolate` instead.
+  up2 = F.upsample(low3, size=rescale_size, mode='bilinear')
+  0%|          | 0/7 [00:00<?, ?it/s]/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/resnet.py:328: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/downsampling.py:136: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/upsampling.py:147: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+ 14%|█▍        | 1/7 [00:02<00:15,  2.63s/it] 29%|██▊       | 2/7 [00:02<00:06,  1.23s/it] 43%|████▎     | 3/7 [00:03<00:03,  1.27it/s] 57%|█████▋    | 4/7 [00:03<00:01,  1.61it/s] 71%|███████▏  | 5/7 [00:03<00:01,  1.90it/s] 86%|████████▌ | 6/7 [00:04<00:00,  2.13it/s]100%|██████████| 7/7 [00:04<00:00,  2.32it/s]100%|██████████| 7/7 [00:04<00:00,  1.53it/s]
+[bench] timed call with 100 frames (target L=100)
+  0%|          | 0/28 [00:00<?, ?it/s]  4%|▎         | 1/28 [00:00<00:07,  3.64it/s]  7%|▋         | 2/28 [00:00<00:06,  3.89it/s] 11%|█         | 3/28 [00:00<00:06,  4.00it/s] 14%|█▍        | 4/28 [00:01<00:07,  3.40it/s] 18%|█▊        | 5/28 [00:01<00:07,  3.17it/s] 21%|██▏       | 6/28 [00:01<00:07,  2.98it/s] 25%|██▌       | 7/28 [00:02<00:07,  2.90it/s] 29%|██▊       | 8/28 [00:02<00:06,  2.87it/s] 32%|███▏      | 9/28 [00:02<00:06,  2.85it/s] 36%|███▌      | 10/28 [00:03<00:06,  2.76it/s] 39%|███▉      | 11/28 [00:03<00:06,  2.77it/s] 43%|████▎     | 12/28 [00:04<00:05,  2.75it/s] 46%|████▋     | 13/28 [00:04<00:05,  2.74it/s] 50%|█████     | 14/28 [00:04<00:05,  2.74it/s] 54%|█████▎    | 15/28 [00:05<00:04,  2.74it/s] 57%|█████▋    | 16/28 [00:05<00:04,  2.75it/s] 61%|██████    | 17/28 [00:05<00:04,  2.74it/s] 64%|██████▍   | 18/28 [00:06<00:03,  2.71it/s] 68%|██████▊   | 19/28 [00:06<00:03,  2.64it/s] 71%|███████▏  | 20/28 [00:07<00:03,  2.66it/s] 75%|███████▌  | 21/28 [00:07<00:02,  2.67it/s] 79%|███████▊  | 22/28 [00:07<00:02,  2.72it/s] 82%|████████▏ | 23/28 [00:08<00:01,  2.74it/s] 86%|████████▌ | 24/28 [00:08<00:01,  2.75it/s] 89%|████████▉ | 25/28 [00:08<00:01,  2.76it/s] 93%|█████████▎| 26/28 [00:09<00:00,  2.74it/s] 96%|█████████▋| 27/28 [00:09<00:00,  2.75it/s]100%|██████████| 28/28 [00:09<00:00,  2.77it/s]100%|██████████| 28/28 [00:09<00:00,  2.82it/s]
+mode=sdpa L=100 warmup=16 time=9.973s fps=10.03
