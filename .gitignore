@@ -97,6 +97,13 @@ models/flux_sliders/collages/*.txt
 # downloaded models (mediapipe, etc.)
 models/mediapipe/
 
+# distillation training artifacts (checkpoints, logs, eval bundles)
+models/mediapipe_distill/
+models/siglip_distill/
+
+# research artifact bundles (mp4/log/json captured from runs; regenerable)
+docs/research/_data/
+
 # blendshape NMF measurement caches and per-run JSON reports
 models/blendshape_nmf/attn_cache/
 models/blendshape_nmf/*.json
