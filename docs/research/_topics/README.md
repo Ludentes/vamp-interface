@@ -18,6 +18,8 @@ superseded.
 | [metrics-and-direction-quality](metrics-and-direction-quality.md) | Mahalanobis → `max_env`, ridge vs prompt-pair direction extraction, FluxSpace as winning coarse baseline; Mahalanobis-vs-Riemannian critique extension | live |
 | [demographic-pc-pipeline](demographic-pc-pipeline.md) | Stage 0-4.5 staged extraction pipeline; paused at Stage 5 behind FluxSpace | live, paused |
 | [arc-distill](arc-distill.md) | ArcFace identity in Flux latent space; first of three teacher-distillation-as-loss heads | live, active |
+| [neural-deformation-control](neural-deformation-control.md) | LivePortrait-lineage warp-based blendshape control as complement to LoRA sliders | live, active |
+| [personalive-acceleration](personalive-acceleration.md) | PersonaLive inference acceleration: SDPA → torch.compile → torch_tensorrt, 3-probe gate, +77% from torch_tensorrt fixes | live, active |
 | [archived-threads](archived-threads.md) | Superseded dated docs with reasons — *read to decide what NOT to mine for current truth* | archive |
 
 ### Maintenance rule

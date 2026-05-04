@@ -1,0 +1,453 @@
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/dual_transformer_2d.py:20: FutureWarning: `DualTransformer2DModel` is deprecated and will be removed in version 0.29. Importing `DualTransformer2DModel` from `diffusers.models.dual_transformer_2d` is deprecated and this will be removed in a future version. Please use `from diffusers.models.transformers.dual_transformer_2d import DualTransformer2DModel`, instead.
+  deprecate("DualTransformer2DModel", "0.29", deprecation_message)
+[bench] building pipeline mode=torch_trt
+Some weights of the model checkpoint were not used when initializing UNet2DConditionModel: 
+ ['conv_norm_out.weight, conv_norm_out.bias, conv_out.weight, conv_out.bias']
+Neither TRTLLM_PLUGIN_PATH is set nor is it directed to download the shared library. Please set either of the two to use TRT-LLM libraries in torchTRT
+[05/04/2026-05:32:23] [TRT] [W] Functionality provided through tensorrt.plugin module is experimental.
+Unable to import quantization op. Please install modelopt library (https://github.com/NVIDIA/TensorRT-Model-Optimizer?tab=readme-ov-file#installation) to add support for compiling quantized models
+Unable to import quantize op. Please install modelopt library (https://github.com/NVIDIA/TensorRT-Model-Optimizer?tab=readme-ov-file#installation) to add support for compiling quantized models
+[bench] preparing 100 driving frames
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1777890744.402471  452353 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1777890744.456789  459411 gl_context.cc:369] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 590.48.01), renderer: NVIDIA GeForce RTX 5090/PCIe/SSE2
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1777890744.463000  459401 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1777890744.470689  459394 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1777890744.473446  459398 landmark_projection_calculator.cc:186] Using NORM_RECT without IMAGE_DIMENSIONS is only supported for the square ROI. Provide IMAGE_DIMENSIONS or use PROJECTION_MATRIX.
+[bench] torch_trt probe pass with 16 frames (capturing input shapes)
+  0%|          | 0/7 [00:00<?, ?it/s] 14%|█▍        | 1/7 [00:02<00:15,  2.60s/it] 29%|██▊       | 2/7 [00:02<00:06,  1.22s/it] 43%|████▎     | 3/7 [00:03<00:03,  1.30it/s] 57%|█████▋    | 4/7 [00:03<00:01,  1.66it/s] 71%|███████▏  | 5/7 [00:03<00:01,  1.97it/s] 86%|████████▌ | 6/7 [00:04<00:00,  2.22it/s]100%|██████████| 7/7 [00:04<00:00,  2.40it/s]100%|██████████| 7/7 [00:04<00:00,  1.57it/s]
+[bench] captured denoising_unet: ([((1, 4, 16, 64, 64), 'torch.float16'), ((16,), 'torch.int64')], {'encoder_hidden_states': 'list', 'pose_cond_fea': ((1, 320, 16, 64, 64), 'torch.float16'), 'return_dict': 'bool'})
+[bench] captured reference_unet: ([((1, 4, 64, 64), 'torch.float16'), ((1,), 'torch.float32')], {'encoder_hidden_states': ((1, 1, 768), 'torch.float16'), 'return_dict': 'bool'})
+[bench] captured vae.decode: z=(4, 4, 64, 64)/torch.float16 args=[] kwargs=[]
+[bench] torch.export.export denoising_unet ...
+[bench] ttrt.dynamo.compile denoising_unet ...
+WARNING:py.warnings:/home/newub/.local/share/uv/python/cpython-3.10.16-linux-x86_64-gnu/lib/python3.10/copyreg.py:101: FutureWarning: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+  return cls.__new__(cls, *args)
+
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+[bench] ttrt.compile denoising_unet: OK
+[bench] torch.export.export reference_unet ...
+WARNING:py.warnings:/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/resnet.py:328: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+
+WARNING:py.warnings:/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/downsampling.py:136: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+
+WARNING:py.warnings:/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/diffusers/models/upsampling.py:147: FutureWarning: `scale` is deprecated and will be removed in version 1.0.0. The `scale` argument is deprecated and will be ignored. Please remove it, as passing it will raise an error in the future. `scale` should directly be passed while calling the underlying pipeline component i.e., via `cross_attention_kwargs`.
+  deprecate("scale", "1.0.0", deprecation_message)
+
+WARNING:py.warnings:/home/newub/.local/share/uv/python/cpython-3.10.16-linux-x86_64-gnu/lib/python3.10/contextlib.py:142: UserWarning: The tensor attributes self.down_blocks.1.attentions.0.transformer_blocks.0.bank[0], self.up_blocks.3.attentions.1.transformer_blocks.0.bank[0], self.up_blocks.2.attentions.1.transformer_blocks.0.bank[0], self.up_blocks.2.attentions.0.transformer_blocks.0.bank[0], self.up_blocks.1.attentions.1.transformer_blocks.0.bank[0], self.up_blocks.2.attentions.2.transformer_blocks.0.bank[0], self.up_blocks.1.attentions.2.transformer_blocks.0.bank[0], self.down_blocks.0.attentions.1.transformer_blocks.0.bank[0], self.up_blocks.1.attentions.0.transformer_blocks.0.bank[0], self.down_blocks.1.attentions.1.transformer_blocks.0.bank[0], self.up_blocks.3.attentions.0.transformer_blocks.0.bank[0], self.up_blocks.3.attentions.2.transformer_blocks.0.bank[0], self.down_blocks.2.attentions.0.transformer_blocks.0.bank[0], self.mid_block.attentions.0.transformer_blocks.0.bank[0], self.down_blocks.2.attentions.1.transformer_blocks.0.bank[0], self.down_blocks.0.attentions.0.transformer_blocks.0.bank[0] were assigned during export. Such attributes must be registered as buffers using the `register_buffer` API (https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer).
+  next(self.gen)
+
+[bench] ttrt.dynamo.compile reference_unet ...
+WARNING:py.warnings:/home/newub/w/PersonaLive/scripts/bench_offline.py:289: DeprecationWarning: `use_explicit_typing` is deprecated. use_explicit_types is now on by default, this setting will be removed and you should enable autocast to recover weak typing behavior.
+  trt_mod = ttrt.dynamo.compile(
+
+WARNING:py.warnings:/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/torch_tensorrt/dynamo/utils.py:317: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  torch.tensor(inputs),
+
+WARNING:py.warnings:/home/newub/.local/share/uv/python/cpython-3.10.16-linux-x86_64-gnu/lib/python3.10/copyreg.py:101: FutureWarning: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+  return cls.__new__(cls, *args)
+
+WARNING:torch_tensorrt.dynamo._compiler:Remaining GPU memory may not be enough to compile the TensorRT engine for this model resulting in an OOM error, Consider setting offload_module_to_cpu=True
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt.dynamo.conversion.converter_utils:Detected unparsable type in node formatting: <class 'NoneType'>
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+[bench] ttrt.compile reference_unet: OK
+[bench] ttrt.compile vae.decode ...
+WARNING:py.warnings:/home/newub/w/PersonaLive/scripts/bench_offline.py:314: DeprecationWarning: `use_explicit_typing` is deprecated. use_explicit_types is now on by default, this setting will be removed and you should enable autocast to recover weak typing behavior.
+  wrap = _DecWrap(vae_ref).eval()
+
+WARNING:py.warnings:/home/newub/w/PersonaLive/.venv/lib/python3.10/site-packages/torch_tensorrt/dynamo/utils.py:317: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  torch.tensor(inputs),
+
+WARNING:py.warnings:/home/newub/.local/share/uv/python/cpython-3.10.16-linux-x86_64-gnu/lib/python3.10/copyreg.py:101: FutureWarning: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+  return cls.__new__(cls, *args)
+
+WARNING:torch_tensorrt.dynamo._compiler:Remaining GPU memory may not be enough to compile the TensorRT engine for this model resulting in an OOM error, Consider setting offload_module_to_cpu=True
+WARNING:torch_tensorrt [TensorRT Conversion Context]:WARNING The logger passed into createInferBuilder differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+[bench] ttrt.compile vae.decode: OK
+[bench] warmup call with 16 frames
+WARNING:py.warnings:/home/newub/w/PersonaLive/src/models/motion_encoder/FAN_feature_extractor.py:100: UserWarning: `nn.functional.upsample` is deprecated. Use `nn.functional.interpolate` instead.
+  up2 = F.upsample(low3, size=rescale_size, mode='bilinear')
+
+  0%|          | 0/7 [00:00<?, ?it/s] 14%|█▍        | 1/7 [00:00<00:01,  4.78it/s] 29%|██▊       | 2/7 [00:00<00:00,  5.50it/s] 43%|████▎     | 3/7 [00:00<00:00,  5.83it/s] 57%|█████▋    | 4/7 [00:00<00:00,  5.41it/s] 71%|███████▏  | 5/7 [00:00<00:00,  5.23it/s] 86%|████████▌ | 6/7 [00:01<00:00,  5.15it/s]100%|██████████| 7/7 [00:01<00:00,  5.09it/s]100%|██████████| 7/7 [00:01<00:00,  5.21it/s]
+[bench] timed call with 100 frames (target L=100)
+  0%|          | 0/28 [00:00<?, ?it/s]  4%|▎         | 1/28 [00:00<00:04,  5.81it/s]  7%|▋         | 2/28 [00:00<00:04,  6.09it/s] 11%|█         | 3/28 [00:00<00:04,  6.15it/s] 14%|█▍        | 4/28 [00:00<00:04,  5.66it/s] 18%|█▊        | 5/28 [00:00<00:04,  5.43it/s] 21%|██▏       | 6/28 [00:01<00:04,  5.28it/s] 25%|██▌       | 7/28 [00:01<00:04,  5.18it/s] 29%|██▊       | 8/28 [00:01<00:03,  5.13it/s] 32%|███▏      | 9/28 [00:01<00:03,  5.09it/s] 36%|███▌      | 10/28 [00:01<00:03,  4.91it/s] 39%|███▉      | 11/28 [00:02<00:03,  4.91it/s] 43%|████▎     | 12/28 [00:02<00:03,  4.95it/s] 46%|████▋     | 13/28 [00:02<00:03,  4.95it/s] 50%|█████     | 14/28 [00:02<00:02,  4.91it/s] 54%|█████▎    | 15/28 [00:02<00:02,  4.95it/s] 57%|█████▋    | 16/28 [00:03<00:02,  4.93it/s] 61%|██████    | 17/28 [00:03<00:02,  4.95it/s] 64%|██████▍   | 18/28 [00:03<00:02,  4.97it/s] 68%|██████▊   | 19/28 [00:03<00:01,  4.95it/s] 71%|███████▏  | 20/28 [00:03<00:01,  4.93it/s] 75%|███████▌  | 21/28 [00:04<00:01,  4.90it/s] 79%|███████▊  | 22/28 [00:04<00:01,  4.94it/s] 82%|████████▏ | 23/28 [00:04<00:01,  4.91it/s] 86%|████████▌ | 24/28 [00:04<00:00,  4.80it/s] 89%|████████▉ | 25/28 [00:04<00:00,  4.83it/s] 93%|█████████▎| 26/28 [00:05<00:00,  4.86it/s] 96%|█████████▋| 27/28 [00:05<00:00,  4.88it/s]100%|██████████| 28/28 [00:05<00:00,  4.88it/s]100%|██████████| 28/28 [00:05<00:00,  5.00it/s]
+mode=torch_trt L=100 warmup=16 time=5.643s fps=17.72
+WARNING:py.warnings:/home/newub/w/PersonaLive/src/utils/util.py:283: RuntimeWarning: invalid value encountered in cast
+  x = (x * 255).numpy().astype(np.uint8)
+
+[bench] saved /tmp/personalive_trt/videos/03c-torch_trt.mp4
