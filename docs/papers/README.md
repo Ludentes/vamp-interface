@@ -14,7 +14,35 @@ and so our reading of the method survives arXiv outages / paper revisions.
 | `tripathi-2024-dfecs-nmf.pdf` | Tripathi & Garg, *Unsupervised learning of Data-driven Facial Expression Coding System (DFECS) using keypoint tracking*, 2024 (arXiv 2406.05434) | Two-level Dictionary Learning + NMF lifts volunteer-vote interpretability from 62.5% (PCA signed-split) → 87.5% (DFECS) under identical protocol. Sparse non-negative encoding is the key constraint; 7-part split is a locality device we don't need (ARKit channel naming already encodes region). This is the primary reference for our Phase-2 NMF recipe. Code: https://github.com/Shivansh-ct/DFECS-AUs |
 | `li-2026-statistical-blendshape.pdf` | Li, Wang, Twombly, *Statistical Blendshape Calculation and Analysis for Graphics Applications*, 2026 (arXiv 2601.08234) | **Demoted — title misleading.** Not a blendshape-space decomposition paper. It is a landmarks→ARKit coefficient regression pipeline with per-blendshape regression diagnostics. Kept as reference only; not useful for Phase-2 decomposition planning. |
 
+### Talking-head / portrait-animation survey (added 2026-05-03)
+
+Downloaded as part of the late-2025/2026 SOTA survey — see `docs/research/2026-05-03-talking-heads-2025-2026-survey.md`.
+
+Format: each row leads with the **problem** the paper solves, so a future
+session running into that problem knows to open the PDF. Entries are
+deliberately problem-indexed, not feature-indexed.
+
+| File | Read this if you need to… | One-line method |
+|------|---------------------------|-----------------|
+| `personalive-2512.11253.pdf` | Run **infinite-length, low-latency streaming portrait animation on 12 GB** without the chunk-boundary discontinuities of LivePortrait/X-Portrait/HunyuanPortrait. Or understand *how to make a 20-step diffusion animator hit 15–20 FPS without CFG*. | Hybrid (1D implicit motion + LivePortrait 3D kp) injection + 4-step appearance distillation with StyleGAN2 adversarial loss + AR micro-chunks with sliding training + historical keyframe bank. Li et al., CVPR 2026, arXiv 2512.11253. |
+| `teller-2503.18429.pdf` | Build a **real-time audio-driven** talking head with strict sub-second latency and AR (not diffusion) inference. | Autoregressive motion generation: FMLG (Facial Motion Latent Generation) + ETM (Efficient Temporal Module). 25 FPS, 0.92 s per 1 s video. Zhen et al., CVPR 2025, arXiv 2503.18429. |
+| `rap-2508.05115.pdf` | Add **fine-grained audio control to a DiT-backbone portrait animator** while controlling drift over long generations. | Hybrid attention for audio fusion + static-dynamic training-inference paradigm to bridge per-frame and per-clip targets. Du et al., 2026, arXiv 2508.05115. |
+| `talkingmachines-2506.03099.pdf` | **Distill a large bidirectional video DiT into a sparse causal AR student** for real-time chat-style avatars. Or design a system that overlaps CUDA streams across model + audio + I/O for end-to-end latency. | 18 B I2V DiT distilled to 2 diffusion steps via asymmetric knowledge distillation; system co-design (stream overlap, device disagg). Low & Wang, 2025, arXiv 2506.03099. |
+| `sonic-2411.16331.pdf` | Improve audio-driven animation **beyond local lip-sync** — full-face emotion and head motion from audio. | Global audio perception module instead of frame-local conditioning. Tencent, CVPR 2025, arXiv 2411.16331. Reference baseline for the audio branch. |
+| `hallo2-2410.07718.pdf` | Render **4K resolution and/or hour-long** audio-driven portrait animation. Or take text-prompt augmentation on top of audio. | Multi-resolution patches + long-duration training; text-prompt enhancement. Cui et al., ICLR 2025, arXiv 2410.07718. |
+| `hallo-live-2604.23632.pdf` | Generate **joint audio + video** avatar in real time (audio comes out, not just goes in) with paired latency. Or address articulation lag (mouth opens *before* the phoneme). | Asynchronous dual-stream gen + Future-Expanding Attention + Human-centric Preference DMD distillation. 20.38 FPS / 0.94 s on 2× H200, 16× over Ovi teacher. Li et al., 2026, arXiv 2604.23632. |
+| `avatarsync-2509.12052.pdf` | Cross-lingual (non-English) audio-driven talking head, or pick **AR over diffusion** for the lip-sync core. | AR talking-head formulation; SOTA on English HDTF, generalizes cross-lingually. 2025, arXiv 2509.12052. |
+| `omnihuman-2502.01061.pdf` | Understand the **scaling laws of multi-modal human animation** (text + audio + pose simultaneously), or evaluate the closed-source SOTA ceiling. | DiT, omni-conditions weak-to-strong curriculum, ~19 k h training video. Production model behind Dreamina. Lin et al. (ByteDance), 2025, arXiv 2502.01061. **No code release.** |
+| `fg-portrait-2603.23381.pdf` | Drive a portrait animator from **FLAME / parameter vectors** (not from a video) with editable expression and pose. **Closest published method to our ARKit-driven control thread.** | 3D flow from parametric head model as learning-free motion correspondence. Xu et al., CVPR 2026, arXiv 2603.23381. **No code release as of fetch.** |
+| `x-nemo-2507.23143.pdf` | Cross-identity expression reenactment with **disentangled identity vs motion** in latent attention. The reference for the 1D motion-token bottleneck that PersonaLive reuses. | Disentangled latent attention; dual GAN decoder for ID/motion split. ByteDance, ICLR 2025, arXiv 2507.23143. Code released. |
+
 ### Already identified, paywalled or declined — metadata only
+
+- **MMFace-DiT: A Dual-Stream Diffusion Transformer for High-Fidelity Multimodal Face Generation**, CVPR 2026. Listed in CVPR-2026 paper roundups but no arXiv preprint or project page surfaced as of 2026-05-03. Track via cvpr.thecvf.com proceedings when available.
+- **DeX-Portrait: Disentangled and Expressive Portrait Animation via Explicit and Latent Motion Representations**, CVPR 2026. No arXiv preprint surfaced as of 2026-05-03. Same tracking note.
+- **Bringing Your Portrait to 3D Presence** and **UIKA: Universal Head Avatar from Pose-Free Images**, CVPR 2026. Adjacent — 3D head avatar reconstruction, not strictly real-time talking head animation. Out of scope for current survey.
+- **HunyuanPortrait** and **HunyuanVideo-Avatar** (Tencent, May 2025). Already covered in `2026-05-03-neural-deformation-for-blendshape-control-*.md`. Skip re-fetch.
+- **VASA-1** (Microsoft, NeurIPS 2024). Up to 40 FPS audio-driven. No code release; weights not public. Proceedings PDF at `proceedings.neurips.cc/paper_files/paper/2024/file/014fe398da515cd552fa6e1f33e0565e-Paper-Conference.pdf`. Reference benchmark but not runnable.
 
 - **Donato, Bartlett, Hager, Ekman, Sejnowski, *Classifying Facial Actions*, IEEE TPAMI 1999.** PMC bot-protection blocked automated download. Historical canonical result (ICA, 96% on 12 AUs) but operates on Gabor-wavelet image features; transfer to blendshape coefficients is loose. Superseded for our Phase-2 purposes by the two Tripathi 2024 papers which operate closer to our data shape.
 
