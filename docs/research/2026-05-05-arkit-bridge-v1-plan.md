@@ -12,7 +12,7 @@ supersedes: 2026-05-05-arkit-poseguider-distill-plan.md
 
 **Architecture:** One closed-form path + one learned path, both per-frame. Closed-form path: `kp_ref` cached once via real `motion_extractor`; per frame `R_d = euler_to_rotmat(yaw,pitch,roll)`; `k_d = (kp_ref @ R_d) * s_ref + t_ref`; real `pose_guider(draw_keypoints(k_d))`. Learned path: 4-layer MLP, `b₆₁_expr → m_f` matched to teacher `motion_encoder(face_crop_224)` via per-frame MSE.
 
-**Tech stack:** Python 3.10 (PersonaLive's `.venv`), PyTorch 2.11+cu128, einops, **diffusers 0.27.0** (vamp-interface's 0.37.1 raises on `MotEncoder`'s deprecated `get_1d_sincos_pos_embed_from_grid` call). All bridge code runs in `~/w/PersonaLive/.venv` — pytest installed there via `uv pip install --python ~/w/PersonaLive/.venv/bin/python pytest`. PersonaLive `~/w/PersonaLive` source tree is sys.path-injected.
+**Tech stack:** Python 3.10 (PersonaLive's `.venv`), PyTorch 2.11+cu128, einops, **diffusers 0.27.0** (vamp-interface's 0.37.1 raises on `MotEncoder`'s deprecated `get_1d_sincos_pos_embed_from_grid` call). All bridge code runs in `~/w/PersonaLive/.venv` — pytest installed there via `uv pip install --python ~/w/PersonaLive/~/w/PersonaLive/.venv/bin/python pytest`. PersonaLive `~/w/PersonaLive` source tree is sys.path-injected.
 
 See also: [`2026-05-05-arkit-bridge-v1-design.md`](2026-05-05-arkit-bridge-v1-design.md) for design rationale, paper-correspondence, and risks.
 
@@ -162,7 +162,9 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
                     roll: torch.Tensor) -> torch.Tensor:
     """3x3 rotation matrix from yaw/pitch/roll (radians).
 
-    Convention: Rz @ Ry @ Rx (roll about Z, yaw about Y, pitch about X).
+    Matches PersonaLive's `get_rotation_matrix` (camera.py:31-73): builds
+    Rz @ Ry @ Rx then returns the transpose, so `kp @ R` (row-vector
+    convention used by motion_extractor.py:72) agrees with PersonaLive.
     """
     cy, sy = torch.cos(yaw), torch.sin(yaw)
     cp, sp = torch.cos(pitch), torch.sin(pitch)
@@ -184,7 +186,8 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
         torch.stack([sr, cr, z0], dim=-1),
         torch.stack([z0, z0, o], dim=-1),
     ], dim=-2)
-    return Rz @ Ry @ Rx
+    R = Rz @ Ry @ Rx
+    return R.transpose(-1, -2)
 
 
 def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
@@ -530,12 +533,12 @@ if __name__ == "__main__":
 ```bash
 PYTHONPATH=src PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   systemd-run --user --scope -p MemoryMax=45G \
-  .venv/bin/python scripts/extract_arkit_pairs.py \
+  ~/w/PersonaLive/.venv/bin/python scripts/extract_arkit_pairs.py \
     --take_dir data/llf-takes/20260505_MySlate_2 \
     --out_dir data/arkit_bridge_pairs/smoke \
     --stride 4 --max_frames 50
 
-.venv/bin/python -c "
+~/w/PersonaLive/.venv/bin/python -c "
 import pickle, numpy as np
 d = pickle.load(open('data/arkit_bridge_pairs/smoke/frame_000000.pkl','rb'))
 print('b_expr', d['b_expr'].shape, 'l1', float(np.abs(d['b_expr']).sum()))
@@ -646,12 +649,12 @@ if __name__ == "__main__":
 - [ ] **Step 2: Smoke train (overfit on 50 pairs) + ratio check**
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/train_arkit_student.py \
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python scripts/train_arkit_student.py \
   --pairs_dir data/arkit_bridge_pairs/smoke \
   --out_dir exp_output/arkit_bridge/smoke \
   --batch_size 16 --steps 2000 --lr 1e-3
 
-PYTHONPATH=src .venv/bin/python -c "
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python -c "
 import torch
 from arkit_bridge.student import MotEncoderStudent
 from arkit_bridge.dataset import PairDataset
@@ -781,7 +784,7 @@ if __name__ == "__main__":
 ```
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/eval_arkit_student.py \
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python scripts/eval_arkit_student.py \
   --ckpt exp_output/arkit_bridge/smoke/student_step002000.pt \
   --pairs_dir data/arkit_bridge_pairs/smoke \
   --out exp_output/arkit_bridge/smoke/eval.json
@@ -802,19 +805,19 @@ for d in data/llf-takes/2026*/; do
   echo "=== $base ==="
   PYTHONPATH=src PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     systemd-run --user --scope -p MemoryMax=45G \
-    .venv/bin/python scripts/extract_arkit_pairs.py \
+    ~/w/PersonaLive/.venv/bin/python scripts/extract_arkit_pairs.py \
       --take_dir "$d" --out_dir data/arkit_bridge_pairs/real --stride 2
 done
 ls data/arkit_bridge_pairs/real | wc -l   # expect ≥ 16,000
 
 PYTHONPATH=src PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   systemd-run --user --scope -p MemoryMax=45G \
-  .venv/bin/python scripts/train_arkit_student.py \
+  ~/w/PersonaLive/.venv/bin/python scripts/train_arkit_student.py \
     --pairs_dir data/arkit_bridge_pairs/real \
     --out_dir exp_output/arkit_bridge/real \
     --batch_size 128 --steps 30000 --lr 5e-4
 
-PYTHONPATH=src .venv/bin/python scripts/eval_arkit_student.py \
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python scripts/eval_arkit_student.py \
   --ckpt exp_output/arkit_bridge/real/student_step030000.pt \
   --pairs_dir data/arkit_bridge_pairs/real \
   --out exp_output/arkit_bridge/real/eval.json
@@ -928,12 +931,12 @@ if __name__ == "__main__":
 ```
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/calibrate_euler_signs.py \
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python scripts/calibrate_euler_signs.py \
   --take_dir data/llf-takes/20260505_MySlate_2 \
   --n_frames 30 --stride 100 \
   --out exp_output/arkit_bridge/calibration/myslate_2.json
 
-PYTHONPATH=src .venv/bin/python scripts/calibrate_euler_signs.py \
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/python scripts/calibrate_euler_signs.py \
   --take_dir data/llf-takes/20260505_MySlate_5 \
   --n_frames 30 --stride 100 \
   --out exp_output/arkit_bridge/calibration/myslate_5.json

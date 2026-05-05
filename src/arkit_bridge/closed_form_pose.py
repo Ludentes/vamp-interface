@@ -17,7 +17,13 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
                     roll: torch.Tensor) -> torch.Tensor:
     """3x3 rotation matrix from yaw/pitch/roll (radians).
 
-    Convention: Rz @ Ry @ Rx (roll about Z, yaw about Y, pitch about X).
+    Matches PersonaLive's `get_rotation_matrix` (camera.py:31-73) exactly:
+    builds Rz @ Ry @ Rx with the standard signs and **returns the
+    transpose**, so that `kp @ R` (row-vector convention used by
+    `motion_extractor.py:72`) gives the same result PersonaLive produces.
+    Inputs are radians; PersonaLive's path takes degrees and converts
+    internally — we skip that step because ARKit emits radians directly
+    in the b₆₁ stream (Live Link Face wire format).
     """
     cy, sy = torch.cos(yaw), torch.sin(yaw)
     cp, sp = torch.cos(pitch), torch.sin(pitch)
@@ -39,7 +45,8 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
         torch.stack([sr, cr, z0], dim=-1),
         torch.stack([z0, z0, o], dim=-1),
     ], dim=-2)
-    return Rz @ Ry @ Rx
+    R = Rz @ Ry @ Rx
+    return R.transpose(-1, -2)
 
 
 def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,

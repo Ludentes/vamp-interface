@@ -6,9 +6,8 @@ Live Link Face exports one CSV row per video frame with 63 columns:
     RightEyeRoll. Rotations are in radians.
 
 This module produces a (N, 61) float32 array aligned with the MOV's frame index.
-We re-permute the 52 blendshapes into the canonical order used by
-`arkit_bridge.extractors.ARKIT_BLENDSHAPE_NAMES` so the student's input layout
-matches whether the source is Live Link or MediaPipe.
+We re-permute the 52 blendshapes into the canonical order defined by
+`ARKIT_BLENDSHAPE_NAMES` (below) so the student's input layout is stable.
 """
 
 from __future__ import annotations
