@@ -126,3 +126,4 @@ data/llf-phase2/grid_manifest.json
 data/arkit_distill_videos/
 data/arkit_distill_pairs/
 exp_output/arkit_distill/*/student_*.pt
+data/arkit_bridge_pairs/
