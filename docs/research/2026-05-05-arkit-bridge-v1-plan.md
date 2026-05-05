@@ -681,9 +681,15 @@ git commit -m "feat(arkit_bridge): distill loop + smoke overfit"
 
 ---
 
-## Task 7: Per-channel sensitivity eval
+## Task 7: Viability eval (Tier 1 + Tier 2 + sensitivity)
 
 **Files:** `src/arkit_bridge/eval.py`, `scripts/eval_arkit_student.py`
+
+Bakes the Tier-1 (held-out ratio, per-cell R²) and Tier-2 (category-stratified
+MSE) gates from
+[`2026-05-05-arkit-bridge-v1-viability.md`](2026-05-05-arkit-bridge-v1-viability.md)
+into a single JSON readout, alongside the per-channel sensitivity sweep.
+Task 8 calls this every N steps for early-stop / regression detection.
 
 ```python
 # src/arkit_bridge/eval.py
