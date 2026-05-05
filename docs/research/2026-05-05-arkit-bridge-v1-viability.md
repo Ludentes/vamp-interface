@@ -117,6 +117,82 @@ checkpoint:
 Task 8 (real distill) consumes those same readouts every N steps for
 early-stop / regression detection rather than running blind to step budget.
 
+## Architectural escalation options for Tier-1 / Tier-2 failure
+
+The base decision matrix sends Tier-1 failure to "wider MLP / residual /
+small transformer." Three alternatives are theoretically motivated by our
+prior NMF/atom work on b₅₂:
+
+- [`2026-04-22-nmf-decomposition-result.md`](2026-04-22-nmf-decomposition-result.md)
+  — sparse NMF VE=0.95 at k=10, 11 effective directions, sparsity ≈ 8
+  channels/atom; **the 58-d ARKit input is ~8-d intrinsically**.
+- [`2026-04-23-au-library-hybrid-plan.md`](2026-04-23-au-library-hybrid-plan.md)
+  — k=8 NMF recon R² 0.913 on b₅₂.
+- [`2026-04-23-blendshape-vs-nmf-r2.md`](2026-04-23-blendshape-vs-nmf-r2.md)
+  — per-component NMF ties direct blendshape ridge for ~half the AUs;
+  cluster-dependent.
+
+### RBF network (top candidate for Tier-1 escalation)
+
+Hidden layer of N Gaussian centers `{c_i, σ_i}`, output linear:
+`m_f = W·φ(b_expr) + b`. Centers seeded from NMF atoms (k=8–15) plus a
+few category anchors (e.g., one center per Tier-2 category that fired
+above the floor in Task 8 stratification).
+
+- **Intrinsic-dim match.** N=8–50 centers is the right order for an
+  8-d-in-disguise input. Param count ≈ N × 512 ≈ 4–25K — 10× smaller
+  than the 280K MLP; less to overfit, fewer params to underfit.
+- **Graceful out-of-coverage.** φ → 0 outside training neighborhoods →
+  output → linear bias ≈ neutral m_f. MLPs extrapolate, often badly.
+- **Mechanical Tier-2 patch.** A failing category becomes "add a center
+  there"; the rest of the network is unchanged. No full retrain.
+- **Cost.** Sensitive to σ choice; sparse-region interpolation depends
+  on center density; no shared-trunk computation across categories.
+
+Try this *before* widening the MLP if the failure mode is "underfitting
+specific NMF atoms" (visible as: a few categories collapse, others fine).
+
+### SVM / SVR (diagnostic only, not a deployment path)
+
+Per-output-dim ε-SVR with RBF kernel.
+
+- **Strength.** Convex; small-data, low-noise regression sweet spot.
+- **Blocker.** 512 outputs × ~hundreds of support vectors × per-frame
+  kernel eval blows the ~10 ms inference budget for 30–60 FPS. Reduced
+  Set methods help but trade fidelity.
+- **Use case.** Train SVR on a 1k-pair subset to measure the **regression
+  ceiling**: the best Tier-1 ratio achievable by unconstrained kernel
+  regression on this data. Establishes an upper bound. If MLP's gap to
+  that ceiling is small, MLP isn't the bottleneck and "wider MLP" is the
+  wrong fix. If the gap is large, scaling capacity is justified.
+
+Cheap to run, never deploys.
+
+### Kohonen (SOM) + MLP (park for v2 cross-actor)
+
+Unsupervised SOM quantizes b_expr → topologically-ordered grid (BMU
+index + grid coordinate); MLP head consumes (BMU coord, residual) →
+m_f. Two-stage; SOM cheap to retrain on new actors.
+
+- **Theoretical pull.** SOM canonicalizes input into actor-invariant
+  cluster IDs — relevant if v2 pivots to multi-iPhone / multi-actor
+  corpus.
+- **v1 mismatch.** 2D SOM topology fights an 8-d manifold; high-D SOMs
+  collapse toward vector quantization with **boundary discontinuities
+  → temporal flicker** at category transitions (the same failure mode
+  flagged for cut jitter in `2026-05-05-personalive-take-render-observations.md`).
+
+Not a Tier-failure escalation for v1's single-actor corpus. Revisit if
+the bridge later trains across multiple iPhones / actors.
+
+### Updated decision-matrix rows
+
+| Failure | Try first |
+|---|---|
+| **Tier 1 fail** (ratio > 0.10) | (i) RBF with NMF-seeded centers — cheaper, intrinsic-dim-matched. (ii) SVR-on-subset diagnostic — sets the ceiling. (iii) Wider MLP / transformer only if (ii) shows MLP is hitting a real capacity wall. |
+| **Tier 2 fail** (specific category) | "Add an RBF center" patch is mechanically cheaper than a full MLP retrain. Falls back to "record more takes" if the category lacks frames at all. |
+| **v2 cross-actor pivot** | Kohonen+MLP becomes a candidate then; not now. |
+
 ## Open thresholds (lock before Task 8)
 
 - 0.10 aggregate ratio — derived from "PE explains ~0.85 of var, want most
