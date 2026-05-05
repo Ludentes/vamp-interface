@@ -44,6 +44,7 @@ the PersonaLive motion-API + the iPhone-pipeline plan
 - [2026-05-03-personalive-experiment-plan.md](../2026-05-03-personalive-experiment-plan.md) — superseded by the unified plan, but still authoritative for Phase 1+2 step-by-step procedure and the Phase 3/4 option taxonomy.
 - [2026-05-03-loss-zoo-comparison.md](../2026-05-03-loss-zoo-comparison.md) — side-by-side of LivePortrait Stage 1+2 8-term loss soup vs our slider stack (D/B/A/S/P/G/M). Identifies what's load-bearing on each side, what we should port from them (region-conditioned perceptual, equivariance regulariser), what they could port from us (latent-space distilled critics, PGD-robust critic).
 - [2026-05-03-interesting-ideas.md](../2026-05-03-interesting-ideas.md) — open threads, gaps in the public landscape, things to come back to. Cross-pollination between our slider stack and the LivePortrait/PersonaLive ecosystem; missing artefacts (ARKit-52→ALP map, FG-Portrait code, identity-drift benchmark); phenomena without theory.
+- [2026-05-05-arkit-poseguider-distill-plan.md](../2026-05-05-arkit-poseguider-distill-plan.md) — parametric encoder distilled from frozen PoseGuider on DWPose; (b₆₁) → (320,1,64,64) drop-in.
 
 ## Background reading
 
