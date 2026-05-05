@@ -12,6 +12,12 @@ We hold s_d ≈ s_s, t_d ≈ t_s (canonical PersonaLive default
 
 import torch
 
+# Calibrated against PersonaLive motion_extractor outputs on takes 2/5/7
+# (2026-05-05, 8-way enumeration; see scripts/calibrate_euler_signs.py and
+# exp_output/arkit_bridge/calibration/). Take 2 and take 7 (60 samples)
+# both pick (+1, -1, -1); take 5 ties within 0.005 RMSE.
+EULER_SIGNS = (+1.0, -1.0, -1.0)  # (yaw, pitch, roll)
+
 
 def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
                     roll: torch.Tensor) -> torch.Tensor:
