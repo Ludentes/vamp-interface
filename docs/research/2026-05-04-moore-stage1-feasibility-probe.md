@@ -5,6 +5,63 @@ topic: personalive-acceleration
 
 # Moore-AnimateAnyone Stage-1 feasibility probe on RTX 5090
 
+## Verdict 2026-05-05: GREEN at batch=1 with 8-bit Adam
+
+10/10 steps completed at **~1.05 s/it** on RTX 5090, batch=1, 512²,
+grad-accum=4 (effective 4), bf16 mixed-precision, gradient checkpointing
+on, **8-bit Adam (bitsandbytes)**, no xformers. PersonaLive's actual
+`reference_unet.pth` + `denoising_unet.pth` + `pose_guider.pth` were
+loaded as starting weights (0 missing / 0 unexpected after the
+`conv_out_modify`→`conv_out` rename for pose_guider).
+
+Memory:
+- 32-bit Adam version: **OOM at first optimizer.step()** at 28.99 GiB
+  (process) + 1 GB Ollama. Adam's `exp_avg` + `exp_avg_sq` for the
+  ~1.7B trainable params (denoising_unet 859M + reference_unet 859M
+  + pose_guider 0.7M) was the killer.
+- 8-bit Adam: **fits**, 10 steps clean, no OOM. Estimated peak in the
+  ~18-22 GB range based on the delta from the 32-bit failure point.
+
+Stage-1 fits on a single 5090 at batch=1 *only with 8-bit Adam*.
+That leaves headroom for PersonaLive's MotEncoder + MotionExtractor
+(which add modest params on top of the UNet pair) — a real
+PersonaLive Stage-1 reconstruction is **plausible but tight**.
+
+What this does NOT yet prove:
+- PersonaLive Stage-2 (temporal). Adds the temporal_module.pth
+  (~46M params) and increases activation memory by the temporal-window
+  factor; separate probe.
+- MotEncoder + MotionExtractor integration (FAN face-crop motion +
+  LivePortrait 3D keypoints). Modest extra params, but each adds an
+  upstream forward/backward over driving frames per training step.
+- 2 epochs at meaningful dataset size — this is a 10-step smoke test
+  on a single synthetic 30-frame video. Bigger run needed for a
+  steady-state IPS / loss-curve number.
+
+### Patches applied to Moore-AnimateAnyone (load-bearing)
+
+The vendor repo at `~/w/Moore-AnimateAnyone` needed these to run on
+torch 2.11 + Blackwell:
+
+1. `train_stage_1.py`: monkey-patch `torch.utils.checkpoint.checkpoint`
+   to default `use_reentrant=False` and bind kwargs into the wrapped
+   function, since Moore's `custom_forward(*inputs)` closures can't
+   accept kwargs (they used to silently work in old reentrant mode).
+2. `src/models/{transformer_2d,transformer_3d,unet_2d_blocks,unet_3d_blocks}.py`:
+   sed all `def custom_forward(*inputs):` → `def custom_forward(*inputs, **kwargs):`
+   and forward `**kwargs` into the wrapped module call. ~18 sites.
+3. `train_stage_1.py`: add `bf16` to the supported `weight_dtype`
+   branch (Moore originally hardcoded fp16/fp32 only).
+4. `train_stage_1.py`: optional PersonaLive-weight transplant block
+   guarded by `cfg.persona_weights_dir`. Loads after `from_pretrained`,
+   before `.to('cuda')`, with the `conv_out_modify`→`conv_out` rename.
+
+Env notes added on top of compat update below: `bitsandbytes==0.49.2`
+needed for 8-bit Adam. Probe config is at
+`~/w/Moore-AnimateAnyone/configs/train/stage1_probe.yaml`. Synthetic
+30-frame dummy video + matching pose video at
+`~/w/Moore-AnimateAnyone/data/probe_videos/`.
+
 ## Update 2026-05-05: PersonaLive→Moore weight compatibility confirmed
 
 Before launching any training run, did a CPU-only state-dict compat check.
