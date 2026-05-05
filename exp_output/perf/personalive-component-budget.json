@@ -1,0 +1,18 @@
+{
+  "motion_extractor_T4_ms": 4.178842002147576,
+  "closed_form_kd_T4_ms": 0.28696399749605916,
+  "motion_encoder_T4_ms": 6.644907996815164,
+  "student_T4_ms": 0.0875349978741724,
+  "pose_guider_T4_ms": 0.9094660017581191,
+  "replaced_real_T4_ms": 10.82374999896274,
+  "replaced_bridge_T4_ms": 0.37449899537023157,
+  "bridge_speedup_x": 28.901946688167552,
+  "env": {
+    "device": "NVIDIA GeForce RTX 5090",
+    "torch": "2.11.0+cu128",
+    "dtype": "torch.float16",
+    "T": 4,
+    "reps": 20,
+    "warmup": 5
+  }
+}
