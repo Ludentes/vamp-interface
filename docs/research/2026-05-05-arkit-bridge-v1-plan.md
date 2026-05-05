@@ -12,7 +12,7 @@ supersedes: 2026-05-05-arkit-poseguider-distill-plan.md
 
 **Architecture:** One closed-form path + one learned path, both per-frame. Closed-form path: `kp_ref` cached once via real `motion_extractor`; per frame `R_d = euler_to_rotmat(yaw,pitch,roll)`; `k_d = (kp_ref @ R_d) * s_ref + t_ref`; real `pose_guider(draw_keypoints(k_d))`. Learned path: 4-layer MLP, `b₆₁_expr → m_f` matched to teacher `motion_encoder(face_crop_224)` via per-frame MSE.
 
-**Tech stack:** Python 3.12, PyTorch 2.11+cu128, einops, vamp-interface `.venv`, PersonaLive `~/w/PersonaLive` source tree (sys.path-injected).
+**Tech stack:** Python 3.10 (PersonaLive's `.venv`), PyTorch 2.11+cu128, einops, **diffusers 0.27.0** (vamp-interface's 0.37.1 raises on `MotEncoder`'s deprecated `get_1d_sincos_pos_embed_from_grid` call). All bridge code runs in `~/w/PersonaLive/.venv` — pytest installed there via `uv pip install --python ~/w/PersonaLive/.venv/bin/python pytest`. PersonaLive `~/w/PersonaLive` source tree is sys.path-injected.
 
 See also: [`2026-05-05-arkit-bridge-v1-design.md`](2026-05-05-arkit-bridge-v1-design.md) for design rationale, paper-correspondence, and risks.
 
@@ -209,7 +209,7 @@ def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
 - [ ] **Step 3: Run + commit**
 
 ```bash
-PYTHONPATH=src .venv/bin/pytest tests/arkit_bridge/test_closed_form_pose.py -v
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/pytest tests/arkit_bridge/test_closed_form_pose.py -v
 git add src/arkit_bridge/closed_form_pose.py tests/arkit_bridge/test_closed_form_pose.py
 git commit -m "feat(arkit_bridge): closed-form ARKit Euler -> LivePortrait k_d"
 ```
@@ -313,8 +313,11 @@ def load_motion_extractor(device="cuda"):
         def detect_raw(self, x):
             return self.inner.detector(x)     # raw kp_info dict
 
-    mx = MotionExtractor()
-    mx.load_state_dict(torch.load(PERSONA_MX, map_location="cpu"))
+    mx = MotionExtractor(num_kp=21)
+    mx.load_state_dict(
+        torch.load(PERSONA_MX, map_location="cpu"),
+        strict=False,
+    )
     return _freeze(_Wrapped(mx)).to(device)
 
 
@@ -329,7 +332,7 @@ def load_pose_guider(device="cuda"):
 - [ ] **Step 3: Run + commit**
 
 ```bash
-PYTHONPATH=src .venv/bin/pytest tests/arkit_bridge/test_teacher_personalive.py -v
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/pytest tests/arkit_bridge/test_teacher_personalive.py -v
 git add src/arkit_bridge/teacher_personalive.py tests/arkit_bridge/test_teacher_personalive.py
 git commit -m "feat(arkit_bridge): frozen PersonaLive teachers"
 ```
@@ -404,7 +407,7 @@ class MotEncoderStudent(nn.Module):
 - [ ] **Step 3: Run + commit**
 
 ```bash
-PYTHONPATH=src .venv/bin/pytest tests/arkit_bridge/test_student.py -v
+PYTHONPATH=src ~/w/PersonaLive/.venv/bin/pytest tests/arkit_bridge/test_student.py -v
 git add src/arkit_bridge/student.py tests/arkit_bridge/test_student.py
 git commit -m "feat(arkit_bridge): MotEncoder MLP student"
 ```
