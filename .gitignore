@@ -119,3 +119,7 @@ tests/fixtures/ffhq_shard0.parquet
 # Live Link Face captures — private (real face data) + media files.
 data/llf-takes/
 data/llf-clips/
+
+# Phase 2 grid renders (PersonaLive output on private driver clips)
+data/llf-phase2/*.mp4
+data/llf-phase2/grid_manifest.json
