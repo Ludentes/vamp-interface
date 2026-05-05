@@ -78,13 +78,31 @@ Expensive (week+, architectural):
 - Visual artifact comparison across modes (videos exist, side-by-side
   pending).
 
-### Training feasibility
+### Training feasibility — GREEN at batch=1 with 8-bit Adam (2026-05-05)
 
-PersonaLive training code is deferred indefinitely (issue #17 closed
-without an ETA; maintainer redirects to Moore-AnimateAnyone). Spec
-for a single-5090 Stage-1 feasibility probe via Moore as proxy:
-[`2026-05-04-moore-stage1-feasibility-probe.md`](../2026-05-04-moore-stage1-feasibility-probe.md).
-Result will tell us whether to invest in a reconstruction or wait.
+PersonaLive training code is deferred indefinitely (issue #17, no
+ETA; maintainer redirects to Moore-AnimateAnyone). Ran the Moore
+Stage-1 feasibility probe on RTX 5090 (32 GB):
+
+- **PersonaLive's actual `reference_unet.pth` + `denoising_unet.pth`
+  + `pose_guider.pth` load 1:1** into Moore's stage-1 model classes
+  (one trivial `conv_out_modify`→`conv_out` rename for pose_guider).
+- **10/10 steps** completed at ~1.05 s/it: batch=1, 512², grad-accum=4,
+  bf16, gradient checkpointing on, **8-bit Adam (bitsandbytes)**, no
+  xformers (Blackwell falsified per the rest of this thread).
+- 32-bit Adam OOMs at 28.99 GiB on the same config — the doubled
+  optimizer state on ~1.7B trainable params is the killer. 8-bit Adam
+  buys back ~10 GB.
+
+A PersonaLive Stage-1 reconstruction *fits* on a single 5090. Tight
+but feasible — leaves headroom for MotEncoder + MotionExtractor.
+Stage 2 (temporal) and the motion modules remain unprobed.
+
+Pointers:
+
+- [`2026-05-04-moore-stage1-feasibility-probe.md`](../2026-05-04-moore-stage1-feasibility-probe.md) — spec + verdict
+- [`2026-05-05-moore-stage1-probe-handoff.md`](../2026-05-05-moore-stage1-probe-handoff.md) — reproduce + vendor-patch capture
+- [`_data/2026-05-05-moore-stage1-vendor-patch.diff`](../_data/2026-05-05-moore-stage1-vendor-patch.diff) — exact patches against Moore vendor `main`
 
 ### Reading order
 
