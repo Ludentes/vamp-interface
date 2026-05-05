@@ -115,3 +115,7 @@ docs/research/images/
 # FFHQ shard-0 kept locally for repeated smoke runs (~458 MB, gitignored;
 # covered by *.parquet above but listed explicitly so its purpose is obvious)
 tests/fixtures/ffhq_shard0.parquet
+
+# Live Link Face captures — private (real face data) + media files.
+data/llf-takes/
+data/llf-clips/
