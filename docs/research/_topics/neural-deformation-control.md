@@ -2,6 +2,17 @@
 
 Living index for the neural-image-deformation (LivePortrait lineage) thread as an alternative / complement to LoRA-slider blendshape control on Flux portraits.
 
+## Current belief (2026-05-05)
+
+**ARKit-driving bridge v1 in progress.** Paper-faithful design splits the
+two PersonaLive conditioning paths: implicit keypoints (head pose, scale,
+position) get a closed-form math path from cached `kp_ref/t_ref/s_ref` and
+ARKit head Euler — no learning needed; implicit facial representation
+(expression) gets a distilled 4-layer MLP student replacing the FAN-SA
+motion encoder at inference. See `2026-05-05-arkit-bridge-v1-plan.md`.
+Supersedes the earlier DWPose distill plan, which mismatched
+PoseGuider's actual input format.
+
 ## Current belief (2026-05-04)
 
 **PersonaLive is the default path for animated photoreal portraits.** Phase 2
@@ -44,7 +55,10 @@ the PersonaLive motion-API + the iPhone-pipeline plan
 - [2026-05-03-personalive-experiment-plan.md](../2026-05-03-personalive-experiment-plan.md) — superseded by the unified plan, but still authoritative for Phase 1+2 step-by-step procedure and the Phase 3/4 option taxonomy.
 - [2026-05-03-loss-zoo-comparison.md](../2026-05-03-loss-zoo-comparison.md) — side-by-side of LivePortrait Stage 1+2 8-term loss soup vs our slider stack (D/B/A/S/P/G/M). Identifies what's load-bearing on each side, what we should port from them (region-conditioned perceptual, equivariance regulariser), what they could port from us (latent-space distilled critics, PGD-robust critic).
 - [2026-05-03-interesting-ideas.md](../2026-05-03-interesting-ideas.md) — open threads, gaps in the public landscape, things to come back to. Cross-pollination between our slider stack and the LivePortrait/PersonaLive ecosystem; missing artefacts (ARKit-52→ALP map, FG-Portrait code, identity-drift benchmark); phenomena without theory.
-- [2026-05-05-arkit-poseguider-distill-plan.md](../2026-05-05-arkit-poseguider-distill-plan.md) — parametric encoder distilled from frozen PoseGuider on DWPose; (b₆₁) → (320,1,64,64) drop-in.
+- [2026-05-05-arkit-bridge-v1-design.md](../2026-05-05-arkit-bridge-v1-design.md) — **paper-faithful bridge design.** Closed-form implicit-keypoint path (no learning) for head pose; distilled MLP student for the FAN-SA motion encoder. Supersedes the DWPose plan.
+- [2026-05-05-arkit-bridge-v1-plan.md](../2026-05-05-arkit-bridge-v1-plan.md) — **active plan.** 12 TDD tasks: closed-form pose, motion-encoder student, real-corpus distill, Euler sign-flip calibration, drop-in render, per-component perf benchmark, readout.
+- [2026-05-05-personalive-architecture-notes.md](../2026-05-05-personalive-architecture-notes.md) — component-by-component architecture notes: weights, I/O shapes, statelessness, replacement opportunities, gotchas. Perf numbers initially speculative; replaced by Task 11 of the bridge plan.
+- [2026-05-05-arkit-poseguider-distill-plan.md](../2026-05-05-arkit-poseguider-distill-plan.md) — **superseded** (was: parametric encoder distilled from frozen PoseGuider on DWPose). Replaced by the paper-faithful design above; PoseGuider does not consume DWPose.
 
 ## Background reading
 

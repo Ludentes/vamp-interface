@@ -1,7 +1,14 @@
 ---
-status: live
+status: superseded
 topic: neural-deformation-control
+superseded_by: 2026-05-05-arkit-bridge-v1-plan.md
 ---
+
+> **Superseded 2026-05-05.** PoseGuider does not consume DWPose; it consumes
+> a `draw_keypoints` rendering of LivePortrait 3D implicit keypoints.
+> Replaced by the paper-faithful single-student design in
+> [`2026-05-05-arkit-bridge-v1-design.md`](2026-05-05-arkit-bridge-v1-design.md)
+> + [`2026-05-05-arkit-bridge-v1-plan.md`](2026-05-05-arkit-bridge-v1-plan.md).
 
 # ARKit→PoseGuider distillation — implementation plan
 

@@ -18,8 +18,26 @@ from pathlib import Path
 
 import numpy as np
 
-from arkit_bridge.extractors import ARKIT_BLENDSHAPE_NAMES
-
+# Canonical ARKit-52 blendshape ordering (Apple). Preserved here so the
+# student input layout is stable independent of any extractor module.
+ARKIT_BLENDSHAPE_NAMES = [
+    "eyeBlinkLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft",
+    "eyeLookUpLeft", "eyeSquintLeft", "eyeWideLeft",
+    "eyeBlinkRight", "eyeLookDownRight", "eyeLookInRight", "eyeLookOutRight",
+    "eyeLookUpRight", "eyeSquintRight", "eyeWideRight",
+    "jawForward", "jawLeft", "jawRight", "jawOpen",
+    "mouthClose", "mouthFunnel", "mouthPucker", "mouthLeft", "mouthRight",
+    "mouthSmileLeft", "mouthSmileRight", "mouthFrownLeft", "mouthFrownRight",
+    "mouthDimpleLeft", "mouthDimpleRight", "mouthStretchLeft", "mouthStretchRight",
+    "mouthRollLower", "mouthRollUpper", "mouthShrugLower", "mouthShrugUpper",
+    "mouthPressLeft", "mouthPressRight", "mouthLowerDownLeft", "mouthLowerDownRight",
+    "mouthUpperUpLeft", "mouthUpperUpRight",
+    "browDownLeft", "browDownRight", "browInnerUp",
+    "browOuterUpLeft", "browOuterUpRight",
+    "cheekPuff", "cheekSquintLeft", "cheekSquintRight",
+    "noseSneerLeft", "noseSneerRight", "tongueOut",
+]
+assert len(ARKIT_BLENDSHAPE_NAMES) == 52
 
 _NAME_LOOKUP = {n.lower(): i for i, n in enumerate(ARKIT_BLENDSHAPE_NAMES)}
 
