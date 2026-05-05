@@ -28,10 +28,12 @@ See also: [`2026-05-05-arkit-bridge-v1-design.md`](2026-05-05-arkit-bridge-v1-de
 8. Real-corpus extraction + real distill
 9. ARKit↔LivePortrait Euler sign-flip calibration (8-way enumeration)
 10. Drop-in PersonaLive smoke render
-11. Readout doc + decision
+11. Per-component perf benchmark (RTX 5090 fp16)
+12. Readout doc + decision
 
 Full code skeletons + commands are inline below. Tasks 1–7 are GPU-light;
-Task 8 is the only longish run; Task 9 is one-shot calibration.
+Task 8 is the only longish run; Task 9 is one-shot calibration; Task 11
+is the perf benchmark whose numbers feed the readout.
 
 ---
 
@@ -1016,13 +1018,149 @@ git commit -m "feat(arkit_bridge): PersonaLive drop-in render driven by ARKit on
 
 ---
 
-## Task 11: Readout + decision
+## Task 11: Per-component perf benchmark (RTX 5090 fp16)
+
+**Files:**
+- Create: `scripts/bench_personalive_components.py`
+- Create: `exp_output/perf/personalive-component-budget.json`
+
+Replace the speculative numbers in
+`docs/research/2026-05-05-personalive-architecture-notes.md` with measured
+ones. Drives whether the MotEncoder student is worth the trouble (if
+the real motion_encoder costs <1 ms/frame at T=4 on 5090 fp16, the
+distill is for plumbing convenience, not perf).
+
+- [ ] **Step 1: Write the benchmark script**
+
+```python
+"""Per-component latency on a real PersonaLive load. RTX 5090, fp16, T=4.
+
+Reports median ms over 20 reps after 5 warmup reps, with cuda.synchronize
+around each timed section. Output: exp_output/perf/personalive-component-budget.json
+"""
+import json, time, os, sys
+from pathlib import Path
+import torch
+
+PL = Path(os.path.expanduser("~/w/PersonaLive"))
+sys.path.insert(0, str(PL / "src"))
+
+from wrapper import build_pipeline_for_bench  # see Task 3 hooks; or load each module directly
+
+DEVICE = "cuda"
+DTYPE = torch.float16
+T = 4
+H = W = 512
+REPS = 20
+WARMUP = 5
+
+def timed(fn, *args, **kwargs):
+    for _ in range(WARMUP):
+        fn(*args, **kwargs)
+    torch.cuda.synchronize()
+    times = []
+    for _ in range(REPS):
+        torch.cuda.synchronize(); t0 = time.perf_counter()
+        fn(*args, **kwargs)
+        torch.cuda.synchronize()
+        times.append((time.perf_counter() - t0) * 1000)
+    times.sort()
+    return times[REPS // 2]  # median ms
+
+def main():
+    pipe = build_pipeline_for_bench(device=DEVICE, dtype=DTYPE)
+    out = {}
+    # 1. motion_extractor on T driving frames (224x224)
+    drv = torch.randn(T, 3, 224, 224, device=DEVICE, dtype=DTYPE)
+    out["motion_extractor_T4_ms"] = timed(lambda: pipe.motion_extractor(drv))
+    # 2. draw_keypoints (CPU op on numpy; time on host)
+    import numpy as np
+    kp = np.random.randn(T, 21, 3).astype(np.float32)
+    from utils.util import draw_keypoints
+    def draw_all():
+        for i in range(T):
+            draw_keypoints(kp[i:i+1], 512, 512)
+    out["draw_keypoints_T4_ms"] = timed(draw_all)
+    # 3. pose_guider: (1, 3, T, 64, 64) -> (1, 320, T, 64, 64)
+    pg_in = torch.randn(1, 3, T, 64, 64, device=DEVICE, dtype=DTYPE)
+    out["pose_guider_T4_ms"] = timed(lambda: pipe.pose_guider(pg_in))
+    # 4. motion_encoder: (1, 3, T+1, 224, 224) -> (1, T+1, 32, 16)
+    me_in = torch.randn(1, 3, T + 1, 224, 224, device=DEVICE, dtype=DTYPE)
+    out["motion_encoder_Tplus1_ms"] = timed(lambda: pipe.motion_encoder(me_in))
+    # 5. denoising UNet: per-step. Run a single step with realistic shapes.
+    z_t = torch.randn(1, 4, T, 64, 64, device=DEVICE, dtype=DTYPE)
+    timestep = torch.tensor([500], device=DEVICE)
+    # encoder_hidden_states / pose_fea / motion_emb shapes per pipeline
+    enc = torch.randn(1, 1, 768, device=DEVICE, dtype=DTYPE)  # placeholder; use real ref enc
+    pose_fea = torch.randn(1, 320, T, 64, 64, device=DEVICE, dtype=DTYPE)
+    mot = torch.randn(1, T + 1, 32, 16, device=DEVICE, dtype=DTYPE)
+    def unet_step():
+        with torch.no_grad():
+            pipe.denoising_unet(z_t, timestep, encoder_hidden_states=enc,
+                                pose_cond_fea=pose_fea, motion_emb=mot)
+    out["denoising_unet_step_ms"] = timed(unet_step)
+    out["denoising_unet_4steps_ms"] = out["denoising_unet_step_ms"] * 4
+    # 6. VAE decode T frames
+    lat = torch.randn(T, 4, 64, 64, device=DEVICE, dtype=DTYPE)
+    out["vae_decode_T4_ms"] = timed(lambda: pipe.vae.decode(lat / pipe.vae.config.scaling_factor))
+    # End-to-end estimate (single chunk, T=4, 4 steps)
+    out["chunk_estimate_ms"] = (
+        out["motion_extractor_T4_ms"]
+        + out["draw_keypoints_T4_ms"]
+        + out["pose_guider_T4_ms"]
+        + out["motion_encoder_Tplus1_ms"]
+        + out["denoising_unet_4steps_ms"]
+        + out["vae_decode_T4_ms"]
+    )
+    out["chunk_fps"] = 1000.0 * T / out["chunk_estimate_ms"]
+    out["env"] = {
+        "device": torch.cuda.get_device_name(0),
+        "torch": torch.__version__,
+        "dtype": str(DTYPE), "T": T, "reps": REPS, "warmup": WARMUP,
+    }
+    Path("exp_output/perf").mkdir(parents=True, exist_ok=True)
+    Path("exp_output/perf/personalive-component-budget.json").write_text(
+        json.dumps(out, indent=2)
+    )
+    print(json.dumps(out, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+`build_pipeline_for_bench` is a thin loader that constructs the same
+modules as `inference_offline.py:175-186` but skips the scheduler and
+reference-frame priming — write it next to the existing teachers helper
+in Task 3.
+
+- [ ] **Step 2: Run and commit JSON**
+
+```bash
+PYTHONPATH=src python scripts/bench_personalive_components.py
+git add exp_output/perf/personalive-component-budget.json scripts/bench_personalive_components.py
+git commit -m "perf(arkit-bridge): per-component latency budget on RTX 5090 fp16 T=4"
+```
+
+- [ ] **Step 3: Replace speculative table in arch notes**
+
+Edit `docs/research/2026-05-05-personalive-architecture-notes.md` —
+swap the `(speculative)` perf section for the JSON's measured numbers
+and recompute the bottleneck ranking. Cite the JSON path.
+
+**Acceptance:** JSON exists, chunk_estimate_ms is in the 50–150 ms
+range we expect, arch notes no longer say `(speculative)` next to the
+per-component numbers.
+
+---
+
+## Task 12: Readout + decision
 
 **File:** `docs/research/2026-05-05-arkit-bridge-v1-readout.md`
 
 Capture: corpus size, training steps, final held-out MSE, per-channel
 sensitivity ranking, calibration result (chosen Euler signs), qualitative
-notes from inference render, channels with collapse, recommendation.
+notes from inference render, channels with collapse, **measured perf
+budget from Task 11**, recommendation.
 
 ```markdown
 ---
