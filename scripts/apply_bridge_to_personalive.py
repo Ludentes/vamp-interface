@@ -187,6 +187,8 @@ def main():
     ap.add_argument("--out_path", required=True, help="output mp4")
     ap.add_argument("--n_frames", type=int, default=24)
     ap.add_argument("--stride", type=int, default=2)
+    ap.add_argument("--start_frame", type=int, default=0,
+                    help="ARKit-frame offset into the take")
     ap.add_argument("--device", default="cuda")
     args = ap.parse_args()
     # Resolve to absolute *before* build_pipe chdir's into PersonaLive.
@@ -206,7 +208,7 @@ def main():
     # [55:58]=RightEye yaw/pitch/roll. Source CSV b_all[:, 52]=HeadYaw,
     # b_all[:, 53]=HeadPitch, b_all[:, 54]=HeadRoll, b_all[:, 55:58]=LE,
     # b_all[:, 58:61]=RE.
-    idxs = np.arange(args.n_frames) * args.stride
+    idxs = args.start_frame + np.arange(args.n_frames) * args.stride
     idxs = idxs[idxs < len(b_all)]
     b_seq = np.concatenate([b_all[idxs, :52], b_all[idxs, 55:61]], axis=1).astype(np.float32)
     ypr_seq = b_all[idxs, 52:55].astype(np.float32)
