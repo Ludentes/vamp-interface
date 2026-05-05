@@ -69,8 +69,9 @@ def main():
     args = ap.parse_args()
 
     take_dir = Path(args.take_dir)
+    take_name = take_dir.name
     mov, csv = find_take_files(take_dir)
-    print(f"mov: {mov}\ncsv: {csv}")
+    print(f"take: {take_name}\nmov: {mov}\ncsv: {csv}", flush=True)
 
     b_all = load_llf_b61(csv)
     print(f"loaded {len(b_all)} ARKit rows")
@@ -83,7 +84,7 @@ def main():
         if fi >= len(b_all):
             print(f"frame {fi}: out of CSV range, stopping")
             break
-        out_path = os.path.join(args.out_dir, f"frame_{fi:06d}.pkl")
+        out_path = os.path.join(args.out_dir, f"{take_name}_frame_{fi:06d}.pkl")
         if os.path.exists(out_path):
             n_skipped += 1
             continue

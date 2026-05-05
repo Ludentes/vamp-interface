@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 class PairDataset(Dataset):
     def __init__(self, root: str | Path):
-        self.paths = sorted(Path(root).glob("frame_*.pkl"))
+        self.paths = sorted(Path(root).glob("*frame_*.pkl"))
         if not self.paths:
             raise FileNotFoundError(f"no frame pkls under {root}")
 
