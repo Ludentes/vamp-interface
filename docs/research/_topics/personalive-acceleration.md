@@ -78,6 +78,14 @@ Expensive (week+, architectural):
 - Visual artifact comparison across modes (videos exist, side-by-side
   pending).
 
+### Training feasibility
+
+PersonaLive training code is deferred indefinitely (issue #17 closed
+without an ETA; maintainer redirects to Moore-AnimateAnyone). Spec
+for a single-5090 Stage-1 feasibility probe via Moore as proxy:
+[`2026-05-04-moore-stage1-feasibility-probe.md`](../2026-05-04-moore-stage1-feasibility-probe.md).
+Result will tell us whether to invest in a reconstruction or wait.
+
 ### Reading order
 
 - [`docs/research/2026-05-04-personalive-tensorrt-plan.md`](../2026-05-04-personalive-tensorrt-plan.md) — the 3-probe plan with gates
