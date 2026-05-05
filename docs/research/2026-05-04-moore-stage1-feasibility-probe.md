@@ -5,6 +5,40 @@ topic: personalive-acceleration
 
 # Moore-AnimateAnyone Stage-1 feasibility probe on RTX 5090
 
+## Update 2026-05-05: PersonaLive→Moore weight compatibility confirmed
+
+Before launching any training run, did a CPU-only state-dict compat check.
+PersonaLive ships its own `reference_unet.pth`, `denoising_unet.pth`,
+`pose_guider.pth` at `~/w/PersonaLive/pretrained_weights/personalive/`.
+Loading those into Moore's `UNet2DConditionModel` / `UNet3DConditionModel`
+(no motion module, no temporal attn) / `PoseGuider` classes:
+
+- `reference_unet`: 682 model keys ↔ 682 sd keys, **0 missing / 0 unexpected**.
+- `denoising_unet`: 686 model keys present in PersonaLive's 1232-key sd
+  (extra ~546 keys are temporal/motion modules, not used by Stage 1).
+  **0 missing.**
+- `pose_guider`: 14/16 keys match. PersonaLive renamed
+  `conv_out.{weight,bias}` → `conv_out_modify.{weight,bias}`. Trivial
+  rename before load fixes both.
+
+Implication: Moore's Stage-1 trainer can fine-tune **PersonaLive's actual
+weights** — not just the AnimateAnyone proxy — with a ~5-line patch in
+`train_stage_1.py` (load PersonaLive `.pth` after `from_pretrained`).
+The memory probe will measure the workload we actually want to ship.
+
+Stage-1 trainer environment landed at `~/w/Moore-AnimateAnyone/.venv`:
+torch 2.11.0+cu128, triton 3.6, accelerate 1.13, **diffusers 0.24.0**,
+transformers 4.36.2, no xformers (Blackwell falsified). nvidia-nccl-cu12
+needed an explicit `--reinstall` after the cu11 purge to drop
+`libnccl.so.2` into the tree.
+
+Also fixed Moore source: `src/models/unet_2d_condition.py` import of
+`PositionNet` is fine on diffusers 0.24 (no patch needed); newer
+diffusers requires aliasing it as `GLIGENTextBoundingboxProjection`.
+Pinning diffusers to 0.24 is the cleaner path — `dual_transformer_2d`
+was removed in newer versions and the cascading API drift is more
+patches than is worth.
+
 ## Why
 
 PersonaLive training code is deferred indefinitely (issue #17, maintainer
