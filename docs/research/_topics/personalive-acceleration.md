@@ -102,7 +102,7 @@ Pointers:
 
 - [`2026-05-04-moore-stage1-feasibility-probe.md`](../2026-05-04-moore-stage1-feasibility-probe.md) — spec + verdict
 - [`2026-05-05-moore-stage1-probe-handoff.md`](../2026-05-05-moore-stage1-probe-handoff.md) — reproduce + vendor-patch capture
-- [`_data/2026-05-05-moore-stage1-vendor-patch.diff`](../_data/2026-05-05-moore-stage1-vendor-patch.diff) — exact patches against Moore vendor `main`
+- [`2026-05-05-moore-stage1-vendor-patch.diff`](../2026-05-05-moore-stage1-vendor-patch.diff) — exact patches against Moore vendor `main`
 
 ### Reading order
 

@@ -1,0 +1,228 @@
+diff --git a/src/models/transformer_2d.py b/src/models/transformer_2d.py
+index f1f66e9..366c3cd 100644
+--- a/src/models/transformer_2d.py
++++ b/src/models/transformer_2d.py
+@@ -331,11 +331,11 @@ class Transformer2DModel(ModelMixin, ConfigMixin):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+diff --git a/src/models/transformer_3d.py b/src/models/transformer_3d.py
+index 63367fa..ad410b8 100644
+--- a/src/models/transformer_3d.py
++++ b/src/models/transformer_3d.py
+@@ -146,11 +146,11 @@ class Transformer3DModel(ModelMixin, ConfigMixin):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+diff --git a/src/models/unet_2d_blocks.py b/src/models/unet_2d_blocks.py
+index fd3d607..e2bd18e 100644
+--- a/src/models/unet_2d_blocks.py
++++ b/src/models/unet_2d_blocks.py
+@@ -468,11 +468,11 @@ class UNetMidBlock2DCrossAttn(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -627,11 +627,11 @@ class CrossAttnDownBlock2D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -746,8 +746,8 @@ class DownBlock2D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module):
+-                    def custom_forward(*inputs):
+-                        return module(*inputs)
++                    def custom_forward(*inputs, **kwargs):
++                        return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -914,11 +914,11 @@ class CrossAttnUpBlock2D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -1048,8 +1048,8 @@ class UpBlock2D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module):
+-                    def custom_forward(*inputs):
+-                        return module(*inputs)
++                    def custom_forward(*inputs, **kwargs):
++                        return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+diff --git a/src/models/unet_3d_blocks.py b/src/models/unet_3d_blocks.py
+index dee275f..7bf0d61 100644
+--- a/src/models/unet_3d_blocks.py
++++ b/src/models/unet_3d_blocks.py
+@@ -437,11 +437,11 @@ class CrossAttnDownBlock3D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -575,8 +575,8 @@ class DownBlock3D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module):
+-                    def custom_forward(*inputs):
+-                        return module(*inputs)
++                    def custom_forward(*inputs, **kwargs):
++                        return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -738,11 +738,11 @@ class CrossAttnUpBlock3D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module, return_dict=None):
+-                    def custom_forward(*inputs):
++                    def custom_forward(*inputs, **kwargs):
+                         if return_dict is not None:
+-                            return module(*inputs, return_dict=return_dict)
++                            return module(*inputs, return_dict=return_dict, **kwargs)
+                         else:
+-                            return module(*inputs)
++                            return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+@@ -874,8 +874,8 @@ class UpBlock3D(nn.Module):
+             if self.training and self.gradient_checkpointing:
+ 
+                 def create_custom_forward(module):
+-                    def custom_forward(*inputs):
+-                        return module(*inputs)
++                    def custom_forward(*inputs, **kwargs):
++                        return module(*inputs, **kwargs)
+ 
+                     return custom_forward
+ 
+diff --git a/train_stage_1.py b/train_stage_1.py
+index c6f465c..5117919 100644
+--- a/train_stage_1.py
++++ b/train_stage_1.py
+@@ -16,6 +16,19 @@ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ import torch.utils.checkpoint
++# torch 2.11: Moore custom_forward(*inputs) closures don't accept kwargs.
++# Bind kwargs into a lambda + call non-reentrant checkpoint positional-only.
++_orig_ckpt = torch.utils.checkpoint.checkpoint
++_ckpt_kwarg_names = {"use_reentrant","context_fn","determinism_check","debug","early_stop"}
++def _ckpt_compat(fn, *args, **kw):
++    ck_kwargs = {k: kw.pop(k) for k in list(kw) if k in _ckpt_kwarg_names}
++    ck_kwargs.setdefault("use_reentrant", False)
++    if kw:
++        user_kw = kw
++        bound = lambda *a, **_unused: fn(*a, **user_kw)
++        return _orig_ckpt(bound, *args, **ck_kwargs)
++    return _orig_ckpt(fn, *args, **ck_kwargs)
++torch.utils.checkpoint.checkpoint = _ckpt_compat
+ import transformers
+ from accelerate import Accelerator
+ from accelerate.logging import get_logger
+@@ -242,6 +255,8 @@ def main(cfg):
+ 
+     if cfg.weight_dtype == "fp16":
+         weight_dtype = torch.float16
++    elif cfg.weight_dtype == "bf16":
++        weight_dtype = torch.bfloat16
+     elif cfg.weight_dtype == "fp32":
+         weight_dtype = torch.float32
+     else:
+@@ -296,9 +311,28 @@ def main(cfg):
+         logger.info(f"Missing key for pose guider: {len(miss)}")
+     else:
+         pose_guider = PoseGuider(
+-            conditioning_embedding_channels=320,
++            conditioning_embedding_channels=320, block_out_channels=(16, 32, 96, 256),
+         ).to(device="cuda")
+ 
++    # PersonaLive weight transplant (probe): if cfg.persona_weights_dir is set,
++    # load PersonaLive's reference_unet/denoising_unet/pose_guider .pth files
++    # over the freshly initialized models. State-dict compat verified
++    # 2026-05-05: ref 682/682, den 686 model keys subset of 1232, pg 14/16
++    # (conv_out_modify rename below).
++    persona_dir = getattr(cfg, "persona_weights_dir", None)
++    if persona_dir:
++        logger.info(f"PERSONALIVE: loading from {persona_dir}")
++        ref_sd = torch.load(f"{persona_dir}/reference_unet.pth", map_location="cpu")
++        m, u = reference_unet.load_state_dict(ref_sd, strict=False)
++        logger.info(f"  reference_unet: missing={len(m)} unexpected={len(u)}")
++        den_sd = torch.load(f"{persona_dir}/denoising_unet.pth", map_location="cpu")
++        m, u = denoising_unet.load_state_dict(den_sd, strict=False)
++        logger.info(f"  denoising_unet: missing={len(m)} unexpected={len(u)}")
++        pg_sd_raw = torch.load(f"{persona_dir}/pose_guider.pth", map_location="cpu")
++        pg_sd = {k.replace("conv_out_modify", "conv_out"): v for k, v in pg_sd_raw.items()}
++        m, u = pose_guider.load_state_dict(pg_sd, strict=False)
++        logger.info(f"  pose_guider:    missing={len(m)} unexpected={len(u)}")
++
+     # Freeze
+     vae.requires_grad_(False)
+     image_enc.requires_grad_(False)

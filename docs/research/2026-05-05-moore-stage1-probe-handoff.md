@@ -29,8 +29,8 @@ grad-checkpoint, **8-bit Adam**, ~1.05 s/it. 32-bit Adam OOMs.
   - PersonaLive weights via symlinks under `pretrained_weights/`
 - **PersonaLive weights (read-only):** `~/w/PersonaLive/pretrained_weights/personalive/`
 - **Snapshots in this repo (recovery copies):**
-  - [`_data/2026-05-05-moore-stage1-vendor-patch.diff`](_data/2026-05-05-moore-stage1-vendor-patch.diff) — 228-line diff against vendor `main`
-  - [`_data/2026-05-05-moore-stage1_probe.yaml`](_data/2026-05-05-moore-stage1_probe.yaml) — probe config
+  - [`2026-05-05-moore-stage1-vendor-patch.diff`](2026-05-05-moore-stage1-vendor-patch.diff) — 228-line diff against vendor `main`
+  - [`2026-05-05-moore-stage1_probe.yaml`](2026-05-05-moore-stage1_probe.yaml) — probe config
 
 ## Reproduce from a clean checkout
 
@@ -59,7 +59,7 @@ uv pip install bitsandbytes
 uv pip install --reinstall nvidia-nccl-cu12
 
 # 4) Apply vendor patch
-git apply ~/w/vamp-interface/docs/research/_data/2026-05-05-moore-stage1-vendor-patch.diff
+git apply ~/w/vamp-interface/docs/research/2026-05-05-moore-stage1-vendor-patch.diff
 
 # 5) Symlink PersonaLive weights into Moore tree
 ln -sfn ~/w/PersonaLive/pretrained_weights/sd-image-variations-diffusers \
@@ -72,7 +72,7 @@ mkdir -p data/probe_videos
 # ... (see "Synthetic dataset" below)
 
 # 7) Drop in the probe config
-cp ~/w/vamp-interface/docs/research/_data/2026-05-05-moore-stage1_probe.yaml \
+cp ~/w/vamp-interface/docs/research/2026-05-05-moore-stage1_probe.yaml \
    configs/train/stage1_probe.yaml
 
 # 8) Run
