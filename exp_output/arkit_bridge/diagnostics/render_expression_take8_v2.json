@@ -1,0 +1,33 @@
+{
+  "n_frames": 60,
+  "lpips": {
+    "mean": 0.13370926678180695,
+    "std": 0.12517283856868744,
+    "min": 0.034111786633729935,
+    "max": 0.38056182861328125
+  },
+  "bnorm": {
+    "mean": 0.5173420906066895,
+    "std": 0.18346159160137177,
+    "min": 0.3250734508037567,
+    "max": 0.9255957007408142
+  },
+  "pearson_lpips_vs_bnorm": 0.8987962603569031,
+  "pearson_lpips_vs_bnorm_expr": 0.92038893699646,
+  "pearson_lpips_vs_bnorm_eye": 0.2924932837486267,
+  "pearson_lpips_vs_head_ypr": 0.9002493023872375,
+  "arcface": {
+    "anchor_self_cos": 1.0000001192092896,
+    "detection_rate": 1.0,
+    "cos_mean": 0.7318799495697021,
+    "cos_min": 0.4676903188228607,
+    "cos_max": 0.9572680592536926,
+    "slope_per_frame": -0.0016893039721189282
+  },
+  "mediapipe": {
+    "rendered_detection_rate": 0.0,
+    "driving_detection_rate": 0.0,
+    "cos_render_vs_driving_mediapipe": null,
+    "cos_render_vs_driving_arkit_csv": null
+  }
+}
