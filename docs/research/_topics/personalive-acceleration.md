@@ -103,6 +103,7 @@ Pointers:
 - [`2026-05-04-moore-stage1-feasibility-probe.md`](../2026-05-04-moore-stage1-feasibility-probe.md) — spec + verdict
 - [`2026-05-05-moore-stage1-probe-handoff.md`](../2026-05-05-moore-stage1-probe-handoff.md) — reproduce + vendor-patch capture
 - [`2026-05-05-moore-stage1-vendor-patch.diff`](../2026-05-05-moore-stage1-vendor-patch.diff) — exact patches against Moore vendor `main`
+- [`2026-05-05-personalive-stage1-unlocks.md`](../2026-05-05-personalive-stage1-unlocks.md) — what Stage-1 ft enables for us, what still needs Stage 2
 
 ### Reading order
 
