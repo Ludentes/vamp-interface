@@ -2,7 +2,31 @@
 
 Living index for the neural-image-deformation (LivePortrait lineage) thread as an alternative / complement to LoRA-slider blendshape control on Flux portraits.
 
-## Current belief (2026-05-05)
+## Current belief (2026-05-05 evening)
+
+**ARKit-driving bridge v1 complete; v2 loss redesign queued.** v1 cleared
+both Tier-1 distill gates by a wide margin (ratio_mean=0.0066,
+R²≥0.7=0.98) and ran 28.9× faster than the components it replaces, but
+output renders showed expression flattening that wasn't visible in the
+distill metrics. Diagnostics traced this to **L2 regression-to-the-mean
+in the high-amplitude tail**: per-cell `std(student)/std(teacher)`
+median 0.91, and `std`-on-`|teacher_z|>2` recovery median 0.84 (p10
+0.77). Output-side LPIPS round-trip on take 3 confirmed:
+`r(LPIPS, bnorm_expr) = -0.64`, while `r(LPIPS, head_ypr) = +0.03` —
+**falsifies the closed-form-pose-at-extreme-angles hypothesis** and
+locks the failure on the student. Take 2 is in-distribution and
+faithful (ArcFace 0.918); take 8 has identity drift (ArcFace 0.732)
+that is **a separate PersonaLive-side issue**, not a bridge problem.
+
+Closed-form pose calibration `EULER_SIGNS=(+1,-1,-1)` validated against
+takes 2/5/7 with yaw L2 below the mediapipe-vs-ARKit pose-estimator
+noise floor on diagnostic frames.
+
+Read `2026-05-05-arkit-bridge-v1-readout.md` for the full v1 cycle, then
+`2026-05-05-arkit-bridge-v2-loss-redesign.md` for the v2 plan
+(variance-normalised + tail-mining MSE; same architecture, same corpus).
+
+## Earlier belief (2026-05-05 morning, superseded)
 
 **ARKit-driving bridge v1 in progress.** Paper-faithful design splits the
 two PersonaLive conditioning paths: implicit keypoints (head pose, scale,

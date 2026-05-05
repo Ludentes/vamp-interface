@@ -104,10 +104,18 @@ def _rotate_for_iphone(frame, mov_path):
 
 
 def mediapipe_blendshapes(frames, *, rotate_iphone=False):
-    """Returns (N, 52) np.float32, NaN where detection failed."""
+    """Returns (bs, ypr, det_rate).
+
+    bs:  (N, 51) float32 — first 51 ARKit blendshapes (eyeBlinkLeft ..
+         noseSneerRight). Mediapipe's FaceLandmarker emits 52 categories
+         including `_neutral` at index 0; ARKit's `tongueOut` (index 51
+         in Apple order) is not produced by mediapipe.
+    ypr: (N, 3) float32 — head (yaw, pitch, roll) radians, decomposed
+         from the 4x4 facial_transformation_matrix.
+    Both NaN where detection failed.
+    """
     import mediapipe as mp
-    from mediapipe.tasks import python as mp_py
-    from mediapipe.tasks.python import vision as mp_vis
+    from mediapipe.tasks.python import vision as mp_vis, BaseOptions
     # Look for the bundled face_landmarker.task asset; falls back to
     # download if missing.
     asset = Path.home() / ".cache/mediapipe/face_landmarker.task"
@@ -119,26 +127,41 @@ def mediapipe_blendshapes(frames, *, rotate_iphone=False):
                "face_landmarker.task")
         urllib.request.urlretrieve(url, asset)
     opts = mp_vis.FaceLandmarkerOptions(
-        base_options=mp_py.BaseOptions(model_asset_path=str(asset)),
+        base_options=BaseOptions(model_asset_path=str(asset)),
         output_face_blendshapes=True,
+        output_facial_transformation_matrixes=True,
         num_faces=1,
+        min_face_detection_confidence=0.3,
+        min_face_presence_confidence=0.3,
+        min_tracking_confidence=0.3,
     )
     lm = mp_vis.FaceLandmarker.create_from_options(opts)
-    out = np.full((len(frames), 52), np.nan, dtype=np.float32)
+    bs = np.full((len(frames), 51), np.nan, dtype=np.float32)
+    ypr = np.full((len(frames), 3), np.nan, dtype=np.float32)
     for i, f in enumerate(frames):
         if rotate_iphone:
-            f = np.rot90(f, k=-1).copy()
-        mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=f)
+            f = np.rot90(f, k=-1)
+        mp_img = mp.Image(image_format=mp.ImageFormat.SRGB,
+                          data=np.ascontiguousarray(f))
         res = lm.detect(mp_img)
         if not res.face_blendshapes:
             continue
-        # Index 0 is "_neutral"; blendshapes 1..52 map to ARKit set.
         cats = res.face_blendshapes[0]
-        if len(cats) < 53:
-            continue
-        out[i] = np.array([c.score for c in cats[1:53]], dtype=np.float32)
+        # cats: 52 entries [_neutral, browDownLeft, ..., noseSneerRight].
+        # Skip _neutral; tongueOut not available from mediapipe.
+        bs[i] = np.array([c.score for c in cats[1:52]], dtype=np.float32)
+        if res.facial_transformation_matrixes:
+            M = np.asarray(res.facial_transformation_matrixes[0],
+                           dtype=np.float32)
+            R = M[:3, :3]
+            # ZYX-Tait-Bryan: yaw=Y, pitch=X, roll=Z (matches ARKit head).
+            pitch = float(np.arctan2(-R[1, 2], R[2, 2]))
+            yaw = float(np.arctan2(R[0, 2],
+                                   np.sqrt(R[1, 2] ** 2 + R[2, 2] ** 2)))
+            roll = float(np.arctan2(-R[0, 1], R[0, 0]))
+            ypr[i] = (yaw, pitch, roll)
     lm.close()
-    return out
+    return bs, ypr
 
 
 def cosine(a, b):
@@ -272,38 +295,59 @@ def main():
             )
         cap.release()
 
-        rendered_bs = mediapipe_blendshapes(rendered, rotate_iphone=False)
-        # iPhone MOV frames are sideways (Orientation 4); rotate before
-        # landmarking or detection rate is ~0%.
-        driving_bs = mediapipe_blendshapes(drv_frames, rotate_iphone=True)
-        coses = np.array([
-            cosine(rendered_bs[i], driving_bs[i])
-            for i in range(n)
-            if np.isfinite(rendered_bs[i]).all()
-            and np.isfinite(driving_bs[i]).all()
-        ])
-        cos_arkit = np.array([
-            cosine(rendered_bs[i], b_expr[i, :52])
-            for i in range(n) if np.isfinite(rendered_bs[i]).all()
-        ])
+        rendered_bs, rendered_ypr = mediapipe_blendshapes(rendered, rotate_iphone=False)
+        driving_bs, driving_ypr = mediapipe_blendshapes(drv_frames, rotate_iphone=True)
+
         valid_render = int(np.isfinite(rendered_bs).all(axis=1).sum())
         valid_drv = int(np.isfinite(driving_bs).all(axis=1).sum())
+
+        # Cosine: rendered vs driving-mediapipe (round-trip via mediapipe)
+        coses = []
+        # Cosine: rendered (mediapipe) vs ARKit CSV (51 first cols of b_expr)
+        cos_arkit = []
+        # Per-frame yaw/pitch/roll error: rendered vs ARKit CSV head_ypr
+        ypr_err_render_vs_csv = []
+        # Same for driving recovery vs CSV (sanity for mediapipe pose)
+        ypr_err_drv_vs_csv = []
+        # ARKit CSV head_ypr — col 52..54 (HeadYaw, HeadPitch, HeadRoll)
+        csv_ypr = b_all[arkit_idx, 52:55].astype(np.float32)
+        for i in range(n):
+            if np.isfinite(rendered_bs[i]).all() and np.isfinite(driving_bs[i]).all():
+                coses.append(cosine(rendered_bs[i], driving_bs[i]))
+            if np.isfinite(rendered_bs[i]).all():
+                cos_arkit.append(cosine(rendered_bs[i], b_expr[i, :51]))
+            if np.isfinite(rendered_ypr[i]).all():
+                ypr_err_render_vs_csv.append(
+                    float(np.linalg.norm(rendered_ypr[i] - csv_ypr[i]))
+                )
+            if np.isfinite(driving_ypr[i]).all():
+                ypr_err_drv_vs_csv.append(
+                    float(np.linalg.norm(driving_ypr[i] - csv_ypr[i]))
+                )
+
+        def _stats(a):
+            a = np.asarray(a, dtype=np.float32)
+            if a.size == 0:
+                return None
+            return {"n": int(a.size),
+                    "mean": float(a.mean()),
+                    "median": float(np.median(a))}
+
         summary["mediapipe"] = {
             "rendered_detection_rate": valid_render / n,
             "driving_detection_rate": valid_drv / n,
-            "cos_render_vs_driving_mediapipe": (
-                {"mean": float(coses.mean()), "median": float(np.median(coses))}
-                if len(coses) else None
-            ),
-            "cos_render_vs_driving_arkit_csv": (
-                {"mean": float(cos_arkit.mean()),
-                 "median": float(np.median(cos_arkit))}
-                if len(cos_arkit) else None
-            ),
+            "cos_bs_render_vs_driving_mediapipe": _stats(coses),
+            "cos_bs_render_vs_arkit_csv": _stats(cos_arkit),
+            "ypr_l2_render_vs_csv_radians": _stats(ypr_err_render_vs_csv),
+            "ypr_l2_driving_vs_csv_radians": _stats(ypr_err_drv_vs_csv),
         }
         for i, r in enumerate(rows):
             r["render_bs_valid"] = bool(np.isfinite(rendered_bs[i]).all())
             r["driving_bs_valid"] = bool(np.isfinite(driving_bs[i]).all())
+            if np.isfinite(rendered_ypr[i]).all():
+                r["render_yaw"] = float(rendered_ypr[i, 0])
+                r["render_pitch"] = float(rendered_ypr[i, 1])
+                r["render_roll"] = float(rendered_ypr[i, 2])
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
