@@ -54,11 +54,18 @@ def test_euler_matches_personalive_get_rotation_matrix():
 
     PersonaLive's get_rotation_matrix takes degrees and divides by 180*PI;
     we take radians directly. Both use row-vector convention (kp @ R).
+    Skipped if PersonaLive isn't checked out (CI-friendly).
     """
+    import pytest
     pl = os.path.expanduser("~/w/PersonaLive")
+    if not os.path.isdir(pl):
+        pytest.skip(f"PersonaLive checkout not found at {pl}")
     if pl not in sys.path:
         sys.path.insert(0, pl)
-    from src.liveportrait.camera import get_rotation_matrix
+    try:
+        from src.liveportrait.camera import get_rotation_matrix
+    except ImportError as e:  # pragma: no cover
+        pytest.skip(f"PersonaLive import failed: {e}")
     yaw_rad = 0.3; pitch_rad = -0.2; roll_rad = 0.1
     R_ours = euler_to_rotmat(
         torch.tensor(yaw_rad), torch.tensor(pitch_rad), torch.tensor(roll_rad)

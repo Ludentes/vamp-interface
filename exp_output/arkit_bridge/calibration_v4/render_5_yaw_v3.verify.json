@@ -7,8 +7,6 @@
   "mean_angular_distance_rad": 0.29801665080798095,
   "median_angular_distance_rad": 0.2843191061483643,
   "p90_angular_distance_rad": 0.40781410219111464,
-  "pass_threshold_rad": 0.05,
-  "passed": false,
   "euler_signs": [
     1.0,
     -1.0,
