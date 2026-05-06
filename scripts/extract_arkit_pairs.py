@@ -1,13 +1,21 @@
 """Extract (b_expr, m_f) pairs from a Live Link Face take.
 
 For each sampled frame i:
-  1. Read MOV frame i.
-  2. Loose-crop 224x224 with face roughly centered.
-  3. Frozen motion_encoder(crop_224.unsqueeze(2)) -> m_f (1,1,32,16).
+  1. Read MOV frame i (cv2 with CAP_PROP_ORIENTATION_AUTO=1 so iPhone
+     Live Link MOVs come out portrait-upright).
+  2. Crop face via StabilizedFaceCropper(strategy='ema') to match the
+     inference path in apply_bridge_to_personalive.py / render_take.py.
+  3. Resize crop to 224x224 -> frozen motion_encoder -> m_f (1,1,32,16).
   4. b_expr <- CSV[i, 0:52] + CSV[i, 55:61].
   5. Save {b_expr, m_f, frame_idx} pkl.
 
 Resumable: skips frames whose pkl already exists.
+
+NOTE 2026-05-05 evening: previous v1 of this script lacked rotation
+auto-handling; iPhone MOVs were fed sideways into motion_encoder, so the
+recorded m_f targets were a function of sideways faces. v2 student
+trained on that corpus is orthogonal (cos≈0.01) to teacher m_f from
+correctly-oriented inference. This rewrite re-extracts the corpus.
 """
 
 import argparse
@@ -23,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from arkit_bridge.llf_csv import load_llf_b61                       # noqa: E402
+from arkit_bridge.symmetry import flip_b_expr                        # noqa: E402
 from arkit_bridge.teacher_personalive import load_motion_encoder    # noqa: E402
 
 
@@ -34,20 +43,13 @@ def find_take_files(take_dir: Path) -> tuple[Path, Path]:
     return movs[0], csvs[0]
 
 
-def loose_crop_centered(rgb, target: int):
-    import cv2
-    h, w = rgb.shape[:2]
-    cx, cy = w // 2, int(h * 0.45)
-    side = min(h, w)
-    half = side // 2
-    crop = rgb[max(0, cy - half):min(h, cy + half),
-               max(0, cx - half):min(w, cx + half)]
-    return cv2.resize(crop, (target, target), interpolation=cv2.INTER_AREA)
-
-
 def iter_frames(video_path: Path, stride: int):
     import cv2
     cap = cv2.VideoCapture(str(video_path))
+    # Apply MOV rotation metadata so iPhone Live Link frames come out
+    # upright (otherwise cv2 returns the encoded landscape stream).
+    if hasattr(cv2, "CAP_PROP_ORIENTATION_AUTO"):
+        cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
     idx = 0
     while True:
         ok, frame = cap.read()
@@ -66,6 +68,11 @@ def main():
     ap.add_argument("--stride", type=int, default=2)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--max_frames", type=int, default=0)
+    ap.add_argument(
+        "--flip", action="store_true",
+        help="Mirror image horizontally and apply L<->R swap on b_expr; "
+             "writes pkls with `_flip` suffix.",
+    )
     args = ap.parse_args()
 
     take_dir = Path(args.take_dir)
@@ -79,18 +86,42 @@ def main():
     me = load_motion_encoder(device=args.device)
     os.makedirs(args.out_dir, exist_ok=True)
 
+    # Match inference-time face crop (StabilizedFaceCropper, ema strategy).
+    sys.path.insert(0, os.path.expanduser("~/w/PersonaLive"))
+    from src.utils.util import StabilizedFaceCropper  # noqa: E402
+    import mediapipe as mp                              # noqa: E402
+    import cv2 as _cv2                                  # noqa: E402
+    from PIL import Image                               # noqa: E402
+    face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=False, max_num_faces=1)
+    cropper = StabilizedFaceCropper(
+        strategy="ema", ema_alpha=0.2, forehead_bias_frac=0.10,
+        face_mesh=face_mesh,
+    )
+
     n_done = n_skipped = n_kept = 0
+    last_crop = None
     for fi, rgb in iter_frames(mov, args.stride):
         if fi >= len(b_all):
             print(f"frame {fi}: out of CSV range, stopping")
             break
-        out_path = os.path.join(args.out_dir, f"{take_name}_frame_{fi:06d}.pkl")
+        suffix = "_flip" if args.flip else ""
+        out_path = os.path.join(
+            args.out_dir, f"{take_name}_frame_{fi:06d}{suffix}.pkl")
         if os.path.exists(out_path):
             n_skipped += 1
             continue
-        crop = loose_crop_centered(rgb, 224)
+        rgb_in = np.ascontiguousarray(rgb[:, ::-1]) if args.flip else rgb
+        try:
+            crop = cropper(Image.fromarray(rgb_in))
+            last_crop = crop
+        except (TypeError, IndexError):
+            if last_crop is None:
+                continue  # skip until first detection
+            crop = last_crop
+        crop_224 = _cv2.resize(crop, (224, 224), interpolation=_cv2.INTER_AREA)
         x = (
-            torch.from_numpy(crop).float().permute(2, 0, 1)
+            torch.from_numpy(crop_224).float().permute(2, 0, 1)
             .unsqueeze(0).unsqueeze(2) / 255.0
         )
         with torch.no_grad():
@@ -98,6 +129,8 @@ def main():
         b_expr = np.concatenate(
             [b_all[fi, :52], b_all[fi, 55:61]], axis=0
         ).astype(np.float32)
+        if args.flip:
+            b_expr = flip_b_expr(b_expr)
         with open(out_path, "wb") as f:
             pickle.dump(
                 {"b_expr": b_expr,
