@@ -105,6 +105,14 @@ Pointers:
 - [`2026-05-05-moore-stage1-vendor-patch.diff`](../2026-05-05-moore-stage1-vendor-patch.diff) — exact patches against Moore vendor `main`
 - [`2026-05-05-personalive-stage1-unlocks.md`](../2026-05-05-personalive-stage1-unlocks.md) — what Stage-1 ft enables for us, what still needs Stage 2
 
+### Strategic framing (2026-05-06)
+
+[`2026-05-06-vtuber-pipeline-priorities.md`](../2026-05-06-vtuber-pipeline-priorities.md) splits the
+work into two regimes (realtime puppeteering vs static-portrait authoring) and four products. Confirms
+PersonaLive RGB-OBS is product #1, ARKit-OBS parallel #2, LivePortrait OBS gated on sanity test as #3;
+disqualifies FlashPortrait/DiT for Regime A on speed; clarifies LoRA/FluxSpace work is Regime B and
+not in competition with LivePortrait.
+
 ### Reading order
 
 - [`docs/research/2026-05-04-personalive-tensorrt-plan.md`](../2026-05-04-personalive-tensorrt-plan.md) — the 3-probe plan with gates
