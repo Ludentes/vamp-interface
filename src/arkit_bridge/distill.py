@@ -93,9 +93,10 @@ def _make_loss(loss_mode, stats, device, lam_std=1.0, lam_tail=0.5,
             score = (b.abs() / b_p95[None, :]) * w_k[None, :]        # (B, 58)
             sw = score.max(dim=1).values.clamp(0.1, 10.0)            # (B,)
             sw = sw / sw.mean().clamp(min=eps)
-            err2 = ((s - t) / sigma).pow(2)                          # (B, 32, 16)
-            err2 = err2 * cell_w[None, :, :]
-            err2 = err2.mean(dim=(1, 2))                             # (B,)
+            err2 = ((s - t) / sigma).pow(2)                          # (B, ..., 32, 16)
+            err2 = err2 * cell_w                                      # broadcasts on trailing dims
+            # reduce all non-batch dims so we can apply per-sample weight
+            err2 = err2.mean(dim=tuple(range(1, err2.ndim)))         # (B,)
             l_main = (err2 * sw).mean()
             s_std = s.std(dim=0, unbiased=False)
             t_std = t.std(dim=0, unbiased=False)

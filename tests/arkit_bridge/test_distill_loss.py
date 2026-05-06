@@ -62,6 +62,21 @@ def test_weighted_mse_rare_channel_amplifies():
     assert g_rare > g_common * 1.5, f"rare {g_rare} not > 1.5×common {g_common}"
 
 
+def test_weighted_mse_handles_leading_singleton_dim():
+    """PairDataset returns m_f with shape (1, 32, 16) per item, so batched
+    tensors are (B, 1, 32, 16). Regression for shape mismatch where err2
+    didn't reduce all non-batch dims before the per-sample weight."""
+    stats = make_stats()
+    fn = _make_loss("weighted_mse", stats, "cpu", lam_std=1.0)
+    s = torch.zeros(8, 1, 32, 16, requires_grad=True)
+    t = torch.randn(8, 1, 32, 16) * 0.1
+    b = torch.randn(8, 58)
+    loss, _ = fn(s, t, b=b)
+    assert torch.isfinite(loss)
+    loss.backward()
+    assert s.grad is not None and torch.isfinite(s.grad).all()
+
+
 def test_varnorm_jvp_finite_loss():
     stats = make_stats()
     fn = _make_loss("varnorm_jvp", stats, "cpu",
