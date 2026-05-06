@@ -113,6 +113,21 @@ PersonaLive RGB-OBS is product #1, ARKit-OBS parallel #2, LivePortrait OBS gated
 disqualifies FlashPortrait/DiT for Regime A on speed; clarifies LoRA/FluxSpace work is Regime B and
 not in competition with LivePortrait.
 
+### Stylized refs require LoRA on PersonaLive (2026-05-06)
+
+[`2026-05-06-stylized-vtuber-requires-personalive-lora.md`](../2026-05-06-stylized-vtuber-requires-personalive-lora.md)
+— after running both backbones over photoreal/painting/stylized-humanoid/non-human refs against the
+yaw-stress driver: photoreal frontal both work (PersonaLive marginally cleaner), atypical photoreal
+(Tikhonov) goes to LivePortrait (PersonaLive collapses to FFHQ prior), painting (Pushkin) to
+PersonaLive, stylized humanoid both crop-confounded, **non-human (cartoon ducks) fails on both** —
+no vtuber path for very-non-human refs today. PersonaLive has a LoRA surface (RefNet/UNet attention,
+SD1.5 lineage) so its stylized failures are tunable; LivePortrait has no analogous surface
+(warp-based, no prior, no attention to inject δ into) — fixing it requires retraining the implicit-
+keypoint regressor on stylized data. **Vanilla LivePortrait benched at ~8.4 FPS end-to-end (~10 FPS
+steady-state) on RTX 5090** — not realtime; FasterLivePortrait+TRT is the realtime path
+(~30 FPS on 3090, expect 40+ on 5090). Pre-conditions for LoRA training: lock standardized
+cropper + frame-0 baseline-subtraction control first.
+
 ### Reading order
 
 - [`docs/research/2026-05-04-personalive-tensorrt-plan.md`](../2026-05-04-personalive-tensorrt-plan.md) — the 3-probe plan with gates
