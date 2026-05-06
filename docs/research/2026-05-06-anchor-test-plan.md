@@ -30,7 +30,18 @@ Per-anchor scorecard (computed on a fixed synthetic ARKit drive sequence so anch
 
 ## Anchor pool inventory
 
-### Photoreal pool — `data/anchors/photoreal_grid/` (42 cells)
+### Photoreal pools — two parallel 42-cell tiers
+
+We now have **two parallel photoreal pools** at the same factorial taxonomy (7 races × 3 ages × 2 genders = 42 cells). Each tier stresses different priors:
+
+| Pool | Source | Style | Path |
+|---|---|---|---|
+| Flux grid | Solver-A squint grid renders | Photoreal Flux output, neutral by construction (scale=0) | `data/anchors/photoreal_grid/` |
+| FFHQ real | Real-world photographs (FFHQ) | Real photos, FairFace-classified, MediaPipe-blendshape-filtered for neutrality | `data/anchors/photoreal_ffhq/` |
+
+Per-cell PNG + manifest in each. Manifests use `format_version: 1` and the same `(race, age, gender)` join keys.
+
+#### `data/anchors/photoreal_grid/` (Flux-rendered, 13 MB)
 
 Lifted directly from the Solver-A squint grid corpus (`output/demographic_pc/solver_a_squint_grid/` on the Seagate archive drive) via `scripts/select_photoreal_anchors.py`. Full factorial: **7 races × 3 ages × 2 genders = 42 cells**, one PNG per cell, picked by neutrality score:
 
@@ -49,6 +60,24 @@ Selection rule (`scripts/select_photoreal_anchors.py`):
 5. Manifest at `data/anchors/photoreal_grid/manifest.parquet` (`format_version: 1`); `fallback_used` column flags any cell where the strict filter wiped all 16 seeds and we relaxed to face-detected-only. **Current run: 0/42 fallback** — every cell has at least one clean seed.
 
 This **subsumes** the earlier hand-curated `data/llf-phase2/*` demographics (asian_m, black_f, european_m) and `phase3_full_replay/{young_european_f, elderly_latin_m}` — the grid covers all those cells and 35 more, with consistent prompt template + neutral expression by construction.
+
+#### `data/anchors/photoreal_ffhq/` (real photos, 55 MB)
+
+`scripts/select_ffhq_anchors.py` lifts one best-neutral real photo per cell from the 70k-row FFHQ corpus. Two-stage:
+
+1. **`output/reverse_index/ffhq_sha_lookup.parquet` (cached, 70k rows).** Walks `/media/newub/Seagate Hub/arc_distill/metrics/train-*-of-*.pt` and emits `(image_sha256, shard_path, row_idx)`. Per-shard metrics .pt position k corresponds to row k of the matching parquet shard — verified at runtime by re-hashing row 0 of shard 0 and comparing to the cached sha (`verify_lookup_alignment` gate, per project standing rule on training-data verification).
+
+2. **Selection.** From the unified reverse_index, filter `source='ffhq'`, face_detected, classifier-detected. Map FairFace → squint-grid taxonomy:
+
+   | FairFace | Squint-grid |
+   |---|---|
+   | White, Black, East Asian, Southeast Asian, Indian, Middle Eastern, Latino_Hispanic | white, black, east_asian, southeast_asian, **south_asian**, middle_eastern, latino |
+   | age_bin 0-29 / 30-49 / 50+ | young / adult / elderly |
+   | M / F | m / f |
+
+   Then drop occluder probes (same set as the grid selector minus `wrinkled`), minimise `max(squint_L,R) + max(smile_L,R) + |brow|`, tie-break on classifier confidence then sha. PNG bytes extracted from the FFHQ shard parquet via the cached lookup; saved as `<race>__<age>__<gender>__<sha8>.png`.
+
+3. **Coverage achieved (2026-05-06):** 42/42 cells, 0 fallback, 69811 → 69039 rows after occluder filter. All 42 winners have full classifier metadata + neutrality components in the manifest.
 
 ### Earlier (legacy) per-cell baselines — kept for backward compatibility
 
@@ -115,12 +144,14 @@ Before running the full pool we need:
 
 ## Slate (resolved 2026-05-06)
 
-Per user decision in this session, slate is **3 stylistic anchors + the existing photoreal Flux pool**. One image per stylistic category, picking the highest-quality / best-fit option:
+Final pool: **84 photoreal anchors** (42 Flux-grid + 42 FFHQ-real, parallel demographic taxonomies) + **3 stylistic anchors**.
 
-| Category | File | Source | License |
+| Category | Count | File(s) | License |
 |---|---|---|---|
-| Anime | `data/anchors/anime/anime__01_oksmith.png` (1570×2400) | Wikimedia Commons (oksmith via OpenClipart) | CC0 |
-| Old photo / B&W | `data/anchors/oldphoto_tikhonov/tikhonov__1948.jpg` (600×451) | Wikimedia Commons (Vyacheslav_Tikhonov_1948.JPG) | Public domain |
-| Painting | `data/anchors/painting_pushkin/pushkin__01_kiprensky.jpg` (3455×4000) | Wikimedia Commons (Google Art Project) | Public domain |
+| Photoreal Flux | 42 | `data/anchors/photoreal_grid/<race>__<age>__<gender>__seed*.png` | Internal |
+| Photoreal real (FFHQ) | 42 | `data/anchors/photoreal_ffhq/<race>__<age>__<gender>__<sha8>.png` | FFHQ research license |
+| Anime | 1 | `data/anchors/anime/anime__01_oksmith.png` (1570×2400) | CC0 |
+| Old photo / B&W | 1 | `data/anchors/oldphoto_tikhonov/tikhonov__1948.jpg` (600×451) | Public domain |
+| Painting | 1 | `data/anchors/painting_pushkin/pushkin__01_kiprensky.jpg` (3455×4000) | Public domain |
 
-Internal-use only confirmed. No public release of derived renders without a separate review.
+**Total: 87 anchors.** Internal-use only confirmed. No public release of derived renders without a separate review.
