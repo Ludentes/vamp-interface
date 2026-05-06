@@ -23,7 +23,8 @@ if __name__ == "__main__":
     ap.add_argument("--early_stop_patience", type=int, default=3)
     ap.add_argument("--loss_mode", default="plain",
                     choices=["plain", "varnorm", "varnorm_std_tail",
-                             "weighted_mse", "varnorm_jvp"])
+                             "weighted_mse", "varnorm_jvp",
+                             "weighted_mse_jvp_anneal"])
     ap.add_argument("--sampler", default="uniform",
                     choices=["uniform", "active_channel"])
     ap.add_argument("--stats", default=None,
@@ -36,6 +37,9 @@ if __name__ == "__main__":
     ap.add_argument("--alpha", type=float, default=0.5,
                     help="exponent on 1/freq_k channel weighting "
                          "(weighted_mse and varnorm_jvp)")
+    ap.add_argument("--anneal_to_step", type=int, default=0,
+                    help="for weighted_mse_jvp_anneal: linearly fade A+B+C "
+                         "augmentation to 0 by this step (0=disabled)")
     args = ap.parse_args()
     train(
         args.pairs_dir, args.out_dir,
@@ -49,4 +53,5 @@ if __name__ == "__main__":
         stats_path=args.stats,
         lam_std=args.lam_std, lam_tail=args.lam_tail, tail_z=args.tail_z,
         lam_jvp=args.lam_jvp, alpha=args.alpha,
+        anneal_to_step=args.anneal_to_step,
     )

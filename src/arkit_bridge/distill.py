@@ -27,12 +27,17 @@ from arkit_bridge.student import MotEncoderStudent
 
 
 def _make_loss(loss_mode, stats, device, lam_std=1.0, lam_tail=0.5,
-               tail_z=2.0, lam_jvp=0.1, alpha=0.5, eps=1e-3):
+               tail_z=2.0, lam_jvp=0.1, alpha=0.5, anneal_to_step=0,
+               eps=1e-3):
     """Returns a closure (student_pred, teacher, **kwargs) -> (loss, parts).
 
     Modes that need extras must receive them as kwargs:
-      - weighted_mse: needs b (input batch)
-      - varnorm_jvp:  needs b (input batch) and model (the student)
+      - weighted_mse:               needs b
+      - varnorm_jvp:                needs b and model
+      - weighted_mse_jvp_anneal:    needs b, model, and step
+        Linearly anneals A+B+C augmentation toward pure varnorm_std_tail
+        (v2's loss) between step 0 and step `anneal_to_step`. After that,
+        loss is exactly varnorm_std_tail. At step 0, full A+B+C augmentation.
     """
     if loss_mode == "plain":
         def fn_plain(s, t, **_):
@@ -146,6 +151,88 @@ def _make_loss(loss_mode, stats, device, lam_std=1.0, lam_tail=0.5,
             }
         return fn_jvp
 
+    if loss_mode == "weighted_mse_jvp_anneal":
+        if "freq_k" not in stats or "C" not in stats:
+            raise ValueError("weighted_mse_jvp_anneal requires freq_k and C")
+        if anneal_to_step <= 0:
+            raise ValueError(
+                "weighted_mse_jvp_anneal needs --anneal_to_step > 0; "
+                "without it the mode silently degenerates to varnorm_std_tail"
+            )
+        # weighted_mse precompute
+        freq_k = torch.from_numpy(stats["freq_k"]).to(device).clamp(min=1e-4)
+        w_k = (1.0 / freq_k).pow(alpha)
+        b_p95 = torch.from_numpy(stats["b_p95"]).to(device).clamp(min=eps)
+        C = torch.from_numpy(stats["C"]).to(device)
+        num = (C * w_k[None, :]).sum(dim=1)
+        den = C.sum(dim=1).clamp(min=eps)
+        cell_w = num / den
+        cell_w = (cell_w / cell_w.mean().clamp(min=eps)).reshape(*sigma.shape)
+        # JVP precompute
+        probs = w_k / w_k.sum().clamp(min=eps)
+        target_norm = C.norm(dim=0)
+        anneal_denom = max(anneal_to_step, 1)
+
+        def fn_anneal(s, t, *, b=None, model=None, step=0, **_):
+            if b is None or model is None:
+                raise ValueError("weighted_mse_jvp_anneal needs b and model")
+            # β: 1.0 at step 0 → 0.0 at and after anneal_to_step.
+            beta = max(0.0, 1.0 - step / anneal_denom)
+
+            # always-on v2 components (varnorm + std + tail)
+            l_var = ((s - t) / sigma).pow(2).mean()
+            s_std = s.std(dim=0, unbiased=False)
+            t_std = t.std(dim=0, unbiased=False)
+            l_std = (s_std - t_std).pow(2).mean()
+            z = (t - mean) / sigma
+            tail_mask = (z.abs() > tail_z).float()
+            denom_tail = tail_mask.sum().clamp(min=1.0)
+            l_tail = ((s - t).pow(2) * tail_mask).sum() / denom_tail
+
+            # augmentation: per-cell + per-sample reweighted varnorm
+            score = (b.abs() / b_p95[None, :]) * w_k[None, :]
+            sw = score.max(dim=1).values.clamp(0.1, 10.0)
+            sw = sw / sw.mean().clamp(min=eps)
+            err2 = ((s - t) / sigma).pow(2) * cell_w
+            err2 = err2.mean(dim=tuple(range(1, err2.ndim)))
+            l_weighted = (err2 * sw).mean()
+
+            # JVP regularizer (skip after anneal to save the JVP cost)
+            if beta > 0.0:
+                k = int(torch.multinomial(probs, num_samples=1).item())
+                e_k = torch.zeros(b.shape[1], device=device)
+                e_k[k] = 1.0
+                tangent = e_k.unsqueeze(0).expand_as(b).contiguous()
+                _, jvp_out = torch.func.jvp(
+                    model, (b.detach(),), (tangent,),
+                )
+                student_norm = jvp_out.flatten(1).norm(dim=1).mean()
+                l_jvp = (student_norm - target_norm[k]).pow(2)
+                k_val = float(k)
+                tn = float(target_norm[k].detach())
+            else:
+                l_jvp = torch.zeros((), device=device)
+                student_norm = torch.zeros((), device=device)
+                k_val = -1.0
+                tn = 0.0
+
+            # main term blends: β=1 → weighted_mse; β=0 → varnorm
+            l_main = beta * l_weighted + (1.0 - beta) * l_var
+            loss = (l_main + lam_std * l_std + lam_tail * l_tail
+                    + beta * lam_jvp * l_jvp)
+            return loss, {
+                "varnorm": float(l_var.detach()),
+                "weighted": float(l_weighted.detach()),
+                "std_match": float(l_std.detach()),
+                "tail": float(l_tail.detach()),
+                "jvp": float(l_jvp.detach()),
+                "student_norm": float(student_norm.detach()),
+                "target_norm": tn,
+                "k": k_val,
+                "beta": float(beta),
+            }
+        return fn_anneal
+
     raise ValueError(f"unknown loss_mode={loss_mode}")
 
 
@@ -169,6 +256,7 @@ def train(
     tail_z: float = 2.0,
     lam_jvp: float = 0.1,
     alpha: float = 0.5,
+    anneal_to_step: int = 0,
 ):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +300,8 @@ def train(
 
     loss_fn = _make_loss(loss_mode, stats, device,
                          lam_std=lam_std, lam_tail=lam_tail, tail_z=tail_z,
-                         lam_jvp=lam_jvp, alpha=alpha)
+                         lam_jvp=lam_jvp, alpha=alpha,
+                         anneal_to_step=anneal_to_step)
 
     log: list[dict] = []
     eval_log: list[dict] = []
@@ -266,7 +355,7 @@ def train(
         for b, m in dl:
             b = b.to(device); m = m.to(device)
             pred = s(b)
-            loss, parts = loss_fn(pred, m, b=b, model=s)
+            loss, parts = loss_fn(pred, m, b=b, model=s, step=step)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()

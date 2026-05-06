@@ -77,6 +77,103 @@ def test_weighted_mse_handles_leading_singleton_dim():
     assert s.grad is not None and torch.isfinite(s.grad).all()
 
 
+def test_anneal_beta_schedule():
+    """β=1 at step 0, β=0 at and after anneal_to_step, β=0.5 at half."""
+    stats = make_stats()
+    fn = _make_loss("weighted_mse_jvp_anneal", stats, "cpu",
+                    lam_std=1.0, lam_tail=0.5, lam_jvp=0.1, alpha=0.5,
+                    anneal_to_step=1000)
+    model = torch.nn.Sequential(
+        torch.nn.Linear(58, 32 * 16),
+        torch.nn.Unflatten(1, (32, 16)),
+    )
+    b = torch.randn(4, 58, requires_grad=True)
+    pred = model(b)
+    targ = torch.randn(4, 32, 16) * 0.1
+    _, p0 = fn(pred, targ, b=b, model=model, step=0)
+    _, p_half = fn(pred, targ, b=b, model=model, step=500)
+    _, p_done = fn(pred, targ, b=b, model=model, step=1000)
+    _, p_after = fn(pred, targ, b=b, model=model, step=10000)
+    assert abs(p0["beta"] - 1.0) < 1e-6
+    assert abs(p_half["beta"] - 0.5) < 1e-6
+    assert abs(p_done["beta"]) < 1e-6
+    assert abs(p_after["beta"]) < 1e-6
+
+
+def test_anneal_at_full_aug_grad_flow():
+    """β=1: gradient flows through both weighted_mse and JVP regularizer."""
+    stats = make_stats()
+    fn = _make_loss("weighted_mse_jvp_anneal", stats, "cpu",
+                    lam_std=1.0, lam_jvp=0.1, alpha=0.5, anneal_to_step=1000)
+    model = torch.nn.Sequential(
+        torch.nn.Linear(58, 64), torch.nn.ReLU(),
+        torch.nn.Linear(64, 32 * 16), torch.nn.Unflatten(1, (32, 16)),
+    )
+    b = torch.randn(8, 58, requires_grad=True)
+    pred = model(b)
+    targ = torch.randn(8, 32, 16) * 0.1
+    loss, parts = fn(pred, targ, b=b, model=model, step=0)
+    assert torch.isfinite(loss) and parts["jvp"] > 0  # JVP active
+    loss.backward()
+    for p in model.parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all()
+
+
+def test_anneal_handles_leading_singleton_dim():
+    """Same (B,1,32,16) student-output shape as MotEncoderStudent emits."""
+    stats = make_stats()
+    fn = _make_loss("weighted_mse_jvp_anneal", stats, "cpu",
+                    lam_std=1.0, lam_jvp=0.1, alpha=0.5, anneal_to_step=1000)
+    # tiny dummy "model" emitting (B, 1, 32, 16)
+    class M(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc = torch.nn.Linear(58, 32 * 16)
+        def forward(self, b):
+            return self.fc(b).view(b.shape[0], 1, 32, 16)
+    m = M()
+    b = torch.randn(8, 58, requires_grad=True)
+    pred = m(b)
+    targ = torch.randn(8, 1, 32, 16) * 0.1
+    loss, _ = fn(pred, targ, b=b, model=m, step=0)
+    assert torch.isfinite(loss)
+    loss.backward()
+    for p in m.parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all()
+
+
+def test_anneal_raises_without_anneal_to_step():
+    """Guard against silent v2 fallback when user forgets the flag."""
+    stats = make_stats()
+    try:
+        _make_loss("weighted_mse_jvp_anneal", stats, "cpu", anneal_to_step=0)
+    except ValueError as e:
+        assert "anneal_to_step" in str(e)
+    else:
+        raise AssertionError("expected ValueError on anneal_to_step=0")
+
+
+def test_anneal_at_done_equals_varnorm_std_tail():
+    """β=0: loss equals plain varnorm_std_tail (JVP fully gone)."""
+    stats = make_stats()
+    fn_anneal = _make_loss("weighted_mse_jvp_anneal", stats, "cpu",
+                           lam_std=1.0, lam_tail=0.5, lam_jvp=0.1,
+                           alpha=0.5, anneal_to_step=100)
+    fn_v2 = _make_loss("varnorm_std_tail", stats, "cpu",
+                       lam_std=1.0, lam_tail=0.5)
+    model = torch.nn.Sequential(
+        torch.nn.Linear(58, 32 * 16), torch.nn.Unflatten(1, (32, 16)),
+    )
+    b = torch.randn(8, 58)
+    pred = torch.randn(8, 32, 16, requires_grad=True)
+    targ = torch.randn(8, 32, 16) * 0.1
+    l_anneal, parts = fn_anneal(pred, targ, b=b, model=model, step=200)
+    l_v2, _ = fn_v2(pred, targ)
+    assert abs(parts["beta"]) < 1e-9
+    assert abs(parts["jvp"]) < 1e-9     # JVP path skipped at β=0
+    assert torch.allclose(l_anneal, l_v2, atol=1e-6)
+
+
 def test_varnorm_jvp_finite_loss():
     stats = make_stats()
     fn = _make_loss("varnorm_jvp", stats, "cpu",
