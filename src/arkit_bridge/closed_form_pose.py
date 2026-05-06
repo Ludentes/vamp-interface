@@ -12,11 +12,16 @@ We hold s_d ≈ s_s, t_d ≈ t_s (canonical PersonaLive default
 
 import torch
 
-# Calibrated against PersonaLive motion_extractor outputs on takes 2/5/7
-# (2026-05-05, 8-way enumeration; see scripts/calibrate_euler_signs.py and
-# exp_output/arkit_bridge/calibration/). Take 2 and take 7 (60 samples)
-# both pick (+1, -1, -1); take 5 ties within 0.005 RMSE.
+# Empirical winner of calibration v3 (P_48 frame search on
+# data/llf-clips-auto/20260505_MySlate_5_yaw, 600 frames):
+#   sign combo (+1, -1, -1) with F* = diag(+1, -1, +1), score 0.168 rad.
+# F_KP_REF is applied to the LivePortrait reference keypoints once
+# (kp_ref @ F_KP_REF) before the Euler rotation is composed; this
+# corrects a kp_ref vs ARKit-frame y-axis mirror that v1 missed.
 EULER_SIGNS = (+1.0, -1.0, -1.0)  # (yaw, pitch, roll)
+F_KP_REF = torch.tensor([[1.0, 0.0, 0.0],
+                          [0.0, -1.0, 0.0],
+                          [0.0, 0.0, 1.0]])
 
 
 def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
@@ -67,7 +72,8 @@ def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
     if t.dim() == 1:
         t = t.unsqueeze(0)
 
-    k = kp_ref @ R
+    F = F_KP_REF.to(dtype=kp_ref.dtype, device=kp_ref.device)
+    k = (kp_ref @ F) @ R
     k = k * s.unsqueeze(-1)
     k = k.clone()
     k[..., 0:2] = k[..., 0:2] + t[:, None, 0:2]
