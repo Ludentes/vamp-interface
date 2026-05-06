@@ -1,0 +1,83 @@
+"""Distill loss-mode unit tests for v4 (weighted_mse + varnorm_jvp)."""
+
+import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+
+from arkit_bridge.distill import _make_loss  # noqa: E402
+
+
+def make_stats(B=8, n_b=58, m_shape=(32, 16), seed=0):
+    """Synthetic stats matching v4 stats.npz schema (strict superset of v2)."""
+    rng = np.random.default_rng(seed)
+    return {
+        "teacher_mean": rng.normal(0, 0.1, m_shape).astype(np.float32),
+        "teacher_std": np.full(m_shape, 0.1, dtype=np.float32),
+        "b_p95": np.full(n_b, 0.5, dtype=np.float32),
+        "sample_weights": np.ones(B, dtype=np.float32),
+        "paths": np.array([f"f{i}.pkl" for i in range(B)]),
+        "freq_k": np.linspace(0.01, 0.5, n_b).astype(np.float32),
+        "C": np.abs(rng.normal(0, 0.5, (m_shape[0] * m_shape[1], n_b))).astype(np.float32),
+    }
+
+
+def test_weighted_mse_finite_loss():
+    stats = make_stats()
+    fn = _make_loss("weighted_mse", stats, "cpu", lam_std=1.0)
+    s = torch.zeros(8, 32, 16, requires_grad=True)
+    t = torch.randn(8, 32, 16) * 0.1
+    b = torch.randn(8, 58)
+    loss, parts = fn(s, t, b=b)
+    assert torch.isfinite(loss)
+    assert "weighted_mse" in parts
+    assert "std_match" in parts
+    loss.backward()
+    assert s.grad is not None
+    assert torch.isfinite(s.grad).all()
+
+
+def test_weighted_mse_rare_channel_amplifies():
+    """In a mixed batch the rare-channel sample's gradient must dominate
+    the common-channel sample's. We use B=2 because per-batch mean
+    normalization (deliberate for training stability) collapses sw=1
+    when the batch has a single sample."""
+    stats = make_stats()
+    stats["freq_k"] = np.array([0.001] + [0.5] * 57, dtype=np.float32)
+    fn = _make_loss("weighted_mse", stats, "cpu", lam_std=0.0)
+
+    pred = torch.zeros(2, 32, 16, requires_grad=True)
+    target = torch.ones(2, 32, 16) * 0.1
+    b = torch.zeros(2, 58)
+    b[0, 0] = 0.5    # row 0: rare channel active
+    b[1, 50] = 0.5   # row 1: common channel active
+    loss, _ = fn(pred, target, b=b)
+    loss.backward()
+    g_rare = pred.grad[0].norm().item()
+    g_common = pred.grad[1].norm().item()
+    assert g_rare > g_common * 1.5, f"rare {g_rare} not > 1.5×common {g_common}"
+
+
+def test_varnorm_jvp_finite_loss():
+    stats = make_stats()
+    fn = _make_loss("varnorm_jvp", stats, "cpu",
+                    lam_std=1.0, lam_jvp=0.1, alpha=0.5)
+    model = torch.nn.Sequential(
+        torch.nn.Linear(58, 64),
+        torch.nn.ReLU(),
+        torch.nn.Linear(64, 32 * 16),
+        torch.nn.Unflatten(1, (32, 16)),
+    )
+    b = torch.randn(8, 58, requires_grad=True)
+    pred = model(b)
+    t = torch.randn(8, 32, 16) * 0.1
+    loss, parts = fn(pred, t, b=b, model=model)
+    assert torch.isfinite(loss)
+    assert "jvp" in parts
+    loss.backward()
+    for p in model.parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all()
