@@ -2,6 +2,16 @@
 
 Living index for the neural-image-deformation (LivePortrait lineage) thread as an alternative / complement to LoRA-slider blendshape control on Flux portraits.
 
+## LivePortrait architecture review (2026-05-06)
+
+[`2026-05-06-liveportrait-architecture-review.md`](../2026-05-06-liveportrait-architecture-review.md) —
+five-module decomposition (F/M/W/G/S+R), Stage-1/Stage-2 separation, cross-id
+Eqn. 7 math, and a tiered list of extension points. Tier-2 item 5 (ARKit-conditioned
+retargeter, Variant B = driver-bypass) is the LivePortrait analog of the PersonaLive
+ARKit bridge. Code at `/home/newub/w/LivePortrait`, weights at
+`pretrained_weights/`. Engineering fork at `/home/newub/w/FasterLivePortrait` with
+ONNX bundle at `checkpoints/`.
+
 ## Current belief (2026-05-05 evening)
 
 **ARKit-driving bridge v1 complete; v2 loss redesign queued.** v1 cleared
