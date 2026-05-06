@@ -81,6 +81,22 @@ This is *the* realtime successor — the realtime ecosystem is FasterLivePortrai
 
 **Conclusion for our use case:** the LivePortrait sanity test should specifically run **FasterLivePortrait with TRT engines on the 4080**, not vanilla LivePortrait. Vanilla benchmarks worse and isn't where current FPS numbers come from.
 
+## Streaming-infrastructure techniques inventory (revisit when building OBS pipeline)
+
+The audio-driven papers (RAP, Teller, RAIN) and long-form DiT papers (FlashPortrait) are wrong-driver for our use case but solve **the streaming infrastructure problem we will inevitably hit** when running camera → render → OBS for minutes-to-hours of continuous output. Driver and streaming infrastructure are orthogonal — we can pick a warp-based driver (LivePortrait family) and still need the diffusion-side long-stream stability tricks once frame-1 vs frame-10000 identity drift starts showing.
+
+Catalog to re-consult when building the OBS path:
+
+| Paper | Technique | Why it matters at minutes-to-hours runtime |
+|---|---|---|
+| [RAIN](https://arxiv.org/abs/2412.19489) | 1D attention blocks; long-range token attention at low memory | Stream pixels without buffering hitches |
+| [RAP](https://arxiv.org/abs/2508.05115) | Static-dynamic latent inheritance; hybrid full+window attention | Prevent identity drift / error accumulation across long streams |
+| [Teller](https://arxiv.org/abs/2503.18429) | 200 ms chunk processing budget; AR transformer over discrete motion tokens | Sub-200 ms end-to-end latency design; quantized motion provides clean rejoin points |
+| FlashPortrait | Sliding-window with weighted blending; Taylor-expansion latent prediction | Smooth window transitions; cheap step skipping |
+| FasterLivePortrait | TRT engine fusion, multi-face, region-driving | Production realtime engineering reference |
+
+Conclusion (May 2026): no published method solves "DiT-quality realtime portrait animation driven by performer's face." The unicorn doesn't exist yet. Audio-driven + diffusion is the closest thing the literature offers, but the driver mismatch disqualifies it for our product. When we inevitably hit long-stream stability problems on the warp-based path, harvest techniques from these papers rather than trying to swap backbones.
+
 ## Open architectural questions (parked)
 
 - Stylized vtuber path. If LivePortrait fails OOD too (different mechanism but possible), the cheapest path is PersonaLive 1-step distill with a non-FFHQ discriminator. Do not build for this until both PersonaLive teacher_full and LivePortrait have failed the stylized set.
