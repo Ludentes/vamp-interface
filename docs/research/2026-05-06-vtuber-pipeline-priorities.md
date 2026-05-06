@@ -55,9 +55,31 @@ Explicitly *not* on the priority list right now:
 
 **RGB-PersonaLive OBS pipeline:** sustained ≥15 FPS at 512² on 4080 (matches the paper's claimed 4090 number scaled down); identity stable on photoreal refs over a 5-minute take; no observable rotation/crop bugs.
 
-**ARKit-PersonaLive OBS pipeline:** same FPS target; bridge inference time <5 ms/frame; sign-agreement test on yaw/pitch/roll passing; live demo lag <100 ms.
+**ARKit-PersonaLive bridge — validation gate before OBS plumbing.** Earlier framing of "OBS in parallel" was overoptimistic. The bridge (`student_v3_lam10`) is trained but unaudited for realtime use; the calibration-blind-spot history (yaw L2 was partially yaw-symmetric and picked the wrong sign initially) means we can't trust unaudited axes. Required before OBS work starts:
+  - Sign-agreement test on all three Euler axes (yaw/pitch/roll) against ground-truth ARKit recordings.
+  - Head-attenuation-at-extremes diagnosis from `render_metrics.parquet` (3-amp decomposition).
+  - Bridge inference latency benchmark on 4080 (target <5 ms/frame).
+  - End-to-end live path: iPhone → ARKit stream → script → PersonaLive → OBS, validated on a short take.
+  - Only after these pass: build the OBS plumbing. The plumbing itself is cheap; trusting the bridge isn't.
 
-**LivePortrait sanity (gating its OBS build):** ≥25 FPS at 512² on 4080; stylized refs maintain reference identity (no FFHQ collapse) over the 600-frame yaw stress; photoreal refs match or beat PersonaLive teacher_full on the 3 curated cells.
+**LivePortrait sanity (gating its OBS build):** ≥25 FPS at 512² on 4080 using **FasterLivePortrait with TensorRT engines** (not vanilla repo; see "LivePortrait descendants" below); stylized refs maintain reference identity over the 600-frame yaw stress; photoreal refs match or beat PersonaLive teacher_full on the 3 curated cells.
+
+## LivePortrait descendants — the 2-year community survey
+
+Question: did the community produce a "next-gen LivePortrait"? **No single dominant successor.** The field forked into three non-overlapping branches:
+
+**Branch 1 — engineering descendants (actual realtime successors).** Same warp-based core, productionized.
+
+- [FasterLivePortrait](https://github.com/warmshao/FasterLivePortrait) — ONNX/TensorRT fork. **30+ FPS on RTX 3090 with TRT** (incl. pre/post). Adds animal, multi-face, region-driving. v2.0 Jan 2025. The de-facto realtime fork — what real users run.
+- [JoyVASA](https://github.com/jdh-algo/JoyVasa) — audio-driven motion generator that plugs into LivePortrait's keypoint space. Diffusion for motion only, not for pixels.
+
+This is *the* realtime successor — the realtime ecosystem is FasterLivePortrait + JoyVASA. 30 FPS on 3090 implies ~40+ FPS on 4080, comfortably above our Regime A bar. It is "same model, productionized," not "new architecture."
+
+**Branch 2 — quality successors via diffusion (NOT realtime; these are PersonaLive's siblings, not LivePortrait's).** The community pivoted upmarket: X-NeMo / X-Portrait2 (ByteDance, ICLR 2025), SkyReels-A1 (Skywork), HunyuanPortrait (Tencent), FantasyPortrait (Alibaba, CVPR 2026), Hallo3 (Fudan, CVPR 2025), EchoMimic V2/V3 (Ant Group), DeX-Portrait (Dec 2025), FactorPortrait (Dec 2025), FlashPortrait. All diffusion or DiT-based. All non-realtime. All Regime B candidates if at all.
+
+**Branch 3 — hybrids (unproven).** RAP (Aug 2025) and Teller (Mar 2025) claim "real-time" with Video DiTs but don't publish FPS in their abstracts; "realtime" in DiT papers usually means "approachable," not 30 FPS. Mixed code availability. Worth a follow-up read but not a candidate for a sanity test yet.
+
+**Conclusion for our use case:** the LivePortrait sanity test should specifically run **FasterLivePortrait with TRT engines on the 4080**, not vanilla LivePortrait. Vanilla benchmarks worse and isn't where current FPS numbers come from.
 
 ## Open architectural questions (parked)
 
