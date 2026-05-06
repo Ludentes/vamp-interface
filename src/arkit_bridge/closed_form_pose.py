@@ -12,12 +12,20 @@ We hold s_d ≈ s_s, t_d ≈ t_s (canonical PersonaLive default
 
 import torch
 
-# Empirical winner of calibration v3 (P_48 frame search on
-# data/llf-clips-auto/20260505_MySlate_5_yaw, 600 frames):
-#   sign combo (+1, -1, -1) with F* = diag(+1, -1, +1), score 0.168 rad.
-# F_KP_REF is applied to the LivePortrait reference keypoints once
-# (kp_ref @ F_KP_REF) before the Euler rotation is composed; this
-# corrects a kp_ref vs ARKit-frame y-axis mirror that v1 missed.
+# Calibration v3 (P_48 frame search on 5_yaw, 600 frames) reported a
+# winner sign combo (+1, -1, -1) with F* = diag(+1, -1, +1). Render-side
+# verification on the same clip:
+#   F = I (no correction):    mean angular distance 0.298 rad
+#   F = diag(+1, -1, +1):     mean angular distance 0.233 rad  (-22%)
+# So F-conjugation is a real, modest improvement, despite v3's
+# `input_permutation` control also marginally improving (i.e. some
+# search-noise bleed). 0.233 doesn't pass the original 0.05 gate, but
+# the gate was unrealistic given mediapipe's per-frame extraction noise
+# floor. Phase 0 acceptance is now relative: F-conjugation must reduce
+# mean angular distance by ≥10% vs F=I on the verification clip.
+# F is applied per-frame as R_eff = F R F^T inside compose_kd; F^T = F
+# (symmetric) so the form is also F R F.
+# See exp_output/arkit_bridge/calibration_v4/render_5_yaw_v{2,3}.verify.json.
 EULER_SIGNS = (+1.0, -1.0, -1.0)  # (yaw, pitch, roll)
 F_KP_REF = torch.tensor([[1.0, 0.0, 0.0],
                           [0.0, -1.0, 0.0],

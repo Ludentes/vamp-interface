@@ -4,9 +4,11 @@ Two layers:
   - euler_to_rotmat: chirality + orthonormality + PersonaLive parity
     (load-bearing — must agree exactly with PersonaLive's
     `liveportrait/camera.get_rotation_matrix` for our R^T row-vector path).
-  - compose_kd: F_KP_REF=diag(+1,-1,+1) applied once on kp_ref before R,
-    then s, then (tx, ty) translation. F is the calibration-v3 winner
-    that closes the kp_ref↔ARKit-frame y-axis mirror.
+  - compose_kd: F_KP_REF = diag(+1,-1,+1) applied per-frame as
+    R_eff = F R F^T (frame conjugation, matching v3's score_combo).
+    On the 5_yaw verification clip this drops mean angular distance
+    from 0.298 (F=I) to 0.233 rad (-22%); see closed_form_pose.py for
+    the full provenance.
 """
 
 import math
@@ -69,7 +71,7 @@ def test_euler_matches_personalive_get_rotation_matrix():
     assert torch.allclose(R_ours, R_pl, atol=1e-5), (R_ours, R_pl)
 
 
-# ---- F_KP_REF: y-mirror ----
+# ---- F_KP_REF: y-mirror, per render-verified v3 winner ----
 
 def test_F_KP_REF_is_y_mirror():
     expected = torch.tensor([[1., 0., 0.],
@@ -122,13 +124,10 @@ def test_compose_kd_nonzero_rotation_conjugates_R_by_F():
 
 
 def test_F_KP_REF_is_involution():
-    """F = F^T = F^{-1} (diagonal sign matrix). Under conjugation F R F^T,
-    a rotation about y is preserved (F is the y-mirror), while rotations
-    about x or z get sign-flipped components.
-    """
+    """F = F^T = F^{-1} (diagonal sign matrix). Conjugation F R F^T preserves
+    rotations about y, sign-flips x/z components."""
     F = F_KP_REF
     assert torch.allclose(F @ F.transpose(-1, -2), torch.eye(3), atol=1e-6)
-    # rotation about y is preserved by conjugation with diag(+,-,+)
     yaw_only = euler_to_rotmat(torch.tensor(0.4), torch.tensor(0.0), torch.tensor(0.0))
     assert torch.allclose(F @ yaw_only @ F.transpose(-1, -2), yaw_only, atol=1e-5)
 
