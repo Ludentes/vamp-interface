@@ -227,6 +227,12 @@ def main():
                          "ignores, so frames arrive sideways)")
     ap.add_argument("--no_rotate_iphone", dest="rotate_iphone",
                     action="store_false")
+    ap.add_argument("--reference_precropped", action="store_true",
+                    help="Skip MediaPipe FaceMesh on the reference. Use for "
+                         "stylized / non-human anchors (anime, cartoon, "
+                         "creature) where face_mesh returns no landmarks. "
+                         "Image must already be a square crop centred on the "
+                         "head; will be resized to 512².")
     ap.add_argument("--crop_strategy", default="ema",
                     choices=["perframe", "nocrop", "ema"],
                     help="EMA stabilises bbox across frames; matches render_take.py")
@@ -235,12 +241,25 @@ def main():
     ap.add_argument("--euler_signs", default=None,
                     help="Override closed-form pose Euler signs as 'sy,sp,sr' "
                          "(e.g. '-1,-1,-1'). Default: use compiled-in EULER_SIGNS.")
+    ap.add_argument("--lora_path", default=None,
+                    help="Optional Kohya-format SD1.5 LoRA .safetensors to merge "
+                         "into UNet attention layers before rendering.")
+    ap.add_argument("--lora_alpha", type=float, default=1.0,
+                    help="Scalar multiplier on top of the LoRA's own alpha/rank "
+                         "scaling. 1.0 = baseline strength.")
+    ap.add_argument("--lora_targets", default="den",
+                    choices=["den", "ref", "both"],
+                    help="Which UNet(s) to merge the LoRA into. 'den' = "
+                         "denoising_unet only (pass-1 hypothesis test). "
+                         "'ref' = reference_unet only. 'both' = both.")
     args = ap.parse_args()
     # Resolve to absolute *before* build_pipe chdir's into PersonaLive.
     args.reference = str(Path(args.reference).resolve())
     args.take_dir = str(Path(args.take_dir).resolve())
     args.ckpt = str(Path(args.ckpt).resolve())
     args.out_path = str(Path(args.out_path).resolve())
+    if args.lora_path:
+        args.lora_path = str(Path(args.lora_path).resolve())
 
     device = args.device
     dtype = torch.float16
@@ -270,6 +289,25 @@ def main():
 
     pipe = build_pipe(device, dtype)
     print("pipe built; loading driving stand-in RGB frames", flush=True)
+
+    if args.lora_path:
+        from arkit_bridge.lora_inject import apply_kohya_lora_to_unet
+        # Belt-and-suspenders: assert the attribute names match what we
+        # threaded through build_pipe(). (Reviewer I4, 2026-05-06.)
+        assert hasattr(pipe, "denoising_unet"), \
+            f"pipe missing denoising_unet, has {dir(pipe)}"
+        assert hasattr(pipe, "reference_unet"), \
+            f"pipe missing reference_unet, has {dir(pipe)}"
+        targets = []
+        if args.lora_targets in ("den", "both"):
+            targets.append(("denoising_unet", pipe.denoising_unet))
+        if args.lora_targets in ("ref", "both"):
+            targets.append(("reference_unet", pipe.reference_unet))
+        for name, unet in targets:
+            print(f"[lora] merging {Path(args.lora_path).name} → {name} "
+                  f"@ alpha={args.lora_alpha}", flush=True)
+            apply_kohya_lora_to_unet(unet, args.lora_path,
+                                     alpha=args.lora_alpha, verbose=True)
 
     # Build RGB stand-in frames from the same MOV — pipe needs them for
     # cond_image_processor.preprocess (the seam is downstream of preprocessing
@@ -307,7 +345,15 @@ def main():
     import mediapipe as mp
     face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1)
     ref_pil = Image.open(args.reference).convert("RGB")
-    ref_face = Image.fromarray(crop_face(ref_pil, face_mesh)).convert("RGB")
+    if args.reference_precropped:
+        # Stylized/non-human anchor: face_mesh fails. Trust the operator's
+        # manual head crop; just resize to the canonical 512². crop_face's
+        # landmarks are only used to compute the bbox — nothing downstream
+        # consumes them on the reference path (verified architecture dive
+        # 2026-05-06).
+        ref_face = ref_pil.resize((512, 512), Image.LANCZOS).convert("RGB")
+    else:
+        ref_face = Image.fromarray(crop_face(ref_pil, face_mesh)).convert("RGB")
 
     cropper = StabilizedFaceCropper(
         strategy=args.crop_strategy,
