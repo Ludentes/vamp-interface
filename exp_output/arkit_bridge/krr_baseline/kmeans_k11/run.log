@@ -1,0 +1,21 @@
+loading data/arkit_bridge_pairs/all
+loading data/arkit_bridge_pairs/holdout_v3
+  train: b(15622, 58) y(15622, 512); holdout: b(822, 58) y(822, 512)
+  σ = 1.3003 (median)
+fitting landmarks: mode=kmeans k=11
+  landmarks shape: (11, 58)
+  median ‖b-landmark‖/σ: min=0.68 median=0.93 max=1.39
+building train design matrix Φ_train
+  Φ_train shape: (15622, 11); Φ_tr stats: min=4.568e-02 mean=5.964e-01 max=9.922e-01
+building holdout design matrix Φ_holdout
+computing normal equations PtP, PtY (float64)...
+  λ=1e-06: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e-05: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e-04: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e-03: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e-02: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e-01: ratio=0.09384 r2_median=0.361 r2_above_0_7=0.004
+  λ=1e+00: ratio=0.09398 r2_median=0.361 r2_above_0_7=0.004
+
+wrote exp_output/arkit_bridge/krr_baseline/kmeans_k11/scorecard.json
+best λ=1e-01 ratio=0.09384 r2_median=0.361

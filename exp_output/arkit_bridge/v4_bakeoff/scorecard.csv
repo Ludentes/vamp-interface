@@ -1,0 +1,8 @@
+metric,v4a_weighted_mse,v4b_varnorm_jvp
+tail_recovery_median,0.9485208988189697,0.8379340767860413
+n_channels_above_0_7,47,58
+jvp_norm_match_median,0.3020274702491801,0.050378451302246816
+heldout_r2_median,0.892774224281311,0.7665241360664368
+heldout_std_ratio_median,0.9586154222488403,0.8780339956283569
+wins,3,2
+decision,tie_render_yaw_clip,

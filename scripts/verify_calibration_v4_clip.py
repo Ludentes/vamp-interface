@@ -46,16 +46,17 @@ from _mp_blendshape import make_landmarker  # noqa: E402
 
 PERSONA_PY = "/home/newub/w/PersonaLive/.venv/bin/python"
 ANCHOR = "data/llf-phase2/asian_m__06_neutral.midframe.png"
-CKPT = "runs/student_v2_lam10/student_best.pt"
+DEFAULT_CKPT = "runs/student_v2_lam10/student_best.pt"
 
 
-def render(take_dir: Path, out_mp4: Path, *, n_frames: int, stride: int) -> None:
+def render(take_dir: Path, out_mp4: Path, *, n_frames: int, stride: int,
+           ckpt: str = DEFAULT_CKPT) -> None:
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         PERSONA_PY, "scripts/apply_bridge_to_personalive.py",
         "--reference",   ANCHOR,
         "--take_dir",    str(take_dir),
-        "--ckpt",        CKPT,
+        "--ckpt",        ckpt,
         "--out_path",    str(out_mp4),
         "--n_frames",    str(n_frames),
         "--stride",      str(stride),
@@ -87,6 +88,8 @@ def main():
                          "(1 - rel_drop) * baseline_mean")
     ap.add_argument("--rel_drop", type=float, default=0.10,
                     help="required fractional drop vs baseline_mean")
+    ap.add_argument("--ckpt", default=DEFAULT_CKPT,
+                    help="student checkpoint (defaults to v2_lam10)")
     args = ap.parse_args()
 
     take_dir = Path(args.take_dir)
@@ -99,7 +102,8 @@ def main():
         raise SystemExit(f"--skip_render set but {out_mp4} does not exist")
 
     if not args.skip_render:
-        render(take_dir, out_mp4, n_frames=args.n_frames, stride=args.stride)
+        render(take_dir, out_mp4, n_frames=args.n_frames, stride=args.stride,
+               ckpt=args.ckpt)
 
     if not out_mp4.exists():
         raise SystemExit(f"render did not produce {out_mp4}")

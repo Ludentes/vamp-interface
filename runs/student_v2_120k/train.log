@@ -1,0 +1,2222 @@
+Running as unit: run-r1ac23b6375f74d87a947212328aaf263.scope; invocation ID: 4cafe63a254c44f69753e96563e5d54c
+step    100  loss 1.82063  varnorm=1.3633 std_match=0.1229 tail=0.6689  (178.0/s)
+step    200  loss 1.79448  varnorm=1.3042 std_match=0.1363 tail=0.7079  (251.7/s)
+step    300  loss 1.56948  varnorm=1.1336 std_match=0.1104 tail=0.6508  (291.0/s)
+step    400  loss 1.34120  varnorm=1.0222 std_match=0.0459 tail=0.5462  (317.7/s)
+step    500  loss 1.18006  varnorm=0.9388 std_match=0.0326 tail=0.4174  (337.9/s)
+step    600  loss 1.02046  varnorm=0.8328 std_match=0.0172 tail=0.3410  (347.2/s)
+step    700  loss 0.96935  varnorm=0.8056 std_match=0.0141 tail=0.2993  (358.3/s)
+step    800  loss 0.83332  varnorm=0.6980 std_match=0.0099 tail=0.2508  (369.5/s)
+step    900  loss 0.72833  varnorm=0.6135 std_match=0.0085 tail=0.2128  (375.1/s)
+step   1000  loss 0.98623  varnorm=0.8162 std_match=0.0107 tail=0.3187  (378.5/s)
+step   1100  loss 0.69146  varnorm=0.5831 std_match=0.0059 tail=0.2049  (387.4/s)
+step   1200  loss 0.82475  varnorm=0.6901 std_match=0.0060 tail=0.2573  (393.5/s)
+step   1300  loss 0.71171  varnorm=0.6074 std_match=0.0062 tail=0.1963  (396.4/s)
+step   1400  loss 0.62706  varnorm=0.5365 std_match=0.0044 tail=0.1724  (399.9/s)
+step   1500  loss 0.65355  varnorm=0.5576 std_match=0.0047 tail=0.1825  (404.3/s)
+step   1600  loss 0.66743  varnorm=0.5649 std_match=0.0060 tail=0.1930  (408.3/s)
+step   1700  loss 0.62992  varnorm=0.5372 std_match=0.0041 tail=0.1771  (409.9/s)
+step   1800  loss 0.62756  varnorm=0.5421 std_match=0.0041 tail=0.1627  (409.3/s)
+step   1900  loss 0.52255  varnorm=0.4618 std_match=0.0038 tail=0.1139  (409.1/s)
+step   2000  loss 0.64158  varnorm=0.5497 std_match=0.0042 tail=0.1754  (412.0/s)
+step   2100  loss 0.70634  varnorm=0.5904 std_match=0.0054 tail=0.2211  (413.5/s)
+step   2200  loss 0.53251  varnorm=0.4604 std_match=0.0038 tail=0.1366  (413.5/s)
+step   2300  loss 0.52953  varnorm=0.4472 std_match=0.0039 tail=0.1568  (415.0/s)
+step   2400  loss 0.50276  varnorm=0.4387 std_match=0.0030 tail=0.1221  (416.6/s)
+step   2500  loss 0.55438  varnorm=0.4849 std_match=0.0026 tail=0.1338  (417.0/s)
+step   2600  loss 0.42755  varnorm=0.3798 std_match=0.0018 tail=0.0919  (417.8/s)
+step   2700  loss 0.40666  varnorm=0.3629 std_match=0.0017 tail=0.0840  (419.1/s)
+step   2800  loss 0.55967  varnorm=0.4849 std_match=0.0030 tail=0.1436  (421.7/s)
+step   2900  loss 0.45553  varnorm=0.3903 std_match=0.0026 tail=0.1253  (423.9/s)
+step   3000  loss 0.44035  varnorm=0.3732 std_match=0.0021 tail=0.1301  (424.6/s)
+step   3100  loss 0.50003  varnorm=0.4330 std_match=0.0028 tail=0.1285  (425.1/s)
+step   3200  loss 0.40536  varnorm=0.3467 std_match=0.0016 tail=0.1141  (424.6/s)
+step   3300  loss 0.51214  varnorm=0.4512 std_match=0.0022 tail=0.1175  (425.0/s)
+step   3400  loss 0.43220  varnorm=0.3882 std_match=0.0017 tail=0.0846  (425.5/s)
+step   3500  loss 0.44270  varnorm=0.3816 std_match=0.0022 tail=0.1179  (427.4/s)
+step   3600  loss 0.34205  varnorm=0.3021 std_match=0.0016 tail=0.0766  (428.5/s)
+step   3700  loss 0.43772  varnorm=0.3808 std_match=0.0028 tail=0.1083  (428.3/s)
+step   3800  loss 0.46795  varnorm=0.4037 std_match=0.0027 tail=0.1230  (429.0/s)
+step   3900  loss 0.45313  varnorm=0.4029 std_match=0.0017 tail=0.0971  (429.8/s)
+step   4000  loss 0.33929  varnorm=0.3044 std_match=0.0012 tail=0.0675  (430.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0513 (gate <0.10) [PASS]
+  ratio p95:  0.1760
+  R² ≥ 0.7 fraction: 0.314 (gate ≥0.80) [FAIL]
+  R² median: 0.645
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0412 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0568 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0544 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0632 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0253 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0578 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  JawRight                 1.26577
+  MouthRollUpper           1.10098
+  MouthRollLower           0.95869
+  MouthPressRight          0.88332
+  MouthRight               0.87758
+  MouthPressLeft           0.82405
+  BrowInnerUp              0.69769
+  EyeSquintLeft            0.69275
+  MouthLeft                0.66801
+  LeftEyeRoll              0.64666
+=== Bottom sensitivity ===
+  EyeWideLeft              0.14913
+  BrowDownRight            0.14773
+  EyeLookUpLeft            0.12854
+  NoseSneerRight           0.10457
+  LeftEyePitch             0.10046
+  [eval@4000] ratio=0.05129 R²≥0.7=0.314 *BEST_RATIO+BEST_R2*
+step   4100  loss 0.44576  varnorm=0.3964 std_match=0.0018 tail=0.0952  (424.7/s)
+step   4200  loss 0.41056  varnorm=0.3647 std_match=0.0014 tail=0.0889  (424.6/s)
+step   4300  loss 0.46299  varnorm=0.4010 std_match=0.0020 tail=0.1199  (422.6/s)
+step   4400  loss 0.33105  varnorm=0.2944 std_match=0.0015 tail=0.0704  (421.8/s)
+step   4500  loss 0.41788  varnorm=0.3602 std_match=0.0028 tail=0.1098  (423.6/s)
+step   4600  loss 0.38733  varnorm=0.3425 std_match=0.0016 tail=0.0866  (424.6/s)
+step   4700  loss 0.38131  varnorm=0.3368 std_match=0.0015 tail=0.0861  (426.2/s)
+step   4800  loss 0.31696  varnorm=0.2848 std_match=0.0014 tail=0.0616  (425.4/s)
+step   4900  loss 0.36040  varnorm=0.3178 std_match=0.0019 tail=0.0814  (426.5/s)
+step   5000  loss 0.38106  varnorm=0.3331 std_match=0.0018 tail=0.0923  (427.4/s)
+step   5100  loss 0.29213  varnorm=0.2582 std_match=0.0015 tail=0.0648  (427.4/s)
+step   5200  loss 0.35465  varnorm=0.3145 std_match=0.0014 tail=0.0774  (428.4/s)
+step   5300  loss 0.38914  varnorm=0.3418 std_match=0.0016 tail=0.0913  (428.8/s)
+step   5400  loss 0.39233  varnorm=0.3499 std_match=0.0014 tail=0.0820  (428.7/s)
+step   5500  loss 0.39285  varnorm=0.3368 std_match=0.0015 tail=0.1091  (429.0/s)
+step   5600  loss 0.31037  varnorm=0.2788 std_match=0.0012 tail=0.0608  (430.2/s)
+step   5700  loss 0.37102  varnorm=0.3257 std_match=0.0014 tail=0.0878  (430.8/s)
+step   5800  loss 0.33197  varnorm=0.2971 std_match=0.0010 tail=0.0678  (431.9/s)
+step   5900  loss 0.30620  varnorm=0.2642 std_match=0.0014 tail=0.0812  (433.2/s)
+step   6000  loss 0.34264  varnorm=0.2965 std_match=0.0010 tail=0.0903  (434.2/s)
+step   6100  loss 0.26369  varnorm=0.2367 std_match=0.0010 tail=0.0519  (435.3/s)
+step   6200  loss 0.37339  varnorm=0.3295 std_match=0.0022 tail=0.0835  (436.4/s)
+step   6300  loss 0.33101  varnorm=0.2893 std_match=0.0013 tail=0.0810  (437.3/s)
+step   6400  loss 0.28499  varnorm=0.2576 std_match=0.0010 tail=0.0528  (438.7/s)
+step   6500  loss 0.26214  varnorm=0.2366 std_match=0.0009 tail=0.0493  (439.1/s)
+step   6600  loss 0.31575  varnorm=0.2804 std_match=0.0009 tail=0.0688  (439.3/s)
+step   6700  loss 0.31625  varnorm=0.2756 std_match=0.0016 tail=0.0781  (439.3/s)
+step   6800  loss 0.25595  varnorm=0.2346 std_match=0.0005 tail=0.0416  (440.4/s)
+step   6900  loss 0.31467  varnorm=0.2770 std_match=0.0009 tail=0.0735  (441.5/s)
+step   7000  loss 0.25086  varnorm=0.2279 std_match=0.0007 tail=0.0447  (442.7/s)
+step   7100  loss 0.30301  varnorm=0.2743 std_match=0.0012 tail=0.0550  (443.3/s)
+step   7200  loss 0.29419  varnorm=0.2699 std_match=0.0007 tail=0.0471  (443.8/s)
+step   7300  loss 0.24228  varnorm=0.2173 std_match=0.0010 tail=0.0480  (444.0/s)
+step   7400  loss 0.29834  varnorm=0.2685 std_match=0.0007 tail=0.0583  (444.9/s)
+step   7500  loss 0.25503  varnorm=0.2338 std_match=0.0006 tail=0.0413  (445.5/s)
+step   7600  loss 0.30248  varnorm=0.2718 std_match=0.0011 tail=0.0590  (445.8/s)
+step   7700  loss 0.23497  varnorm=0.2149 std_match=0.0007 tail=0.0387  (446.5/s)
+step   7800  loss 0.28236  varnorm=0.2500 std_match=0.0012 tail=0.0623  (447.0/s)
+step   7900  loss 0.31134  varnorm=0.2825 std_match=0.0007 tail=0.0564  (446.5/s)
+step   8000  loss 0.29571  varnorm=0.2629 std_match=0.0012 tail=0.0633  (446.5/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0392 (gate <0.10) [PASS]
+  ratio p95:  0.1281
+  R² ≥ 0.7 fraction: 0.625 (gate ≥0.80) [FAIL]
+  R² median: 0.729
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0279 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0371 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0368 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0454 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0152 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0405 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthRollUpper           1.19845
+  JawRight                 1.16188
+  BrowInnerUp              0.85959
+  LeftEyeRoll              0.82822
+  EyeSquintLeft            0.81137
+  MouthRight               0.77078
+  MouthPressRight          0.75214
+  EyeLookOutLeft           0.73822
+  EyeSquintRight           0.72246
+  MouthRollLower           0.70616
+=== Bottom sensitivity ===
+  MouthLowerDownLeft       0.15575
+  BrowDownRight            0.14752
+  MouthStretchRight        0.14415
+  BrowDownLeft             0.13948
+  LeftEyePitch             0.09827
+  [eval@8000] ratio=0.03921 R²≥0.7=0.625 *BEST_RATIO+BEST_R2*
+step   8100  loss 0.21774  varnorm=0.2013 std_match=0.0006 tail=0.0317  (445.9/s)
+step   8200  loss 0.28090  varnorm=0.2565 std_match=0.0006 tail=0.0475  (446.5/s)
+step   8300  loss 0.27874  varnorm=0.2503 std_match=0.0007 tail=0.0554  (446.4/s)
+step   8400  loss 0.23415  varnorm=0.2139 std_match=0.0007 tail=0.0390  (445.8/s)
+step   8500  loss 0.28733  varnorm=0.2567 std_match=0.0010 tail=0.0593  (444.8/s)
+step   8600  loss 0.25194  varnorm=0.2226 std_match=0.0007 tail=0.0573  (445.0/s)
+step   8700  loss 0.28453  varnorm=0.2484 std_match=0.0012 tail=0.0699  (445.3/s)
+step   8800  loss 0.24596  varnorm=0.2189 std_match=0.0007 tail=0.0528  (445.8/s)
+step   8900  loss 0.22818  varnorm=0.2087 std_match=0.0007 tail=0.0375  (445.5/s)
+step   9000  loss 0.25195  varnorm=0.2299 std_match=0.0009 tail=0.0423  (445.0/s)
+step   9100  loss 0.25833  varnorm=0.2330 std_match=0.0006 tail=0.0494  (445.0/s)
+step   9200  loss 0.27442  varnorm=0.2418 std_match=0.0008 tail=0.0635  (445.7/s)
+step   9300  loss 0.21566  varnorm=0.1989 std_match=0.0005 tail=0.0326  (446.1/s)
+step   9400  loss 0.26206  varnorm=0.2342 std_match=0.0009 tail=0.0541  (446.6/s)
+step   9500  loss 0.30015  varnorm=0.2679 std_match=0.0013 tail=0.0619  (446.5/s)
+step   9600  loss 0.22116  varnorm=0.2010 std_match=0.0006 tail=0.0391  (446.1/s)
+step   9700  loss 0.24351  varnorm=0.2153 std_match=0.0008 tail=0.0547  (446.2/s)
+step   9800  loss 0.23567  varnorm=0.2149 std_match=0.0007 tail=0.0400  (444.9/s)
+step   9900  loss 0.21775  varnorm=0.1984 std_match=0.0008 tail=0.0372  (444.8/s)
+step  10000  loss 0.21632  varnorm=0.1987 std_match=0.0005 tail=0.0342  (445.1/s)
+step  10100  loss 0.25963  varnorm=0.2344 std_match=0.0007 tail=0.0490  (445.5/s)
+step  10200  loss 0.26586  varnorm=0.2392 std_match=0.0008 tail=0.0516  (446.1/s)
+step  10300  loss 0.21281  varnorm=0.1939 std_match=0.0007 tail=0.0365  (446.5/s)
+step  10400  loss 0.26071  varnorm=0.2314 std_match=0.0008 tail=0.0571  (446.9/s)
+step  10500  loss 0.22525  varnorm=0.2005 std_match=0.0010 tail=0.0475  (447.7/s)
+step  10600  loss 0.22502  varnorm=0.2079 std_match=0.0004 tail=0.0333  (448.4/s)
+step  10700  loss 0.24953  varnorm=0.2174 std_match=0.0007 tail=0.0627  (448.8/s)
+step  10800  loss 0.23556  varnorm=0.2089 std_match=0.0007 tail=0.0519  (448.7/s)
+step  10900  loss 0.19056  varnorm=0.1750 std_match=0.0006 tail=0.0299  (448.6/s)
+step  11000  loss 0.25581  varnorm=0.2330 std_match=0.0006 tail=0.0443  (449.3/s)
+step  11100  loss 0.24142  varnorm=0.2185 std_match=0.0006 tail=0.0448  (450.0/s)
+step  11200  loss 0.25481  varnorm=0.2241 std_match=0.0010 tail=0.0593  (450.2/s)
+step  11300  loss 0.18979  varnorm=0.1730 std_match=0.0005 tail=0.0327  (450.3/s)
+step  11400  loss 0.22149  varnorm=0.1992 std_match=0.0006 tail=0.0434  (450.4/s)
+step  11500  loss 0.20298  varnorm=0.1839 std_match=0.0005 tail=0.0372  (450.2/s)
+step  11600  loss 0.25661  varnorm=0.2290 std_match=0.0010 tail=0.0532  (450.8/s)
+step  11700  loss 0.23733  varnorm=0.2140 std_match=0.0006 tail=0.0455  (451.7/s)
+step  11800  loss 0.20641  varnorm=0.1848 std_match=0.0007 tail=0.0419  (451.9/s)
+step  11900  loss 0.20126  varnorm=0.1885 std_match=0.0003 tail=0.0249  (452.6/s)
+step  12000  loss 0.19168  varnorm=0.1745 std_match=0.0004 tail=0.0336  (453.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0325 (gate <0.10) [PASS]
+  ratio p95:  0.0953
+  R² ≥ 0.7 fraction: 0.803 (gate ≥0.80) [PASS]
+  R² median: 0.772
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0235 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0274 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0279 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0349 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0109 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0318 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.24365
+  MouthRollUpper           1.18090
+  JawRight                 1.15591
+  BrowInnerUp              0.99765
+  MouthPressRight          0.84810
+  MouthRight               0.84609
+  EyeSquintRight           0.82254
+  EyeSquintLeft            0.80038
+  MouthUpperUpRight        0.78283
+  EyeLookOutLeft           0.76420
+=== Bottom sensitivity ===
+  EyeWideRight             0.17075
+  EyeWideLeft              0.13540
+  LeftEyePitch             0.13258
+  MouthLowerDownLeft       0.13100
+  BrowDownLeft             0.10723
+  [eval@12000] ratio=0.03250 R²≥0.7=0.803 *BEST_RATIO+BEST_R2*
+step  12100  loss 0.22881  varnorm=0.2076 std_match=0.0004 tail=0.0418  (452.5/s)
+step  12200  loss 0.22188  varnorm=0.1981 std_match=0.0008 tail=0.0458  (453.2/s)
+step  12300  loss 0.24524  varnorm=0.2218 std_match=0.0007 tail=0.0454  (453.4/s)
+step  12400  loss 0.19455  varnorm=0.1765 std_match=0.0006 tail=0.0349  (453.1/s)
+step  12500  loss 0.17326  varnorm=0.1596 std_match=0.0004 tail=0.0266  (452.5/s)
+step  12600  loss 0.22297  varnorm=0.2003 std_match=0.0006 tail=0.0442  (452.2/s)
+step  12700  loss 0.23977  varnorm=0.2158 std_match=0.0006 tail=0.0467  (452.9/s)
+step  12800  loss 0.21662  varnorm=0.1968 std_match=0.0006 tail=0.0384  (453.2/s)
+step  12900  loss 0.15746  varnorm=0.1482 std_match=0.0002 tail=0.0180  (453.3/s)
+step  13000  loss 0.26388  varnorm=0.2268 std_match=0.0005 tail=0.0730  (453.7/s)
+step  13100  loss 0.23325  varnorm=0.2091 std_match=0.0004 tail=0.0474  (454.2/s)
+step  13200  loss 0.16561  varnorm=0.1481 std_match=0.0006 tail=0.0338  (454.6/s)
+step  13300  loss 0.16810  varnorm=0.1550 std_match=0.0004 tail=0.0253  (455.2/s)
+step  13400  loss 0.17996  varnorm=0.1633 std_match=0.0003 tail=0.0326  (455.9/s)
+step  13500  loss 0.17905  varnorm=0.1641 std_match=0.0003 tail=0.0293  (456.0/s)
+step  13600  loss 0.17951  varnorm=0.1628 std_match=0.0004 tail=0.0326  (456.5/s)
+step  13700  loss 0.16922  varnorm=0.1553 std_match=0.0003 tail=0.0272  (456.9/s)
+step  13800  loss 0.15897  varnorm=0.1466 std_match=0.0004 tail=0.0240  (457.3/s)
+step  13900  loss 0.18172  varnorm=0.1674 std_match=0.0005 tail=0.0277  (457.6/s)
+step  14000  loss 0.17314  varnorm=0.1602 std_match=0.0004 tail=0.0251  (457.8/s)
+step  14100  loss 0.17877  varnorm=0.1632 std_match=0.0005 tail=0.0302  (458.4/s)
+step  14200  loss 0.19251  varnorm=0.1757 std_match=0.0004 tail=0.0330  (459.0/s)
+step  14300  loss 0.21029  varnorm=0.1894 std_match=0.0005 tail=0.0406  (459.4/s)
+step  14400  loss 0.20154  varnorm=0.1862 std_match=0.0005 tail=0.0297  (459.8/s)
+step  14500  loss 0.18152  varnorm=0.1692 std_match=0.0003 tail=0.0242  (459.8/s)
+step  14600  loss 0.17415  varnorm=0.1598 std_match=0.0005 tail=0.0277  (459.9/s)
+step  14700  loss 0.18070  varnorm=0.1666 std_match=0.0003 tail=0.0277  (460.0/s)
+step  14800  loss 0.14858  varnorm=0.1399 std_match=0.0002 tail=0.0170  (460.4/s)
+step  14900  loss 0.17372  varnorm=0.1588 std_match=0.0005 tail=0.0288  (460.7/s)
+step  15000  loss 0.17688  varnorm=0.1620 std_match=0.0003 tail=0.0291  (461.1/s)
+step  15100  loss 0.19298  varnorm=0.1756 std_match=0.0004 tail=0.0338  (461.2/s)
+step  15200  loss 0.17706  varnorm=0.1602 std_match=0.0005 tail=0.0326  (461.2/s)
+step  15300  loss 0.19244  varnorm=0.1753 std_match=0.0004 tail=0.0335  (461.4/s)
+step  15400  loss 0.17958  varnorm=0.1634 std_match=0.0004 tail=0.0314  (461.4/s)
+step  15500  loss 0.15361  varnorm=0.1438 std_match=0.0004 tail=0.0188  (461.9/s)
+step  15600  loss 0.16576  varnorm=0.1488 std_match=0.0003 tail=0.0333  (462.3/s)
+step  15700  loss 0.17422  varnorm=0.1558 std_match=0.0007 tail=0.0355  (462.7/s)
+step  15800  loss 0.15205  varnorm=0.1404 std_match=0.0003 tail=0.0227  (463.0/s)
+step  15900  loss 0.13461  varnorm=0.1252 std_match=0.0002 tail=0.0184  (463.1/s)
+step  16000  loss 0.13317  varnorm=0.1252 std_match=0.0003 tail=0.0154  (463.5/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0280 (gate <0.10) [PASS]
+  ratio p95:  0.0737
+  R² ≥ 0.7 fraction: 0.869 (gate ≥0.80) [PASS]
+  R² median: 0.801
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0198 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0209 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0246 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0276 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0106 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0260 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           3.32661
+  MouthRollUpper           1.19700
+  JawRight                 1.13646
+  MouthPressRight          0.99029
+  BrowInnerUp              0.97416
+  MouthUpperUpRight        0.93449
+  MouthRollLower           0.85254
+  EyeSquintLeft            0.78540
+  LeftEyeRoll              0.75641
+  EyeSquintRight           0.73316
+=== Bottom sensitivity ===
+  EyeWideRight             0.18637
+  LeftEyePitch             0.18012
+  EyeWideLeft              0.13839
+  MouthLowerDownLeft       0.13044
+  BrowDownLeft             0.10598
+  [eval@16000] ratio=0.02800 R²≥0.7=0.869 *BEST_RATIO+BEST_R2*
+step  16100  loss 0.16743  varnorm=0.1539 std_match=0.0006 tail=0.0260  (462.9/s)
+step  16200  loss 0.19228  varnorm=0.1665 std_match=0.0003 tail=0.0509  (463.4/s)
+step  16300  loss 0.17848  varnorm=0.1605 std_match=0.0004 tail=0.0351  (463.6/s)
+step  16400  loss 0.16169  varnorm=0.1464 std_match=0.0004 tail=0.0297  (463.0/s)
+step  16500  loss 0.17006  varnorm=0.1558 std_match=0.0004 tail=0.0276  (462.5/s)
+step  16600  loss 0.15756  varnorm=0.1462 std_match=0.0002 tail=0.0223  (462.1/s)
+step  16700  loss 0.13933  varnorm=0.1300 std_match=0.0002 tail=0.0184  (462.6/s)
+step  16800  loss 0.20007  varnorm=0.1741 std_match=0.0004 tail=0.0512  (463.0/s)
+step  16900  loss 0.20250  varnorm=0.1811 std_match=0.0005 tail=0.0418  (463.3/s)
+step  17000  loss 0.15869  varnorm=0.1459 std_match=0.0003 tail=0.0250  (463.6/s)
+step  17100  loss 0.16793  varnorm=0.1546 std_match=0.0004 tail=0.0257  (464.0/s)
+step  17200  loss 0.16962  varnorm=0.1548 std_match=0.0004 tail=0.0288  (464.5/s)
+step  17300  loss 0.14264  varnorm=0.1325 std_match=0.0003 tail=0.0197  (465.0/s)
+step  17400  loss 0.16217  varnorm=0.1491 std_match=0.0004 tail=0.0255  (465.2/s)
+step  17500  loss 0.16595  varnorm=0.1537 std_match=0.0003 tail=0.0238  (465.0/s)
+step  17600  loss 0.15931  varnorm=0.1497 std_match=0.0003 tail=0.0186  (465.2/s)
+step  17700  loss 0.20242  varnorm=0.1810 std_match=0.0005 tail=0.0418  (465.2/s)
+step  17800  loss 0.13951  varnorm=0.1317 std_match=0.0003 tail=0.0150  (465.2/s)
+step  17900  loss 0.12619  varnorm=0.1186 std_match=0.0003 tail=0.0146  (465.5/s)
+step  18000  loss 0.16831  varnorm=0.1524 std_match=0.0003 tail=0.0313  (465.7/s)
+step  18100  loss 0.13453  varnorm=0.1237 std_match=0.0003 tail=0.0212  (465.9/s)
+step  18200  loss 0.16079  varnorm=0.1470 std_match=0.0003 tail=0.0270  (465.9/s)
+step  18300  loss 0.15170  varnorm=0.1394 std_match=0.0003 tail=0.0240  (466.2/s)
+step  18400  loss 0.14073  varnorm=0.1293 std_match=0.0003 tail=0.0223  (466.3/s)
+step  18500  loss 0.14001  varnorm=0.1279 std_match=0.0005 tail=0.0232  (466.5/s)
+step  18600  loss 0.12886  varnorm=0.1202 std_match=0.0002 tail=0.0169  (466.8/s)
+step  18700  loss 0.15904  varnorm=0.1440 std_match=0.0004 tail=0.0291  (466.7/s)
+step  18800  loss 0.13582  varnorm=0.1270 std_match=0.0002 tail=0.0173  (466.6/s)
+step  18900  loss 0.15892  varnorm=0.1452 std_match=0.0004 tail=0.0266  (466.6/s)
+step  19000  loss 0.16230  varnorm=0.1485 std_match=0.0004 tail=0.0267  (466.7/s)
+step  19100  loss 0.12880  varnorm=0.1205 std_match=0.0002 tail=0.0162  (467.1/s)
+step  19200  loss 0.13247  varnorm=0.1224 std_match=0.0002 tail=0.0196  (466.8/s)
+step  19300  loss 0.13167  varnorm=0.1183 std_match=0.0005 tail=0.0258  (466.8/s)
+step  19400  loss 0.14348  varnorm=0.1318 std_match=0.0004 tail=0.0226  (466.8/s)
+step  19500  loss 0.16492  varnorm=0.1497 std_match=0.0003 tail=0.0299  (467.1/s)
+step  19600  loss 0.12533  varnorm=0.1172 std_match=0.0002 tail=0.0159  (467.4/s)
+step  19700  loss 0.16851  varnorm=0.1522 std_match=0.0005 tail=0.0316  (467.2/s)
+step  19800  loss 0.13700  varnorm=0.1263 std_match=0.0003 tail=0.0209  (467.4/s)
+step  19900  loss 0.11368  varnorm=0.1070 std_match=0.0001 tail=0.0132  (467.7/s)
+step  20000  loss 0.17200  varnorm=0.1536 std_match=0.0006 tail=0.0356  (467.9/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0252 (gate <0.10) [PASS]
+  ratio p95:  0.0676
+  R² ≥ 0.7 fraction: 0.936 (gate ≥0.80) [PASS]
+  R² median: 0.819
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0150 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0201 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0224 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0230 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0091 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0226 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           4.87735
+  MouthRollUpper           1.25539
+  JawRight                 1.08607
+  MouthUpperUpRight        1.00578
+  BrowInnerUp              0.98055
+  MouthPressRight          0.89460
+  LeftEyeRoll              0.87130
+  MouthRollLower           0.83893
+  MouthStretchLeft         0.79318
+  EyeSquintLeft            0.77881
+=== Bottom sensitivity ===
+  BrowDownRight            0.18260
+  RightEyeYaw              0.17583
+  EyeWideLeft              0.15134
+  MouthLowerDownLeft       0.13851
+  BrowDownLeft             0.09306
+  [eval@20000] ratio=0.02518 R²≥0.7=0.936 *BEST_RATIO+BEST_R2*
+step  20100  loss 0.13854  varnorm=0.1280 std_match=0.0002 tail=0.0205  (467.1/s)
+step  20200  loss 0.11974  varnorm=0.1124 std_match=0.0002 tail=0.0143  (466.9/s)
+step  20300  loss 0.13139  varnorm=0.1214 std_match=0.0003 tail=0.0194  (466.9/s)
+step  20400  loss 0.14834  varnorm=0.1362 std_match=0.0003 tail=0.0236  (466.5/s)
+step  20500  loss 0.14825  varnorm=0.1339 std_match=0.0004 tail=0.0278  (465.8/s)
+step  20600  loss 0.11140  varnorm=0.1035 std_match=0.0002 tail=0.0154  (465.2/s)
+step  20700  loss 0.13635  varnorm=0.1276 std_match=0.0002 tail=0.0170  (465.2/s)
+step  20800  loss 0.14997  varnorm=0.1398 std_match=0.0004 tail=0.0195  (465.5/s)
+step  20900  loss 0.16340  varnorm=0.1475 std_match=0.0003 tail=0.0313  (465.7/s)
+step  21000  loss 0.13072  varnorm=0.1219 std_match=0.0002 tail=0.0173  (465.8/s)
+step  21100  loss 0.13824  varnorm=0.1284 std_match=0.0003 tail=0.0191  (465.8/s)
+step  21200  loss 0.13462  varnorm=0.1254 std_match=0.0002 tail=0.0181  (465.6/s)
+step  21300  loss 0.11722  varnorm=0.1073 std_match=0.0003 tail=0.0191  (466.0/s)
+step  21400  loss 0.12218  varnorm=0.1159 std_match=0.0001 tail=0.0123  (466.2/s)
+step  21500  loss 0.12911  varnorm=0.1201 std_match=0.0002 tail=0.0175  (466.2/s)
+step  21600  loss 0.12404  varnorm=0.1147 std_match=0.0003 tail=0.0182  (465.9/s)
+step  21700  loss 0.12033  varnorm=0.1131 std_match=0.0003 tail=0.0140  (466.0/s)
+step  21800  loss 0.11450  varnorm=0.1075 std_match=0.0001 tail=0.0138  (466.2/s)
+step  21900  loss 0.12142  varnorm=0.1145 std_match=0.0002 tail=0.0136  (466.3/s)
+step  22000  loss 0.13694  varnorm=0.1251 std_match=0.0003 tail=0.0231  (466.3/s)
+step  22100  loss 0.11291  varnorm=0.1047 std_match=0.0002 tail=0.0161  (466.2/s)
+step  22200  loss 0.13855  varnorm=0.1293 std_match=0.0003 tail=0.0179  (466.1/s)
+step  22300  loss 0.13156  varnorm=0.1230 std_match=0.0003 tail=0.0165  (466.3/s)
+step  22400  loss 0.11270  varnorm=0.1026 std_match=0.0001 tail=0.0199  (466.2/s)
+step  22500  loss 0.12872  varnorm=0.1212 std_match=0.0002 tail=0.0148  (466.3/s)
+step  22600  loss 0.13172  varnorm=0.1208 std_match=0.0002 tail=0.0215  (466.4/s)
+step  22700  loss 0.11662  varnorm=0.1083 std_match=0.0002 tail=0.0162  (466.8/s)
+step  22800  loss 0.14663  varnorm=0.1363 std_match=0.0002 tail=0.0203  (466.9/s)
+step  22900  loss 0.11867  varnorm=0.1130 std_match=0.0001 tail=0.0112  (467.2/s)
+step  23000  loss 0.10993  varnorm=0.1024 std_match=0.0002 tail=0.0147  (467.3/s)
+step  23100  loss 0.12669  varnorm=0.1163 std_match=0.0002 tail=0.0202  (467.3/s)
+step  23200  loss 0.14323  varnorm=0.1316 std_match=0.0004 tail=0.0224  (467.4/s)
+step  23300  loss 0.12224  varnorm=0.1135 std_match=0.0002 tail=0.0171  (467.7/s)
+step  23400  loss 0.10829  varnorm=0.1013 std_match=0.0001 tail=0.0138  (467.8/s)
+step  23500  loss 0.12719  varnorm=0.1205 std_match=0.0001 tail=0.0131  (468.0/s)
+step  23600  loss 0.12918  varnorm=0.1199 std_match=0.0004 tail=0.0178  (468.2/s)
+step  23700  loss 0.11931  varnorm=0.1116 std_match=0.0002 tail=0.0150  (468.2/s)
+step  23800  loss 0.13751  varnorm=0.1271 std_match=0.0002 tail=0.0204  (468.3/s)
+step  23900  loss 0.11147  varnorm=0.1034 std_match=0.0002 tail=0.0157  (468.3/s)
+step  24000  loss 0.12758  varnorm=0.1167 std_match=0.0002 tail=0.0213  (468.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0232 (gate <0.10) [PASS]
+  ratio p95:  0.0609
+  R² ≥ 0.7 fraction: 0.971 (gate ≥0.80) [PASS]
+  R² median: 0.832
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0144 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0181 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0206 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0210 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0093 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0211 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.16353
+  MouthRollUpper           1.13185
+  BrowInnerUp              1.05519
+  JawRight                 1.00334
+  LeftEyeRoll              0.98593
+  MouthUpperUpRight        0.94458
+  MouthPressRight          0.85756
+  MouthRollLower           0.83735
+  EyeSquintLeft            0.75668
+  EyeSquintRight           0.74906
+=== Bottom sensitivity ===
+  EyeWideRight             0.17664
+  BrowDownRight            0.16717
+  MouthLowerDownLeft       0.14059
+  EyeWideLeft              0.13858
+  BrowDownLeft             0.08651
+  [eval@24000] ratio=0.02323 R²≥0.7=0.971 *BEST_RATIO+BEST_R2*
+step  24100  loss 0.11289  varnorm=0.1074 std_match=0.0002 tail=0.0106  (467.8/s)
+step  24200  loss 0.13216  varnorm=0.1220 std_match=0.0003 tail=0.0197  (467.7/s)
+step  24300  loss 0.13548  varnorm=0.1222 std_match=0.0003 tail=0.0260  (467.8/s)
+step  24400  loss 0.15148  varnorm=0.1388 std_match=0.0003 tail=0.0249  (467.2/s)
+step  24500  loss 0.11754  varnorm=0.1098 std_match=0.0003 tail=0.0150  (466.6/s)
+step  24600  loss 0.10489  varnorm=0.0978 std_match=0.0002 tail=0.0138  (466.0/s)
+step  24700  loss 0.11481  varnorm=0.1070 std_match=0.0001 tail=0.0153  (465.7/s)
+step  24800  loss 0.11662  varnorm=0.1074 std_match=0.0002 tail=0.0181  (465.4/s)
+step  24900  loss 0.11027  varnorm=0.1013 std_match=0.0002 tail=0.0177  (465.3/s)
+step  25000  loss 0.10549  varnorm=0.0983 std_match=0.0002 tail=0.0140  (464.7/s)
+step  25100  loss 0.09808  varnorm=0.0929 std_match=0.0001 tail=0.0101  (462.8/s)
+step  25200  loss 0.10703  varnorm=0.1006 std_match=0.0002 tail=0.0126  (463.1/s)
+step  25300  loss 0.11183  varnorm=0.1049 std_match=0.0001 tail=0.0136  (463.1/s)
+step  25400  loss 0.12117  varnorm=0.1126 std_match=0.0003 tail=0.0166  (463.3/s)
+step  25500  loss 0.12326  varnorm=0.1119 std_match=0.0003 tail=0.0221  (463.5/s)
+step  25600  loss 0.11671  varnorm=0.1084 std_match=0.0002 tail=0.0163  (463.5/s)
+step  25700  loss 0.11560  varnorm=0.1054 std_match=0.0003 tail=0.0198  (463.6/s)
+step  25800  loss 0.11196  varnorm=0.1039 std_match=0.0002 tail=0.0158  (463.6/s)
+step  25900  loss 0.11426  varnorm=0.1051 std_match=0.0003 tail=0.0177  (463.6/s)
+step  26000  loss 0.11891  varnorm=0.1104 std_match=0.0003 tail=0.0165  (463.4/s)
+step  26100  loss 0.13252  varnorm=0.1163 std_match=0.0002 tail=0.0319  (463.6/s)
+step  26200  loss 0.10823  varnorm=0.0991 std_match=0.0002 tail=0.0177  (463.7/s)
+step  26300  loss 0.10309  varnorm=0.0968 std_match=0.0002 tail=0.0123  (463.8/s)
+step  26400  loss 0.15507  varnorm=0.1395 std_match=0.0004 tail=0.0305  (463.9/s)
+step  26500  loss 0.10257  varnorm=0.0960 std_match=0.0002 tail=0.0126  (464.1/s)
+step  26600  loss 0.10470  varnorm=0.0992 std_match=0.0002 tail=0.0106  (464.3/s)
+step  26700  loss 0.10823  varnorm=0.1023 std_match=0.0002 tail=0.0116  (464.5/s)
+step  26800  loss 0.10751  varnorm=0.1014 std_match=0.0002 tail=0.0119  (464.6/s)
+step  26900  loss 0.10193  varnorm=0.0960 std_match=0.0002 tail=0.0113  (464.6/s)
+step  27000  loss 0.11821  varnorm=0.1081 std_match=0.0001 tail=0.0199  (464.5/s)
+step  27100  loss 0.10386  varnorm=0.0976 std_match=0.0002 tail=0.0121  (464.6/s)
+step  27200  loss 0.09736  varnorm=0.0927 std_match=0.0001 tail=0.0090  (464.5/s)
+step  27300  loss 0.09207  varnorm=0.0873 std_match=0.0001 tail=0.0094  (464.5/s)
+step  27400  loss 0.09951  varnorm=0.0940 std_match=0.0002 tail=0.0107  (464.5/s)
+step  27500  loss 0.09524  varnorm=0.0902 std_match=0.0001 tail=0.0098  (464.6/s)
+step  27600  loss 0.12177  varnorm=0.1103 std_match=0.0002 tail=0.0225  (464.7/s)
+step  27700  loss 0.09972  varnorm=0.0943 std_match=0.0001 tail=0.0105  (464.9/s)
+step  27800  loss 0.11355  varnorm=0.1068 std_match=0.0001 tail=0.0133  (465.1/s)
+step  27900  loss 0.09919  varnorm=0.0942 std_match=0.0002 tail=0.0096  (465.3/s)
+step  28000  loss 0.09412  varnorm=0.0891 std_match=0.0001 tail=0.0098  (465.4/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0214 (gate <0.10) [PASS]
+  ratio p95:  0.0570
+  R² ≥ 0.7 fraction: 0.988 (gate ≥0.80) [PASS]
+  R² median: 0.845
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0127 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0169 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0183 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0190 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0084 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0191 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.36143
+  LeftEyeRoll              1.05796
+  BrowInnerUp              1.03369
+  MouthRollUpper           1.00411
+  MouthPressRight          0.91472
+  MouthUpperUpRight        0.89496
+  JawRight                 0.88614
+  MouthRollLower           0.83620
+  EyeSquintRight           0.82407
+  MouthStretchLeft         0.82021
+=== Bottom sensitivity ===
+  EyeWideRight             0.17692
+  BrowDownRight            0.16015
+  EyeWideLeft              0.14977
+  MouthLowerDownLeft       0.13164
+  BrowDownLeft             0.08789
+  [eval@28000] ratio=0.02139 R²≥0.7=0.988 *BEST_RATIO+BEST_R2*
+step  28100  loss 0.12297  varnorm=0.1126 std_match=0.0003 tail=0.0202  (465.3/s)
+step  28200  loss 0.08506  varnorm=0.0806 std_match=0.0001 tail=0.0088  (465.5/s)
+step  28300  loss 0.09559  varnorm=0.0898 std_match=0.0002 tail=0.0112  (465.7/s)
+step  28400  loss 0.11252  varnorm=0.1028 std_match=0.0002 tail=0.0189  (465.5/s)
+step  28500  loss 0.10712  varnorm=0.0988 std_match=0.0002 tail=0.0162  (465.1/s)
+step  28600  loss 0.08574  varnorm=0.0819 std_match=0.0002 tail=0.0073  (464.9/s)
+step  28700  loss 0.10106  varnorm=0.0950 std_match=0.0002 tail=0.0118  (464.5/s)
+step  28800  loss 0.09911  varnorm=0.0917 std_match=0.0002 tail=0.0144  (464.4/s)
+step  28900  loss 0.10097  varnorm=0.0945 std_match=0.0002 tail=0.0127  (464.7/s)
+step  29000  loss 0.11191  varnorm=0.1025 std_match=0.0001 tail=0.0185  (464.9/s)
+step  29100  loss 0.10876  varnorm=0.1016 std_match=0.0002 tail=0.0140  (465.1/s)
+step  29200  loss 0.09062  varnorm=0.0861 std_match=0.0001 tail=0.0088  (465.3/s)
+step  29300  loss 0.08490  varnorm=0.0802 std_match=0.0002 tail=0.0090  (465.5/s)
+step  29400  loss 0.11396  varnorm=0.1063 std_match=0.0003 tail=0.0148  (465.6/s)
+step  29500  loss 0.11485  varnorm=0.1071 std_match=0.0004 tail=0.0148  (465.8/s)
+step  29600  loss 0.12950  varnorm=0.1187 std_match=0.0002 tail=0.0213  (466.1/s)
+step  29700  loss 0.10020  varnorm=0.0933 std_match=0.0002 tail=0.0133  (466.4/s)
+step  29800  loss 0.08536  varnorm=0.0808 std_match=0.0001 tail=0.0090  (466.7/s)
+step  29900  loss 0.09080  varnorm=0.0851 std_match=0.0001 tail=0.0112  (467.0/s)
+step  30000  loss 0.08071  varnorm=0.0763 std_match=0.0001 tail=0.0086  (467.2/s)
+step  30100  loss 0.09551  varnorm=0.0886 std_match=0.0002 tail=0.0136  (467.4/s)
+step  30200  loss 0.09745  varnorm=0.0917 std_match=0.0002 tail=0.0111  (467.5/s)
+step  30300  loss 0.09608  varnorm=0.0908 std_match=0.0002 tail=0.0102  (467.8/s)
+step  30400  loss 0.09110  varnorm=0.0858 std_match=0.0002 tail=0.0102  (468.0/s)
+step  30500  loss 0.10480  varnorm=0.0975 std_match=0.0002 tail=0.0142  (468.2/s)
+step  30600  loss 0.09827  varnorm=0.0925 std_match=0.0002 tail=0.0113  (468.4/s)
+step  30700  loss 0.10519  varnorm=0.0988 std_match=0.0001 tail=0.0125  (468.7/s)
+step  30800  loss 0.09070  varnorm=0.0866 std_match=0.0001 tail=0.0080  (468.8/s)
+step  30900  loss 0.11631  varnorm=0.1058 std_match=0.0003 tail=0.0204  (468.9/s)
+step  31000  loss 0.10611  varnorm=0.0985 std_match=0.0002 tail=0.0148  (469.0/s)
+step  31100  loss 0.11149  varnorm=0.1056 std_match=0.0002 tail=0.0114  (469.2/s)
+step  31200  loss 0.07534  varnorm=0.0716 std_match=0.0001 tail=0.0072  (469.3/s)
+step  31300  loss 0.08975  varnorm=0.0836 std_match=0.0002 tail=0.0119  (469.6/s)
+step  31400  loss 0.09335  varnorm=0.0879 std_match=0.0002 tail=0.0106  (469.7/s)
+step  31500  loss 0.09719  varnorm=0.0911 std_match=0.0001 tail=0.0119  (470.0/s)
+step  31600  loss 0.09688  varnorm=0.0916 std_match=0.0002 tail=0.0102  (470.1/s)
+step  31700  loss 0.10093  varnorm=0.0947 std_match=0.0002 tail=0.0121  (470.3/s)
+step  31800  loss 0.09637  varnorm=0.0905 std_match=0.0001 tail=0.0115  (470.6/s)
+step  31900  loss 0.09729  varnorm=0.0922 std_match=0.0001 tail=0.0099  (470.8/s)
+step  32000  loss 0.10789  varnorm=0.0964 std_match=0.0002 tail=0.0225  (470.7/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0198 (gate <0.10) [PASS]
+  ratio p95:  0.0580
+  R² ≥ 0.7 fraction: 0.994 (gate ≥0.80) [PASS]
+  R² median: 0.855
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0121 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0155 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0170 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0170 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0072 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0175 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.35885
+  LeftEyeRoll              1.47082
+  BrowInnerUp              1.04903
+  MouthPressRight          0.97228
+  MouthStretchLeft         0.92224
+  MouthRollUpper           0.91941
+  JawRight                 0.87001
+  EyeSquintRight           0.83585
+  MouthUpperUpRight        0.83337
+  MouthRollLower           0.81828
+=== Bottom sensitivity ===
+  EyeWideRight             0.18626
+  EyeWideLeft              0.16143
+  BrowDownRight            0.16074
+  MouthLowerDownLeft       0.13038
+  BrowDownLeft             0.08772
+  [eval@32000] ratio=0.01983 R²≥0.7=0.994 *BEST_RATIO+BEST_R2*
+step  32100  loss 0.11638  varnorm=0.1083 std_match=0.0002 tail=0.0158  (469.8/s)
+step  32200  loss 0.10252  varnorm=0.0953 std_match=0.0002 tail=0.0142  (469.9/s)
+step  32300  loss 0.09852  varnorm=0.0913 std_match=0.0002 tail=0.0140  (470.2/s)
+step  32400  loss 0.09558  varnorm=0.0890 std_match=0.0002 tail=0.0128  (470.0/s)
+step  32500  loss 0.08406  varnorm=0.0786 std_match=0.0001 tail=0.0107  (469.6/s)
+step  32600  loss 0.08464  varnorm=0.0801 std_match=0.0002 tail=0.0087  (469.2/s)
+step  32700  loss 0.12210  varnorm=0.1099 std_match=0.0001 tail=0.0241  (468.8/s)
+step  32800  loss 0.08141  varnorm=0.0757 std_match=0.0002 tail=0.0110  (468.6/s)
+step  32900  loss 0.08290  varnorm=0.0782 std_match=0.0001 tail=0.0092  (468.7/s)
+step  33000  loss 0.08609  varnorm=0.0811 std_match=0.0002 tail=0.0097  (468.8/s)
+step  33100  loss 0.10480  varnorm=0.0977 std_match=0.0002 tail=0.0138  (468.6/s)
+step  33200  loss 0.10316  varnorm=0.0965 std_match=0.0001 tail=0.0131  (468.8/s)
+step  33300  loss 0.08710  varnorm=0.0826 std_match=0.0001 tail=0.0088  (469.0/s)
+step  33400  loss 0.08479  varnorm=0.0804 std_match=0.0001 tail=0.0086  (469.2/s)
+step  33500  loss 0.08436  varnorm=0.0801 std_match=0.0001 tail=0.0082  (469.2/s)
+step  33600  loss 0.09396  varnorm=0.0884 std_match=0.0002 tail=0.0107  (469.3/s)
+step  33700  loss 0.07800  varnorm=0.0743 std_match=0.0001 tail=0.0072  (469.4/s)
+step  33800  loss 0.08674  varnorm=0.0825 std_match=0.0001 tail=0.0083  (469.6/s)
+step  33900  loss 0.08224  varnorm=0.0774 std_match=0.0001 tail=0.0094  (469.9/s)
+step  34000  loss 0.08548  varnorm=0.0803 std_match=0.0001 tail=0.0102  (470.0/s)
+step  34100  loss 0.08553  varnorm=0.0806 std_match=0.0002 tail=0.0095  (470.0/s)
+step  34200  loss 0.07614  varnorm=0.0717 std_match=0.0001 tail=0.0087  (470.2/s)
+step  34300  loss 0.08672  varnorm=0.0815 std_match=0.0002 tail=0.0100  (470.5/s)
+step  34400  loss 0.07913  varnorm=0.0750 std_match=0.0001 tail=0.0080  (470.6/s)
+step  34500  loss 0.09378  varnorm=0.0878 std_match=0.0001 tail=0.0117  (470.7/s)
+step  34600  loss 0.09024  varnorm=0.0853 std_match=0.0001 tail=0.0095  (470.7/s)
+step  34700  loss 0.08500  varnorm=0.0809 std_match=0.0001 tail=0.0080  (470.9/s)
+step  34800  loss 0.11015  varnorm=0.1018 std_match=0.0002 tail=0.0164  (471.1/s)
+step  34900  loss 0.09470  varnorm=0.0889 std_match=0.0002 tail=0.0113  (471.2/s)
+step  35000  loss 0.09516  varnorm=0.0860 std_match=0.0002 tail=0.0179  (471.4/s)
+step  35100  loss 0.10172  varnorm=0.0936 std_match=0.0002 tail=0.0159  (471.5/s)
+step  35200  loss 0.10332  varnorm=0.0950 std_match=0.0003 tail=0.0161  (471.4/s)
+step  35300  loss 0.09034  varnorm=0.0849 std_match=0.0002 tail=0.0106  (471.5/s)
+step  35400  loss 0.10320  varnorm=0.0972 std_match=0.0002 tail=0.0117  (471.7/s)
+step  35500  loss 0.08083  varnorm=0.0759 std_match=0.0002 tail=0.0096  (471.9/s)
+step  35600  loss 0.07802  varnorm=0.0742 std_match=0.0001 tail=0.0074  (472.1/s)
+step  35700  loss 0.09759  varnorm=0.0921 std_match=0.0002 tail=0.0105  (472.2/s)
+step  35800  loss 0.08090  varnorm=0.0759 std_match=0.0001 tail=0.0098  (472.3/s)
+step  35900  loss 0.10410  varnorm=0.0943 std_match=0.0001 tail=0.0192  (472.5/s)
+step  36000  loss 0.11336  varnorm=0.1057 std_match=0.0003 tail=0.0148  (472.7/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0184 (gate <0.10) [PASS]
+  ratio p95:  0.0484
+  R² ≥ 0.7 fraction: 0.996 (gate ≥0.80) [PASS]
+  R² median: 0.867
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0112 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0144 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0149 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0155 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0072 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0166 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           4.71069
+  LeftEyeRoll              1.41283
+  BrowInnerUp              1.09922
+  MouthRollUpper           0.91830
+  MouthPressRight          0.91681
+  MouthStretchLeft         0.89502
+  EyeSquintRight           0.88742
+  JawRight                 0.86342
+  MouthUpperUpRight        0.79293
+  MouthRollLower           0.75901
+=== Bottom sensitivity ===
+  MouthPucker              0.18104
+  EyeWideLeft              0.17213
+  BrowDownRight            0.15798
+  MouthLowerDownLeft       0.14471
+  BrowDownLeft             0.09352
+  [eval@36000] ratio=0.01844 R²≥0.7=0.996 *BEST_RATIO+BEST_R2*
+step  36100  loss 0.09980  varnorm=0.0919 std_match=0.0001 tail=0.0155  (472.3/s)
+step  36200  loss 0.09446  varnorm=0.0886 std_match=0.0002 tail=0.0114  (472.4/s)
+step  36300  loss 0.07664  varnorm=0.0728 std_match=0.0001 tail=0.0075  (472.4/s)
+step  36400  loss 0.08495  varnorm=0.0808 std_match=0.0001 tail=0.0081  (471.7/s)
+step  36500  loss 0.07726  varnorm=0.0737 std_match=0.0002 tail=0.0067  (471.1/s)
+step  36600  loss 0.07582  varnorm=0.0717 std_match=0.0001 tail=0.0082  (470.2/s)
+step  36700  loss 0.08860  varnorm=0.0842 std_match=0.0001 tail=0.0086  (469.4/s)
+step  36800  loss 0.08234  varnorm=0.0780 std_match=0.0001 tail=0.0085  (469.0/s)
+step  36900  loss 0.07601  varnorm=0.0722 std_match=0.0001 tail=0.0073  (468.9/s)
+step  37000  loss 0.07631  varnorm=0.0722 std_match=0.0001 tail=0.0080  (468.6/s)
+step  37100  loss 0.07570  varnorm=0.0722 std_match=0.0001 tail=0.0068  (468.4/s)
+step  37200  loss 0.09598  varnorm=0.0895 std_match=0.0002 tail=0.0126  (468.6/s)
+step  37300  loss 0.09200  varnorm=0.0853 std_match=0.0002 tail=0.0130  (468.7/s)
+step  37400  loss 0.08526  varnorm=0.0805 std_match=0.0001 tail=0.0092  (468.7/s)
+step  37500  loss 0.07969  varnorm=0.0761 std_match=0.0002 tail=0.0068  (468.9/s)
+step  37600  loss 0.07465  varnorm=0.0699 std_match=0.0001 tail=0.0093  (469.0/s)
+step  37700  loss 0.09400  varnorm=0.0863 std_match=0.0002 tail=0.0150  (469.1/s)
+step  37800  loss 0.08534  varnorm=0.0815 std_match=0.0001 tail=0.0076  (469.3/s)
+step  37900  loss 0.08222  varnorm=0.0776 std_match=0.0001 tail=0.0091  (469.4/s)
+step  38000  loss 0.07557  varnorm=0.0711 std_match=0.0001 tail=0.0086  (469.5/s)
+step  38100  loss 0.07849  varnorm=0.0740 std_match=0.0001 tail=0.0089  (469.5/s)
+step  38200  loss 0.08713  varnorm=0.0809 std_match=0.0001 tail=0.0121  (469.6/s)
+step  38300  loss 0.06970  varnorm=0.0662 std_match=0.0001 tail=0.0068  (469.7/s)
+step  38400  loss 0.07776  varnorm=0.0736 std_match=0.0001 tail=0.0081  (469.9/s)
+step  38500  loss 0.08261  varnorm=0.0778 std_match=0.0001 tail=0.0094  (469.9/s)
+step  38600  loss 0.09330  varnorm=0.0870 std_match=0.0002 tail=0.0122  (469.9/s)
+step  38700  loss 0.08371  varnorm=0.0788 std_match=0.0001 tail=0.0096  (470.1/s)
+step  38800  loss 0.08498  varnorm=0.0801 std_match=0.0002 tail=0.0094  (470.3/s)
+step  38900  loss 0.07528  varnorm=0.0712 std_match=0.0001 tail=0.0080  (470.5/s)
+step  39000  loss 0.08393  varnorm=0.0785 std_match=0.0001 tail=0.0107  (470.7/s)
+step  39100  loss 0.08250  varnorm=0.0770 std_match=0.0002 tail=0.0106  (470.7/s)
+step  39200  loss 0.08041  varnorm=0.0750 std_match=0.0001 tail=0.0106  (470.8/s)
+step  39300  loss 0.08492  varnorm=0.0801 std_match=0.0001 tail=0.0095  (470.9/s)
+step  39400  loss 0.07621  varnorm=0.0724 std_match=0.0001 tail=0.0074  (470.9/s)
+step  39500  loss 0.07358  varnorm=0.0704 std_match=0.0001 tail=0.0063  (471.1/s)
+step  39600  loss 0.08216  varnorm=0.0767 std_match=0.0001 tail=0.0106  (471.2/s)
+step  39700  loss 0.06845  varnorm=0.0650 std_match=0.0001 tail=0.0067  (471.4/s)
+step  39800  loss 0.07431  varnorm=0.0701 std_match=0.0001 tail=0.0082  (471.6/s)
+step  39900  loss 0.08657  varnorm=0.0799 std_match=0.0001 tail=0.0132  (471.8/s)
+step  40000  loss 0.09411  varnorm=0.0878 std_match=0.0001 tail=0.0123  (472.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0175 (gate <0.10) [PASS]
+  ratio p95:  0.0478
+  R² ≥ 0.7 fraction: 0.998 (gate ≥0.80) [PASS]
+  R² median: 0.875
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0113 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0138 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0140 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0148 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0076 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0155 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           4.42632
+  LeftEyeRoll              1.46410
+  BrowInnerUp              1.05292
+  MouthPressRight          0.93004
+  MouthStretchLeft         0.92636
+  EyeSquintRight           0.89597
+  MouthRollUpper           0.88945
+  JawRight                 0.84750
+  MouthUpperUpRight        0.83125
+  MouthRollLower           0.72868
+=== Bottom sensitivity ===
+  MouthPucker              0.17963
+  EyeWideLeft              0.17897
+  MouthLowerDownLeft       0.16248
+  BrowDownRight            0.14787
+  BrowDownLeft             0.10483
+  [eval@40000] ratio=0.01750 R²≥0.7=0.998 *BEST_RATIO+BEST_R2*
+step  40100  loss 0.08013  varnorm=0.0745 std_match=0.0001 tail=0.0111  (471.9/s)
+step  40200  loss 0.07615  varnorm=0.0720 std_match=0.0001 tail=0.0081  (472.0/s)
+step  40300  loss 0.07716  varnorm=0.0732 std_match=0.0001 tail=0.0077  (472.2/s)
+step  40400  loss 0.08548  varnorm=0.0804 std_match=0.0002 tail=0.0098  (472.3/s)
+step  40500  loss 0.07912  varnorm=0.0748 std_match=0.0002 tail=0.0082  (472.0/s)
+step  40600  loss 0.08932  varnorm=0.0843 std_match=0.0002 tail=0.0097  (471.7/s)
+step  40700  loss 0.06764  varnorm=0.0640 std_match=0.0002 tail=0.0069  (471.5/s)
+step  40800  loss 0.07432  varnorm=0.0702 std_match=0.0001 tail=0.0081  (471.2/s)
+step  40900  loss 0.08945  varnorm=0.0821 std_match=0.0001 tail=0.0144  (470.9/s)
+step  41000  loss 0.07750  varnorm=0.0730 std_match=0.0001 tail=0.0088  (470.8/s)
+step  41100  loss 0.08112  varnorm=0.0764 std_match=0.0001 tail=0.0093  (471.0/s)
+step  41200  loss 0.07394  varnorm=0.0703 std_match=0.0001 tail=0.0072  (471.2/s)
+step  41300  loss 0.07604  varnorm=0.0718 std_match=0.0001 tail=0.0083  (471.4/s)
+step  41400  loss 0.07593  varnorm=0.0719 std_match=0.0001 tail=0.0078  (471.5/s)
+step  41500  loss 0.07817  varnorm=0.0738 std_match=0.0001 tail=0.0085  (471.6/s)
+step  41600  loss 0.07308  varnorm=0.0694 std_match=0.0001 tail=0.0071  (471.7/s)
+step  41700  loss 0.07645  varnorm=0.0728 std_match=0.0001 tail=0.0071  (471.8/s)
+step  41800  loss 0.07964  varnorm=0.0750 std_match=0.0002 tail=0.0090  (471.7/s)
+step  41900  loss 0.06882  varnorm=0.0658 std_match=0.0002 tail=0.0057  (471.9/s)
+step  42000  loss 0.07120  varnorm=0.0671 std_match=0.0001 tail=0.0081  (472.1/s)
+step  42100  loss 0.07466  varnorm=0.0707 std_match=0.0001 tail=0.0078  (472.2/s)
+step  42200  loss 0.09685  varnorm=0.0864 std_match=0.0001 tail=0.0206  (472.3/s)
+step  42300  loss 0.06613  varnorm=0.0627 std_match=0.0001 tail=0.0067  (472.3/s)
+step  42400  loss 0.07024  varnorm=0.0664 std_match=0.0001 tail=0.0074  (472.4/s)
+step  42500  loss 0.07863  varnorm=0.0744 std_match=0.0001 tail=0.0082  (472.6/s)
+step  42600  loss 0.06860  varnorm=0.0653 std_match=0.0001 tail=0.0064  (472.7/s)
+step  42700  loss 0.06160  varnorm=0.0580 std_match=0.0001 tail=0.0069  (472.8/s)
+step  42800  loss 0.07444  varnorm=0.0694 std_match=0.0001 tail=0.0098  (472.8/s)
+step  42900  loss 0.07558  varnorm=0.0717 std_match=0.0001 tail=0.0076  (472.9/s)
+step  43000  loss 0.08471  varnorm=0.0788 std_match=0.0001 tail=0.0115  (473.0/s)
+step  43100  loss 0.08232  varnorm=0.0787 std_match=0.0001 tail=0.0070  (473.1/s)
+step  43200  loss 0.07500  varnorm=0.0694 std_match=0.0001 tail=0.0109  (473.1/s)
+step  43300  loss 0.08241  varnorm=0.0779 std_match=0.0001 tail=0.0088  (473.2/s)
+step  43400  loss 0.06975  varnorm=0.0661 std_match=0.0001 tail=0.0072  (473.3/s)
+step  43500  loss 0.08426  varnorm=0.0784 std_match=0.0001 tail=0.0114  (473.4/s)
+step  43600  loss 0.06764  varnorm=0.0637 std_match=0.0001 tail=0.0076  (473.2/s)
+step  43700  loss 0.07698  varnorm=0.0734 std_match=0.0001 tail=0.0069  (473.3/s)
+step  43800  loss 0.07124  varnorm=0.0676 std_match=0.0001 tail=0.0071  (473.3/s)
+step  43900  loss 0.07915  varnorm=0.0746 std_match=0.0002 tail=0.0088  (473.4/s)
+step  44000  loss 0.08704  varnorm=0.0793 std_match=0.0002 tail=0.0152  (473.6/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0165 (gate <0.10) [PASS]
+  ratio p95:  0.0451
+  R² ≥ 0.7 fraction: 0.998 (gate ≥0.80) [PASS]
+  R² median: 0.882
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0096 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0132 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0136 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0132 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0069 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0146 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           3.97749
+  LeftEyeRoll              1.38082
+  BrowInnerUp              1.07116
+  MouthStretchLeft         0.95235
+  MouthPressRight          0.92255
+  MouthUpperUpRight        0.91984
+  EyeSquintRight           0.90746
+  MouthRollUpper           0.86595
+  JawRight                 0.84291
+  MouthLeft                0.77245
+=== Bottom sensitivity ===
+  LeftEyePitch             0.19637
+  EyeWideLeft              0.17996
+  MouthPucker              0.17893
+  BrowDownRight            0.14811
+  BrowDownLeft             0.10798
+  [eval@44000] ratio=0.01647 R²≥0.7=0.998 *BEST_RATIO*
+step  44100  loss 0.06415  varnorm=0.0613 std_match=0.0001 tail=0.0055  (473.5/s)
+step  44200  loss 0.07193  varnorm=0.0683 std_match=0.0001 tail=0.0071  (473.6/s)
+step  44300  loss 0.09393  varnorm=0.0839 std_match=0.0001 tail=0.0198  (473.5/s)
+step  44400  loss 0.07761  varnorm=0.0731 std_match=0.0002 tail=0.0086  (473.2/s)
+step  44500  loss 0.06854  varnorm=0.0651 std_match=0.0001 tail=0.0067  (472.9/s)
+step  44600  loss 0.11315  varnorm=0.0998 std_match=0.0002 tail=0.0263  (472.7/s)
+step  44700  loss 0.07848  varnorm=0.0733 std_match=0.0002 tail=0.0099  (472.3/s)
+step  44800  loss 0.08240  varnorm=0.0769 std_match=0.0001 tail=0.0108  (472.1/s)
+step  44900  loss 0.08133  varnorm=0.0772 std_match=0.0001 tail=0.0080  (472.0/s)
+step  45000  loss 0.07470  varnorm=0.0710 std_match=0.0001 tail=0.0073  (472.1/s)
+step  45100  loss 0.07696  varnorm=0.0727 std_match=0.0001 tail=0.0083  (472.1/s)
+step  45200  loss 0.06885  varnorm=0.0660 std_match=0.0001 tail=0.0055  (472.1/s)
+step  45300  loss 0.08508  varnorm=0.0794 std_match=0.0002 tail=0.0111  (472.0/s)
+step  45400  loss 0.07120  varnorm=0.0674 std_match=0.0001 tail=0.0075  (472.0/s)
+step  45500  loss 0.07224  varnorm=0.0686 std_match=0.0001 tail=0.0071  (472.2/s)
+step  45600  loss 0.07250  varnorm=0.0684 std_match=0.0001 tail=0.0081  (472.2/s)
+step  45700  loss 0.07967  varnorm=0.0736 std_match=0.0001 tail=0.0119  (472.3/s)
+step  45800  loss 0.06529  varnorm=0.0620 std_match=0.0001 tail=0.0065  (472.5/s)
+step  45900  loss 0.07347  varnorm=0.0700 std_match=0.0001 tail=0.0068  (472.6/s)
+step  46000  loss 0.06673  varnorm=0.0631 std_match=0.0001 tail=0.0070  (472.7/s)
+step  46100  loss 0.07151  varnorm=0.0670 std_match=0.0001 tail=0.0088  (472.8/s)
+step  46200  loss 0.07569  varnorm=0.0709 std_match=0.0001 tail=0.0094  (472.8/s)
+step  46300  loss 0.06762  varnorm=0.0636 std_match=0.0001 tail=0.0079  (473.0/s)
+step  46400  loss 0.07600  varnorm=0.0711 std_match=0.0001 tail=0.0095  (473.1/s)
+step  46500  loss 0.07088  varnorm=0.0672 std_match=0.0001 tail=0.0071  (473.2/s)
+step  46600  loss 0.08963  varnorm=0.0833 std_match=0.0001 tail=0.0124  (473.3/s)
+step  46700  loss 0.06397  varnorm=0.0607 std_match=0.0001 tail=0.0063  (473.1/s)
+step  46800  loss 0.07617  varnorm=0.0720 std_match=0.0001 tail=0.0082  (473.2/s)
+step  46900  loss 0.08486  varnorm=0.0797 std_match=0.0001 tail=0.0102  (473.3/s)
+step  47000  loss 0.06338  varnorm=0.0600 std_match=0.0001 tail=0.0065  (473.3/s)
+step  47100  loss 0.07894  varnorm=0.0746 std_match=0.0001 tail=0.0085  (473.4/s)
+step  47200  loss 0.08660  varnorm=0.0792 std_match=0.0001 tail=0.0146  (473.3/s)
+step  47300  loss 0.06742  varnorm=0.0635 std_match=0.0001 tail=0.0076  (473.5/s)
+step  47400  loss 0.06605  varnorm=0.0627 std_match=0.0001 tail=0.0065  (473.5/s)
+step  47500  loss 0.06721  varnorm=0.0635 std_match=0.0001 tail=0.0073  (473.7/s)
+step  47600  loss 0.06214  varnorm=0.0588 std_match=0.0001 tail=0.0065  (473.8/s)
+step  47700  loss 0.09112  varnorm=0.0832 std_match=0.0001 tail=0.0156  (473.9/s)
+step  47800  loss 0.08357  varnorm=0.0793 std_match=0.0001 tail=0.0083  (474.0/s)
+step  47900  loss 0.06497  varnorm=0.0620 std_match=0.0001 tail=0.0058  (474.1/s)
+step  48000  loss 0.06761  varnorm=0.0645 std_match=0.0001 tail=0.0061  (474.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0160 (gate <0.10) [PASS]
+  ratio p95:  0.0417
+  R² ≥ 0.7 fraction: 0.998 (gate ≥0.80) [PASS]
+  R² median: 0.886
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0102 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0126 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0135 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0128 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0059 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0145 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           3.67921
+  LeftEyeRoll              1.20970
+  MouthUpperUpRight        0.99942
+  BrowInnerUp              0.99569
+  EyeSquintRight           0.93313
+  MouthPressRight          0.92353
+  MouthStretchLeft         0.89870
+  MouthRollUpper           0.85944
+  MouthUpperUpLeft         0.85497
+  MouthLeft                0.80952
+=== Bottom sensitivity ===
+  LeftEyePitch             0.19603
+  EyeWideLeft              0.18486
+  MouthPucker              0.18424
+  BrowDownRight            0.15564
+  BrowDownLeft             0.11789
+  [eval@48000] ratio=0.01596 R²≥0.7=0.998 *BEST_RATIO*
+step  48100  loss 0.07487  varnorm=0.0704 std_match=0.0001 tail=0.0086  (474.0/s)
+step  48200  loss 0.07947  varnorm=0.0751 std_match=0.0001 tail=0.0085  (474.1/s)
+step  48300  loss 0.06750  varnorm=0.0645 std_match=0.0001 tail=0.0058  (474.2/s)
+step  48400  loss 0.06932  varnorm=0.0660 std_match=0.0001 tail=0.0066  (474.1/s)
+step  48500  loss 0.07619  varnorm=0.0716 std_match=0.0001 tail=0.0089  (473.9/s)
+step  48600  loss 0.06693  varnorm=0.0624 std_match=0.0001 tail=0.0088  (473.7/s)
+step  48700  loss 0.05939  varnorm=0.0565 std_match=0.0001 tail=0.0056  (473.5/s)
+step  48800  loss 0.06365  varnorm=0.0601 std_match=0.0001 tail=0.0069  (473.3/s)
+step  48900  loss 0.06323  varnorm=0.0603 std_match=0.0001 tail=0.0058  (473.1/s)
+step  49000  loss 0.09159  varnorm=0.0809 std_match=0.0001 tail=0.0211  (472.9/s)
+step  49100  loss 0.06761  varnorm=0.0644 std_match=0.0001 tail=0.0062  (473.1/s)
+step  49200  loss 0.07133  varnorm=0.0677 std_match=0.0001 tail=0.0071  (473.1/s)
+step  49300  loss 0.06037  varnorm=0.0575 std_match=0.0001 tail=0.0056  (473.2/s)
+step  49400  loss 0.08842  varnorm=0.0772 std_match=0.0001 tail=0.0222  (473.4/s)
+step  49500  loss 0.07317  varnorm=0.0688 std_match=0.0001 tail=0.0085  (473.5/s)
+step  49600  loss 0.06764  varnorm=0.0646 std_match=0.0001 tail=0.0060  (473.6/s)
+step  49700  loss 0.06924  varnorm=0.0659 std_match=0.0001 tail=0.0065  (473.6/s)
+step  49800  loss 0.06041  varnorm=0.0575 std_match=0.0001 tail=0.0056  (473.8/s)
+step  49900  loss 0.06996  varnorm=0.0654 std_match=0.0002 tail=0.0086  (474.0/s)
+step  50000  loss 0.08283  varnorm=0.0769 std_match=0.0001 tail=0.0116  (474.2/s)
+step  50100  loss 0.06998  varnorm=0.0659 std_match=0.0001 tail=0.0080  (474.3/s)
+step  50200  loss 0.06879  varnorm=0.0655 std_match=0.0001 tail=0.0065  (474.5/s)
+step  50300  loss 0.06470  varnorm=0.0615 std_match=0.0001 tail=0.0062  (474.5/s)
+step  50400  loss 0.07826  varnorm=0.0736 std_match=0.0002 tail=0.0089  (474.6/s)
+step  50500  loss 0.07571  varnorm=0.0720 std_match=0.0001 tail=0.0072  (474.8/s)
+step  50600  loss 0.07304  varnorm=0.0693 std_match=0.0001 tail=0.0073  (474.8/s)
+step  50700  loss 0.06957  varnorm=0.0663 std_match=0.0001 tail=0.0064  (474.9/s)
+step  50800  loss 0.06612  varnorm=0.0626 std_match=0.0001 tail=0.0068  (475.1/s)
+step  50900  loss 0.08020  varnorm=0.0733 std_match=0.0002 tail=0.0136  (475.2/s)
+step  51000  loss 0.06222  varnorm=0.0588 std_match=0.0001 tail=0.0066  (475.3/s)
+step  51100  loss 0.06853  varnorm=0.0649 std_match=0.0001 tail=0.0072  (475.5/s)
+step  51200  loss 0.06686  varnorm=0.0628 std_match=0.0001 tail=0.0079  (475.5/s)
+step  51300  loss 0.07699  varnorm=0.0724 std_match=0.0001 tail=0.0089  (475.5/s)
+step  51400  loss 0.06978  varnorm=0.0664 std_match=0.0001 tail=0.0065  (475.6/s)
+step  51500  loss 0.06072  varnorm=0.0580 std_match=0.0001 tail=0.0053  (475.7/s)
+step  51600  loss 0.06761  varnorm=0.0640 std_match=0.0001 tail=0.0070  (475.9/s)
+step  51700  loss 0.06501  varnorm=0.0610 std_match=0.0001 tail=0.0078  (475.9/s)
+step  51800  loss 0.05615  varnorm=0.0536 std_match=0.0001 tail=0.0050  (476.0/s)
+step  51900  loss 0.06039  varnorm=0.0577 std_match=0.0001 tail=0.0053  (476.1/s)
+step  52000  loss 0.07246  varnorm=0.0686 std_match=0.0001 tail=0.0074  (476.1/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0153 (gate <0.10) [PASS]
+  ratio p95:  0.0404
+  R² ≥ 0.7 fraction: 0.998 (gate ≥0.80) [PASS]
+  R² median: 0.891
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0095 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0128 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0129 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0128 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0057 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0141 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           3.34775
+  MouthUpperUpRight        1.08131
+  LeftEyeRoll              1.05510
+  BrowInnerUp              1.01403
+  MouthStretchLeft         0.99893
+  EyeSquintRight           0.95762
+  MouthUpperUpLeft         0.95614
+  MouthPressRight          0.92568
+  MouthRollLower           0.84587
+  MouthRollUpper           0.83564
+=== Bottom sensitivity ===
+  LeftEyePitch             0.20295
+  MouthPucker              0.18995
+  EyeWideLeft              0.17480
+  BrowDownRight            0.15519
+  BrowDownLeft             0.12606
+  [eval@52000] ratio=0.01531 R²≥0.7=0.998 *BEST_RATIO*
+step  52100  loss 0.07765  varnorm=0.0730 std_match=0.0001 tail=0.0091  (476.0/s)
+step  52200  loss 0.07221  varnorm=0.0692 std_match=0.0001 tail=0.0058  (476.1/s)
+step  52300  loss 0.06251  varnorm=0.0588 std_match=0.0001 tail=0.0072  (476.2/s)
+step  52400  loss 0.06199  varnorm=0.0589 std_match=0.0001 tail=0.0060  (476.2/s)
+step  52500  loss 0.06644  varnorm=0.0638 std_match=0.0001 tail=0.0052  (475.8/s)
+step  52600  loss 0.06314  varnorm=0.0605 std_match=0.0001 tail=0.0051  (475.5/s)
+step  52700  loss 0.06683  varnorm=0.0630 std_match=0.0001 tail=0.0076  (475.2/s)
+step  52800  loss 0.06879  varnorm=0.0655 std_match=0.0001 tail=0.0063  (474.8/s)
+step  52900  loss 0.06611  varnorm=0.0617 std_match=0.0001 tail=0.0086  (474.5/s)
+step  53000  loss 0.06789  varnorm=0.0647 std_match=0.0001 tail=0.0061  (474.3/s)
+step  53100  loss 0.07431  varnorm=0.0685 std_match=0.0001 tail=0.0115  (474.2/s)
+step  53200  loss 0.06866  varnorm=0.0649 std_match=0.0001 tail=0.0073  (473.9/s)
+step  53300  loss 0.06135  varnorm=0.0584 std_match=0.0001 tail=0.0057  (474.0/s)
+step  53400  loss 0.06331  varnorm=0.0600 std_match=0.0001 tail=0.0065  (474.1/s)
+step  53500  loss 0.06272  varnorm=0.0600 std_match=0.0001 tail=0.0052  (474.2/s)
+step  53600  loss 0.05642  varnorm=0.0537 std_match=0.0001 tail=0.0052  (474.3/s)
+step  53700  loss 0.07192  varnorm=0.0684 std_match=0.0001 tail=0.0069  (474.4/s)
+step  53800  loss 0.06075  varnorm=0.0577 std_match=0.0001 tail=0.0059  (474.3/s)
+step  53900  loss 0.05193  varnorm=0.0496 std_match=0.0001 tail=0.0045  (474.3/s)
+step  54000  loss 0.06713  varnorm=0.0621 std_match=0.0001 tail=0.0099  (474.3/s)
+step  54100  loss 0.06453  varnorm=0.0612 std_match=0.0001 tail=0.0064  (474.3/s)
+step  54200  loss 0.06361  varnorm=0.0610 std_match=0.0001 tail=0.0051  (474.3/s)
+step  54300  loss 0.06702  varnorm=0.0627 std_match=0.0001 tail=0.0084  (474.4/s)
+step  54400  loss 0.06659  varnorm=0.0630 std_match=0.0001 tail=0.0071  (474.5/s)
+step  54500  loss 0.06753  varnorm=0.0638 std_match=0.0001 tail=0.0072  (474.6/s)
+step  54600  loss 0.06651  varnorm=0.0624 std_match=0.0001 tail=0.0079  (474.6/s)
+step  54700  loss 0.06286  varnorm=0.0583 std_match=0.0001 tail=0.0089  (474.7/s)
+step  54800  loss 0.07422  varnorm=0.0700 std_match=0.0001 tail=0.0083  (474.7/s)
+step  54900  loss 0.06548  varnorm=0.0619 std_match=0.0001 tail=0.0070  (474.8/s)
+step  55000  loss 0.06574  varnorm=0.0626 std_match=0.0002 tail=0.0059  (474.6/s)
+step  55100  loss 0.06751  varnorm=0.0640 std_match=0.0001 tail=0.0068  (474.6/s)
+step  55200  loss 0.06297  varnorm=0.0597 std_match=0.0001 tail=0.0063  (474.5/s)
+step  55300  loss 0.07387  varnorm=0.0693 std_match=0.0001 tail=0.0090  (474.4/s)
+step  55400  loss 0.06525  varnorm=0.0621 std_match=0.0001 tail=0.0060  (474.4/s)
+step  55500  loss 0.07716  varnorm=0.0727 std_match=0.0001 tail=0.0086  (474.4/s)
+step  55600  loss 0.06820  varnorm=0.0639 std_match=0.0001 tail=0.0084  (474.4/s)
+step  55700  loss 0.06485  varnorm=0.0611 std_match=0.0001 tail=0.0073  (474.3/s)
+step  55800  loss 0.05470  varnorm=0.0520 std_match=0.0001 tail=0.0053  (474.4/s)
+step  55900  loss 0.06519  varnorm=0.0614 std_match=0.0001 tail=0.0073  (474.4/s)
+step  56000  loss 0.06014  varnorm=0.0570 std_match=0.0001 tail=0.0061  (474.4/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0148 (gate <0.10) [PASS]
+  ratio p95:  0.0406
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.894
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0095 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0125 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0125 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0121 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0058 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0134 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           2.96302
+  MouthUpperUpRight        1.10413
+  LeftEyeRoll              1.00327
+  BrowInnerUp              1.00198
+  EyeSquintRight           0.99977
+  MouthUpperUpLeft         0.97025
+  MouthStretchLeft         0.96344
+  MouthPressRight          0.88232
+  MouthRollLower           0.86002
+  MouthRollUpper           0.82834
+=== Bottom sensitivity ===
+  LeftEyePitch             0.21174
+  MouthPucker              0.19473
+  EyeWideLeft              0.17881
+  BrowDownRight            0.16056
+  BrowDownLeft             0.13583
+  [eval@56000] ratio=0.01479 R²≥0.7=1.000 *BEST_RATIO+BEST_R2*
+step  56100  loss 0.06208  varnorm=0.0590 std_match=0.0001 tail=0.0060  (474.1/s)
+step  56200  loss 0.06416  varnorm=0.0606 std_match=0.0001 tail=0.0070  (474.1/s)
+step  56300  loss 0.05779  varnorm=0.0547 std_match=0.0001 tail=0.0061  (474.0/s)
+step  56400  loss 0.06188  varnorm=0.0589 std_match=0.0001 tail=0.0058  (473.7/s)
+step  56500  loss 0.06728  varnorm=0.0628 std_match=0.0001 tail=0.0087  (473.4/s)
+step  56600  loss 0.05894  varnorm=0.0558 std_match=0.0001 tail=0.0061  (473.2/s)
+step  56700  loss 0.05618  varnorm=0.0536 std_match=0.0001 tail=0.0050  (472.7/s)
+step  56800  loss 0.06021  varnorm=0.0562 std_match=0.0001 tail=0.0077  (472.5/s)
+step  56900  loss 0.06971  varnorm=0.0667 std_match=0.0001 tail=0.0059  (472.1/s)
+step  57000  loss 0.05863  varnorm=0.0555 std_match=0.0001 tail=0.0060  (472.1/s)
+step  57100  loss 0.06144  varnorm=0.0581 std_match=0.0001 tail=0.0065  (472.0/s)
+step  57200  loss 0.06149  varnorm=0.0571 std_match=0.0001 tail=0.0087  (472.1/s)
+step  57300  loss 0.05548  varnorm=0.0529 std_match=0.0001 tail=0.0049  (472.1/s)
+step  57400  loss 0.05887  varnorm=0.0561 std_match=0.0001 tail=0.0054  (472.2/s)
+step  57500  loss 0.05602  varnorm=0.0534 std_match=0.0001 tail=0.0052  (472.2/s)
+step  57600  loss 0.05370  varnorm=0.0516 std_match=0.0000 tail=0.0040  (472.3/s)
+step  57700  loss 0.06091  varnorm=0.0581 std_match=0.0001 tail=0.0054  (472.3/s)
+step  57800  loss 0.06054  varnorm=0.0580 std_match=0.0001 tail=0.0049  (472.3/s)
+step  57900  loss 0.06130  varnorm=0.0578 std_match=0.0001 tail=0.0068  (472.3/s)
+step  58000  loss 0.06056  varnorm=0.0572 std_match=0.0001 tail=0.0066  (472.4/s)
+step  58100  loss 0.06731  varnorm=0.0635 std_match=0.0001 tail=0.0074  (472.4/s)
+step  58200  loss 0.06113  varnorm=0.0581 std_match=0.0001 tail=0.0060  (472.4/s)
+step  58300  loss 0.06386  varnorm=0.0608 std_match=0.0001 tail=0.0059  (472.4/s)
+step  58400  loss 0.06833  varnorm=0.0645 std_match=0.0001 tail=0.0075  (472.4/s)
+step  58500  loss 0.05890  varnorm=0.0558 std_match=0.0001 tail=0.0060  (472.2/s)
+step  58600  loss 0.06332  varnorm=0.0607 std_match=0.0001 tail=0.0051  (472.3/s)
+step  58700  loss 0.05689  varnorm=0.0538 std_match=0.0001 tail=0.0059  (472.3/s)
+step  58800  loss 0.06818  varnorm=0.0646 std_match=0.0001 tail=0.0070  (472.3/s)
+step  58900  loss 0.06543  varnorm=0.0618 std_match=0.0001 tail=0.0070  (472.4/s)
+step  59000  loss 0.06745  varnorm=0.0623 std_match=0.0001 tail=0.0100  (472.4/s)
+step  59100  loss 0.05701  varnorm=0.0546 std_match=0.0001 tail=0.0046  (472.5/s)
+step  59200  loss 0.06372  varnorm=0.0599 std_match=0.0001 tail=0.0075  (472.4/s)
+step  59300  loss 0.05497  varnorm=0.0526 std_match=0.0001 tail=0.0045  (472.4/s)
+step  59400  loss 0.06289  varnorm=0.0597 std_match=0.0001 tail=0.0063  (472.5/s)
+step  59500  loss 0.06032  varnorm=0.0572 std_match=0.0001 tail=0.0062  (472.4/s)
+step  59600  loss 0.06708  varnorm=0.0636 std_match=0.0001 tail=0.0067  (472.3/s)
+step  59700  loss 0.06031  varnorm=0.0571 std_match=0.0001 tail=0.0062  (472.1/s)
+step  59800  loss 0.06721  varnorm=0.0641 std_match=0.0001 tail=0.0061  (472.1/s)
+step  59900  loss 0.06390  varnorm=0.0608 std_match=0.0001 tail=0.0060  (472.2/s)
+step  60000  loss 0.05879  varnorm=0.0559 std_match=0.0001 tail=0.0056  (472.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0144 (gate <0.10) [PASS]
+  ratio p95:  0.0407
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.898
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0091 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0125 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0121 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0118 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0056 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0130 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           2.64196
+  MouthUpperUpRight        1.14089
+  MouthUpperUpLeft         1.08530
+  EyeSquintRight           1.03176
+  BrowInnerUp              0.99903
+  MouthStretchLeft         0.99890
+  LeftEyeRoll              0.98721
+  MouthPressRight          0.93675
+  MouthRollLower           0.89707
+  JawOpen                  0.82071
+=== Bottom sensitivity ===
+  LeftEyePitch             0.22083
+  MouthPucker              0.20026
+  EyeWideLeft              0.18182
+  BrowDownRight            0.16343
+  BrowDownLeft             0.12985
+  [eval@60000] ratio=0.01438 R²≥0.7=1.000 *BEST_RATIO*
+step  60100  loss 0.06463  varnorm=0.0609 std_match=0.0001 tail=0.0073  (472.0/s)
+step  60200  loss 0.05848  varnorm=0.0552 std_match=0.0001 tail=0.0064  (472.0/s)
+step  60300  loss 0.05866  varnorm=0.0553 std_match=0.0001 tail=0.0066  (472.0/s)
+step  60400  loss 0.06190  varnorm=0.0588 std_match=0.0001 tail=0.0061  (471.8/s)
+step  60500  loss 0.06204  varnorm=0.0584 std_match=0.0001 tail=0.0071  (471.6/s)
+step  60600  loss 0.05369  varnorm=0.0514 std_match=0.0001 tail=0.0045  (471.3/s)
+step  60700  loss 0.05133  varnorm=0.0490 std_match=0.0001 tail=0.0045  (471.0/s)
+step  60800  loss 0.05672  varnorm=0.0540 std_match=0.0001 tail=0.0054  (470.6/s)
+step  60900  loss 0.05918  varnorm=0.0559 std_match=0.0001 tail=0.0065  (470.4/s)
+step  61000  loss 0.07187  varnorm=0.0655 std_match=0.0001 tail=0.0125  (470.1/s)
+step  61100  loss 0.05253  varnorm=0.0498 std_match=0.0001 tail=0.0053  (470.0/s)
+step  61200  loss 0.06681  varnorm=0.0636 std_match=0.0001 tail=0.0064  (469.8/s)
+step  61300  loss 0.05235  varnorm=0.0502 std_match=0.0001 tail=0.0042  (469.9/s)
+step  61400  loss 0.05786  varnorm=0.0549 std_match=0.0001 tail=0.0056  (470.0/s)
+step  61500  loss 0.05381  varnorm=0.0512 std_match=0.0001 tail=0.0051  (470.0/s)
+step  61600  loss 0.05939  varnorm=0.0562 std_match=0.0001 tail=0.0062  (470.0/s)
+step  61700  loss 0.05660  varnorm=0.0535 std_match=0.0001 tail=0.0060  (470.0/s)
+step  61800  loss 0.06117  varnorm=0.0584 std_match=0.0001 tail=0.0054  (470.1/s)
+step  61900  loss 0.06015  varnorm=0.0575 std_match=0.0001 tail=0.0050  (470.1/s)
+step  62000  loss 0.07343  varnorm=0.0690 std_match=0.0001 tail=0.0087  (470.2/s)
+step  62100  loss 0.05797  varnorm=0.0555 std_match=0.0001 tail=0.0047  (470.3/s)
+step  62200  loss 0.06669  varnorm=0.0634 std_match=0.0001 tail=0.0064  (470.3/s)
+step  62300  loss 0.05750  varnorm=0.0546 std_match=0.0001 tail=0.0056  (470.3/s)
+step  62400  loss 0.05584  varnorm=0.0525 std_match=0.0001 tail=0.0065  (470.4/s)
+step  62500  loss 0.06188  varnorm=0.0592 std_match=0.0001 tail=0.0053  (470.5/s)
+step  62600  loss 0.05856  varnorm=0.0556 std_match=0.0001 tail=0.0057  (470.6/s)
+step  62700  loss 0.05545  varnorm=0.0525 std_match=0.0001 tail=0.0057  (470.7/s)
+step  62800  loss 0.05004  varnorm=0.0476 std_match=0.0001 tail=0.0048  (470.7/s)
+step  62900  loss 0.05920  varnorm=0.0566 std_match=0.0001 tail=0.0050  (470.7/s)
+step  63000  loss 0.06564  varnorm=0.0616 std_match=0.0001 tail=0.0078  (470.8/s)
+step  63100  loss 0.06905  varnorm=0.0660 std_match=0.0001 tail=0.0059  (470.8/s)
+step  63200  loss 0.05014  varnorm=0.0476 std_match=0.0001 tail=0.0049  (470.7/s)
+step  63300  loss 0.05785  varnorm=0.0550 std_match=0.0001 tail=0.0056  (470.7/s)
+step  63400  loss 0.05944  varnorm=0.0564 std_match=0.0001 tail=0.0059  (470.8/s)
+step  63500  loss 0.05506  varnorm=0.0527 std_match=0.0001 tail=0.0046  (470.8/s)
+step  63600  loss 0.06044  varnorm=0.0569 std_match=0.0001 tail=0.0069  (470.9/s)
+step  63700  loss 0.05530  varnorm=0.0528 std_match=0.0001 tail=0.0049  (470.9/s)
+step  63800  loss 0.05967  varnorm=0.0562 std_match=0.0001 tail=0.0069  (470.9/s)
+step  63900  loss 0.06115  varnorm=0.0575 std_match=0.0001 tail=0.0071  (471.0/s)
+step  64000  loss 0.06687  varnorm=0.0640 std_match=0.0001 tail=0.0055  (471.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0140 (gate <0.10) [PASS]
+  ratio p95:  0.0378
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.900
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0091 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0120 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0123 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0113 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0052 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0127 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           2.36315
+  MouthUpperUpRight        1.12211
+  MouthUpperUpLeft         1.09857
+  EyeSquintRight           1.03975
+  MouthStretchLeft         1.00851
+  BrowInnerUp              0.95022
+  MouthPressRight          0.94508
+  LeftEyeRoll              0.93887
+  MouthRollLower           0.87915
+  CheekSquintRight         0.83807
+=== Bottom sensitivity ===
+  EyeWideRight             0.22237
+  MouthPucker              0.20826
+  EyeWideLeft              0.19154
+  BrowDownRight            0.16404
+  BrowDownLeft             0.13393
+  [eval@64000] ratio=0.01403 R²≥0.7=1.000 *BEST_RATIO*
+step  64100  loss 0.05285  varnorm=0.0501 std_match=0.0001 tail=0.0053  (470.8/s)
+step  64200  loss 0.05097  varnorm=0.0488 std_match=0.0001 tail=0.0043  (470.7/s)
+step  64300  loss 0.06536  varnorm=0.0621 std_match=0.0001 tail=0.0063  (470.8/s)
+step  64400  loss 0.07030  varnorm=0.0657 std_match=0.0001 tail=0.0090  (470.8/s)
+step  64500  loss 0.06017  varnorm=0.0575 std_match=0.0001 tail=0.0052  (470.6/s)
+step  64600  loss 0.05219  varnorm=0.0498 std_match=0.0001 tail=0.0047  (470.4/s)
+step  64700  loss 0.05641  varnorm=0.0534 std_match=0.0001 tail=0.0058  (470.1/s)
+step  64800  loss 0.05314  varnorm=0.0499 std_match=0.0001 tail=0.0063  (469.9/s)
+step  64900  loss 0.05976  varnorm=0.0563 std_match=0.0001 tail=0.0067  (469.7/s)
+step  65000  loss 0.05205  varnorm=0.0495 std_match=0.0001 tail=0.0050  (469.5/s)
+step  65100  loss 0.05950  varnorm=0.0568 std_match=0.0001 tail=0.0053  (469.2/s)
+step  65200  loss 0.05621  varnorm=0.0534 std_match=0.0001 tail=0.0056  (469.1/s)
+step  65300  loss 0.05920  varnorm=0.0560 std_match=0.0001 tail=0.0062  (469.1/s)
+step  65400  loss 0.05739  varnorm=0.0546 std_match=0.0001 tail=0.0055  (468.8/s)
+step  65500  loss 0.05961  varnorm=0.0564 std_match=0.0001 tail=0.0063  (468.8/s)
+step  65600  loss 0.05108  varnorm=0.0490 std_match=0.0000 tail=0.0041  (468.9/s)
+step  65700  loss 0.06706  varnorm=0.0642 std_match=0.0001 tail=0.0055  (468.9/s)
+step  65800  loss 0.06254  varnorm=0.0591 std_match=0.0002 tail=0.0066  (468.9/s)
+step  65900  loss 0.05470  varnorm=0.0525 std_match=0.0001 tail=0.0043  (468.8/s)
+step  66000  loss 0.05573  varnorm=0.0531 std_match=0.0001 tail=0.0052  (468.9/s)
+step  66100  loss 0.06586  varnorm=0.0628 std_match=0.0001 tail=0.0059  (468.9/s)
+step  66200  loss 0.06005  varnorm=0.0571 std_match=0.0001 tail=0.0058  (468.7/s)
+step  66300  loss 0.06012  varnorm=0.0575 std_match=0.0001 tail=0.0051  (468.7/s)
+step  66400  loss 0.05371  varnorm=0.0514 std_match=0.0001 tail=0.0045  (468.8/s)
+step  66500  loss 0.05522  varnorm=0.0528 std_match=0.0001 tail=0.0047  (468.9/s)
+step  66600  loss 0.05030  varnorm=0.0479 std_match=0.0001 tail=0.0047  (469.0/s)
+step  66700  loss 0.04744  varnorm=0.0454 std_match=0.0000 tail=0.0039  (469.0/s)
+step  66800  loss 0.05029  varnorm=0.0481 std_match=0.0001 tail=0.0042  (469.0/s)
+step  66900  loss 0.05760  varnorm=0.0547 std_match=0.0001 tail=0.0057  (469.0/s)
+step  67000  loss 0.05737  varnorm=0.0548 std_match=0.0001 tail=0.0050  (469.1/s)
+step  67100  loss 0.05483  varnorm=0.0526 std_match=0.0001 tail=0.0044  (469.2/s)
+step  67200  loss 0.05900  varnorm=0.0564 std_match=0.0001 tail=0.0051  (469.3/s)
+step  67300  loss 0.06036  varnorm=0.0570 std_match=0.0001 tail=0.0066  (469.4/s)
+step  67400  loss 0.07946  varnorm=0.0719 std_match=0.0002 tail=0.0148  (469.4/s)
+step  67500  loss 0.06461  varnorm=0.0606 std_match=0.0001 tail=0.0079  (469.5/s)
+step  67600  loss 0.06143  varnorm=0.0586 std_match=0.0001 tail=0.0056  (469.5/s)
+step  67700  loss 0.06424  varnorm=0.0613 std_match=0.0001 tail=0.0057  (469.6/s)
+step  67800  loss 0.05386  varnorm=0.0514 std_match=0.0001 tail=0.0048  (469.6/s)
+step  67900  loss 0.06084  varnorm=0.0574 std_match=0.0001 tail=0.0067  (469.7/s)
+step  68000  loss 0.05267  varnorm=0.0504 std_match=0.0001 tail=0.0043  (469.7/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0137 (gate <0.10) [PASS]
+  ratio p95:  0.0376
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.903
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0084 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0117 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0114 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0114 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0048 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0124 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           2.07643
+  MouthUpperUpLeft         1.13890
+  MouthUpperUpRight        1.12846
+  MouthStretchLeft         1.03227
+  EyeSquintRight           1.02832
+  BrowInnerUp              0.96053
+  LeftEyeRoll              0.91216
+  MouthPressRight          0.90748
+  MouthRollLower           0.89752
+  CheekSquintRight         0.88734
+=== Bottom sensitivity ===
+  EyeWideRight             0.22646
+  MouthPucker              0.21315
+  EyeWideLeft              0.19029
+  BrowDownRight            0.16266
+  BrowDownLeft             0.13579
+  [eval@68000] ratio=0.01375 R²≥0.7=1.000 *BEST_RATIO*
+step  68100  loss 0.06150  varnorm=0.0579 std_match=0.0001 tail=0.0071  (469.6/s)
+step  68200  loss 0.06050  varnorm=0.0567 std_match=0.0001 tail=0.0075  (469.7/s)
+step  68300  loss 0.05823  varnorm=0.0559 std_match=0.0001 tail=0.0044  (469.7/s)
+step  68400  loss 0.05551  varnorm=0.0528 std_match=0.0001 tail=0.0052  (469.5/s)
+step  68500  loss 0.05294  varnorm=0.0506 std_match=0.0000 tail=0.0045  (469.3/s)
+step  68600  loss 0.05351  varnorm=0.0504 std_match=0.0001 tail=0.0060  (469.1/s)
+step  68700  loss 0.05375  varnorm=0.0512 std_match=0.0001 tail=0.0049  (468.9/s)
+step  68800  loss 0.05206  varnorm=0.0497 std_match=0.0001 tail=0.0046  (468.7/s)
+step  68900  loss 0.06555  varnorm=0.0622 std_match=0.0001 tail=0.0065  (468.5/s)
+step  69000  loss 0.05542  varnorm=0.0528 std_match=0.0001 tail=0.0050  (468.3/s)
+step  69100  loss 0.05350  varnorm=0.0512 std_match=0.0001 tail=0.0045  (468.1/s)
+step  69200  loss 0.06660  varnorm=0.0629 std_match=0.0001 tail=0.0072  (468.0/s)
+step  69300  loss 0.05573  varnorm=0.0528 std_match=0.0001 tail=0.0056  (468.0/s)
+step  69400  loss 0.05602  varnorm=0.0532 std_match=0.0001 tail=0.0056  (468.0/s)
+step  69500  loss 0.05798  varnorm=0.0557 std_match=0.0001 tail=0.0043  (467.9/s)
+step  69600  loss 0.05352  varnorm=0.0511 std_match=0.0000 tail=0.0047  (467.9/s)
+step  69700  loss 0.05445  varnorm=0.0520 std_match=0.0000 tail=0.0049  (467.9/s)
+step  69800  loss 0.04841  varnorm=0.0462 std_match=0.0000 tail=0.0043  (467.8/s)
+step  69900  loss 0.04940  varnorm=0.0474 std_match=0.0001 tail=0.0039  (467.8/s)
+step  70000  loss 0.05234  varnorm=0.0498 std_match=0.0001 tail=0.0049  (467.8/s)
+step  70100  loss 0.06360  varnorm=0.0606 std_match=0.0001 tail=0.0059  (467.9/s)
+step  70200  loss 0.06107  varnorm=0.0579 std_match=0.0001 tail=0.0061  (467.9/s)
+step  70300  loss 0.05315  varnorm=0.0505 std_match=0.0001 tail=0.0052  (467.9/s)
+step  70400  loss 0.06480  varnorm=0.0601 std_match=0.0001 tail=0.0091  (468.0/s)
+step  70500  loss 0.05528  varnorm=0.0528 std_match=0.0001 tail=0.0049  (468.1/s)
+step  70600  loss 0.05338  varnorm=0.0507 std_match=0.0001 tail=0.0052  (468.1/s)
+step  70700  loss 0.05446  varnorm=0.0521 std_match=0.0001 tail=0.0046  (468.1/s)
+step  70800  loss 0.05806  varnorm=0.0556 std_match=0.0001 tail=0.0048  (468.1/s)
+step  70900  loss 0.05674  varnorm=0.0537 std_match=0.0001 tail=0.0059  (468.1/s)
+step  71000  loss 0.05083  varnorm=0.0485 std_match=0.0000 tail=0.0046  (468.2/s)
+step  71100  loss 0.05170  varnorm=0.0494 std_match=0.0001 tail=0.0045  (468.3/s)
+step  71200  loss 0.05882  varnorm=0.0559 std_match=0.0001 tail=0.0057  (468.3/s)
+step  71300  loss 0.04802  varnorm=0.0457 std_match=0.0001 tail=0.0046  (468.3/s)
+step  71400  loss 0.05196  varnorm=0.0489 std_match=0.0001 tail=0.0059  (468.3/s)
+step  71500  loss 0.05401  varnorm=0.0513 std_match=0.0001 tail=0.0054  (468.3/s)
+step  71600  loss 0.05057  varnorm=0.0470 std_match=0.0001 tail=0.0069  (468.4/s)
+step  71700  loss 0.05939  varnorm=0.0556 std_match=0.0001 tail=0.0074  (468.4/s)
+step  71800  loss 0.05469  varnorm=0.0519 std_match=0.0001 tail=0.0055  (468.5/s)
+step  71900  loss 0.05261  varnorm=0.0496 std_match=0.0001 tail=0.0059  (468.5/s)
+step  72000  loss 0.05654  varnorm=0.0540 std_match=0.0001 tail=0.0050  (468.5/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0133 (gate <0.10) [PASS]
+  ratio p95:  0.0384
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.905
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0089 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0117 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0114 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0112 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0049 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0124 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.95225
+  MouthUpperUpLeft         1.17135
+  MouthUpperUpRight        1.12440
+  MouthStretchLeft         1.05935
+  EyeSquintRight           1.02622
+  BrowInnerUp              0.96767
+  CheekSquintRight         0.95797
+  LeftEyeRoll              0.95681
+  MouthPressRight          0.91859
+  MouthRollLower           0.85554
+=== Bottom sensitivity ===
+  EyeWideRight             0.24066
+  MouthPucker              0.21345
+  EyeWideLeft              0.19676
+  BrowDownRight            0.16704
+  BrowDownLeft             0.14383
+  [eval@72000] ratio=0.01334 R²≥0.7=1.000 *BEST_RATIO*
+step  72100  loss 0.05624  varnorm=0.0533 std_match=0.0001 tail=0.0058  (468.4/s)
+step  72200  loss 0.04792  varnorm=0.0458 std_match=0.0000 tail=0.0042  (468.3/s)
+step  72300  loss 0.05700  varnorm=0.0538 std_match=0.0001 tail=0.0062  (468.4/s)
+step  72400  loss 0.06685  varnorm=0.0631 std_match=0.0001 tail=0.0073  (468.3/s)
+step  72500  loss 0.05610  varnorm=0.0533 std_match=0.0001 tail=0.0055  (468.1/s)
+step  72600  loss 0.04927  varnorm=0.0468 std_match=0.0000 tail=0.0049  (467.9/s)
+step  72700  loss 0.04811  varnorm=0.0460 std_match=0.0000 tail=0.0042  (467.7/s)
+step  72800  loss 0.05896  varnorm=0.0560 std_match=0.0001 tail=0.0057  (467.5/s)
+step  72900  loss 0.05521  varnorm=0.0522 std_match=0.0001 tail=0.0060  (467.3/s)
+step  73000  loss 0.05610  varnorm=0.0537 std_match=0.0001 tail=0.0046  (467.2/s)
+step  73100  loss 0.05293  varnorm=0.0502 std_match=0.0001 tail=0.0052  (467.0/s)
+step  73200  loss 0.04729  varnorm=0.0449 std_match=0.0000 tail=0.0046  (467.0/s)
+step  73300  loss 0.05069  varnorm=0.0483 std_match=0.0000 tail=0.0047  (467.0/s)
+step  73400  loss 0.05361  varnorm=0.0512 std_match=0.0001 tail=0.0046  (467.1/s)
+step  73500  loss 0.05989  varnorm=0.0566 std_match=0.0001 tail=0.0063  (467.0/s)
+step  73600  loss 0.04770  varnorm=0.0453 std_match=0.0001 tail=0.0046  (467.0/s)
+step  73700  loss 0.05530  varnorm=0.0531 std_match=0.0001 tail=0.0043  (467.1/s)
+step  73800  loss 0.05495  varnorm=0.0520 std_match=0.0001 tail=0.0057  (467.1/s)
+step  73900  loss 0.05324  varnorm=0.0509 std_match=0.0001 tail=0.0045  (467.2/s)
+step  74000  loss 0.05904  varnorm=0.0560 std_match=0.0001 tail=0.0059  (467.1/s)
+step  74100  loss 0.04828  varnorm=0.0459 std_match=0.0001 tail=0.0047  (467.0/s)
+step  74200  loss 0.05892  varnorm=0.0560 std_match=0.0001 tail=0.0058  (467.0/s)
+step  74300  loss 0.06294  varnorm=0.0591 std_match=0.0001 tail=0.0074  (467.1/s)
+step  74400  loss 0.05629  varnorm=0.0537 std_match=0.0001 tail=0.0051  (467.1/s)
+step  74500  loss 0.06269  varnorm=0.0598 std_match=0.0001 tail=0.0057  (467.1/s)
+step  74600  loss 0.05746  varnorm=0.0549 std_match=0.0001 tail=0.0051  (467.1/s)
+step  74700  loss 0.04709  varnorm=0.0444 std_match=0.0001 tail=0.0052  (467.2/s)
+step  74800  loss 0.04891  varnorm=0.0464 std_match=0.0001 tail=0.0049  (467.3/s)
+step  74900  loss 0.04720  varnorm=0.0451 std_match=0.0000 tail=0.0041  (467.3/s)
+step  75000  loss 0.05953  varnorm=0.0565 std_match=0.0001 tail=0.0059  (467.4/s)
+step  75100  loss 0.05360  varnorm=0.0512 std_match=0.0001 tail=0.0046  (467.4/s)
+step  75200  loss 0.05447  varnorm=0.0520 std_match=0.0001 tail=0.0047  (467.5/s)
+step  75300  loss 0.05938  varnorm=0.0547 std_match=0.0001 tail=0.0092  (467.5/s)
+step  75400  loss 0.04406  varnorm=0.0420 std_match=0.0001 tail=0.0040  (467.6/s)
+step  75500  loss 0.05024  varnorm=0.0476 std_match=0.0001 tail=0.0050  (467.6/s)
+step  75600  loss 0.05037  varnorm=0.0480 std_match=0.0001 tail=0.0045  (467.7/s)
+step  75700  loss 0.05173  varnorm=0.0493 std_match=0.0001 tail=0.0048  (467.7/s)
+step  75800  loss 0.04711  varnorm=0.0451 std_match=0.0000 tail=0.0039  (467.8/s)
+step  75900  loss 0.04994  varnorm=0.0474 std_match=0.0001 tail=0.0049  (467.8/s)
+step  76000  loss 0.05139  varnorm=0.0485 std_match=0.0000 tail=0.0056  (467.9/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0132 (gate <0.10) [PASS]
+  ratio p95:  0.0363
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.906
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0091 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0113 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0116 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0110 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0046 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0121 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.70961
+  MouthUpperUpLeft         1.14316
+  MouthUpperUpRight        1.06318
+  MouthStretchLeft         1.03271
+  EyeSquintRight           0.99769
+  BrowInnerUp              0.97587
+  CheekSquintRight         0.95449
+  LeftEyeRoll              0.92985
+  MouthRollLower           0.85598
+  MouthPressRight          0.82406
+=== Bottom sensitivity ===
+  EyeWideRight             0.22707
+  MouthPucker              0.22251
+  EyeWideLeft              0.19257
+  BrowDownRight            0.16247
+  BrowDownLeft             0.13937
+  [eval@76000] ratio=0.01322 R²≥0.7=1.000 *BEST_RATIO*
+step  76100  loss 0.04663  varnorm=0.0443 std_match=0.0001 tail=0.0045  (467.8/s)
+step  76200  loss 0.05292  varnorm=0.0500 std_match=0.0001 tail=0.0057  (467.8/s)
+step  76300  loss 0.05203  varnorm=0.0489 std_match=0.0001 tail=0.0061  (467.8/s)
+step  76400  loss 0.06268  varnorm=0.0594 std_match=0.0001 tail=0.0064  (467.7/s)
+step  76500  loss 0.06643  varnorm=0.0616 std_match=0.0001 tail=0.0095  (467.5/s)
+step  76600  loss 0.05507  varnorm=0.0524 std_match=0.0001 tail=0.0053  (467.4/s)
+step  76700  loss 0.05958  varnorm=0.0562 std_match=0.0001 tail=0.0065  (467.2/s)
+step  76800  loss 0.05860  varnorm=0.0531 std_match=0.0001 tail=0.0108  (467.0/s)
+step  76900  loss 0.05090  varnorm=0.0488 std_match=0.0001 tail=0.0042  (466.8/s)
+step  77000  loss 0.05926  varnorm=0.0560 std_match=0.0001 tail=0.0064  (466.6/s)
+step  77100  loss 0.05708  varnorm=0.0544 std_match=0.0001 tail=0.0052  (466.5/s)
+step  77200  loss 0.04695  varnorm=0.0447 std_match=0.0001 tail=0.0044  (466.4/s)
+step  77300  loss 0.05401  varnorm=0.0514 std_match=0.0001 tail=0.0051  (466.4/s)
+step  77400  loss 0.05321  varnorm=0.0483 std_match=0.0001 tail=0.0097  (466.4/s)
+step  77500  loss 0.06662  varnorm=0.0616 std_match=0.0001 tail=0.0098  (466.4/s)
+step  77600  loss 0.04406  varnorm=0.0417 std_match=0.0000 tail=0.0047  (466.5/s)
+step  77700  loss 0.04782  varnorm=0.0454 std_match=0.0001 tail=0.0046  (466.5/s)
+step  77800  loss 0.05150  varnorm=0.0490 std_match=0.0001 tail=0.0048  (466.5/s)
+step  77900  loss 0.04555  varnorm=0.0435 std_match=0.0000 tail=0.0040  (466.6/s)
+step  78000  loss 0.04819  varnorm=0.0461 std_match=0.0000 tail=0.0040  (466.6/s)
+step  78100  loss 0.05594  varnorm=0.0532 std_match=0.0001 tail=0.0053  (466.7/s)
+step  78200  loss 0.04629  varnorm=0.0445 std_match=0.0001 tail=0.0034  (466.7/s)
+step  78300  loss 0.05194  varnorm=0.0495 std_match=0.0001 tail=0.0048  (466.7/s)
+step  78400  loss 0.05657  varnorm=0.0541 std_match=0.0001 tail=0.0048  (466.7/s)
+step  78500  loss 0.04581  varnorm=0.0434 std_match=0.0000 tail=0.0047  (466.8/s)
+step  78600  loss 0.05091  varnorm=0.0486 std_match=0.0001 tail=0.0046  (466.8/s)
+step  78700  loss 0.04760  varnorm=0.0458 std_match=0.0001 tail=0.0035  (466.9/s)
+step  78800  loss 0.04892  varnorm=0.0469 std_match=0.0000 tail=0.0039  (466.9/s)
+step  78900  loss 0.05181  varnorm=0.0492 std_match=0.0001 tail=0.0050  (466.9/s)
+step  79000  loss 0.05398  varnorm=0.0515 std_match=0.0001 tail=0.0049  (466.9/s)
+step  79100  loss 0.05261  varnorm=0.0497 std_match=0.0001 tail=0.0057  (466.9/s)
+step  79200  loss 0.05648  varnorm=0.0531 std_match=0.0001 tail=0.0065  (467.0/s)
+step  79300  loss 0.05535  varnorm=0.0532 std_match=0.0001 tail=0.0042  (467.1/s)
+step  79400  loss 0.05176  varnorm=0.0489 std_match=0.0001 tail=0.0056  (467.1/s)
+step  79500  loss 0.05501  varnorm=0.0516 std_match=0.0001 tail=0.0066  (467.1/s)
+step  79600  loss 0.06539  varnorm=0.0616 std_match=0.0001 tail=0.0075  (467.1/s)
+step  79700  loss 0.06351  varnorm=0.0591 std_match=0.0001 tail=0.0087  (467.2/s)
+step  79800  loss 0.05196  varnorm=0.0497 std_match=0.0001 tail=0.0044  (467.2/s)
+step  79900  loss 0.04969  varnorm=0.0472 std_match=0.0001 tail=0.0048  (467.2/s)
+step  80000  loss 0.04623  varnorm=0.0442 std_match=0.0001 tail=0.0039  (467.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0128 (gate <0.10) [PASS]
+  ratio p95:  0.0349
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.909
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0089 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0112 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0111 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0110 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0047 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0118 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.64839
+  MouthUpperUpLeft         1.13686
+  MouthStretchLeft         1.10290
+  MouthUpperUpRight        1.01326
+  CheekSquintRight         1.00069
+  EyeSquintRight           0.99344
+  BrowInnerUp              0.94199
+  LeftEyeRoll              0.94079
+  TongueOut                0.86201
+  MouthRollLower           0.80672
+=== Bottom sensitivity ===
+  EyeWideRight             0.23115
+  MouthPucker              0.22775
+  EyeWideLeft              0.19170
+  BrowDownRight            0.15528
+  BrowDownLeft             0.13270
+  [eval@80000] ratio=0.01285 R²≥0.7=1.000 *BEST_RATIO*
+step  80100  loss 0.05336  varnorm=0.0513 std_match=0.0001 tail=0.0040  (467.1/s)
+step  80200  loss 0.05829  varnorm=0.0550 std_match=0.0001 tail=0.0063  (467.2/s)
+step  80300  loss 0.04462  varnorm=0.0425 std_match=0.0000 tail=0.0041  (467.3/s)
+step  80400  loss 0.05744  varnorm=0.0546 std_match=0.0001 tail=0.0055  (467.0/s)
+step  80500  loss 0.05331  varnorm=0.0511 std_match=0.0000 tail=0.0044  (466.8/s)
+step  80600  loss 0.04782  varnorm=0.0459 std_match=0.0001 tail=0.0037  (466.7/s)
+step  80700  loss 0.05506  varnorm=0.0524 std_match=0.0001 tail=0.0051  (466.6/s)
+step  80800  loss 0.05152  varnorm=0.0489 std_match=0.0001 tail=0.0051  (466.3/s)
+step  80900  loss 0.04706  varnorm=0.0450 std_match=0.0001 tail=0.0040  (466.2/s)
+step  81000  loss 0.05353  varnorm=0.0503 std_match=0.0001 tail=0.0064  (466.1/s)
+step  81100  loss 0.05355  varnorm=0.0504 std_match=0.0001 tail=0.0061  (465.9/s)
+step  81200  loss 0.05358  varnorm=0.0507 std_match=0.0001 tail=0.0057  (465.7/s)
+step  81300  loss 0.05268  varnorm=0.0500 std_match=0.0001 tail=0.0052  (465.7/s)
+step  81400  loss 0.05362  varnorm=0.0507 std_match=0.0001 tail=0.0056  (465.6/s)
+step  81500  loss 0.04995  varnorm=0.0472 std_match=0.0001 tail=0.0054  (465.6/s)
+step  81600  loss 0.04402  varnorm=0.0418 std_match=0.0001 tail=0.0043  (465.6/s)
+step  81700  loss 0.05380  varnorm=0.0512 std_match=0.0001 tail=0.0051  (465.7/s)
+step  81800  loss 0.04867  varnorm=0.0465 std_match=0.0000 tail=0.0043  (465.7/s)
+step  81900  loss 0.05667  varnorm=0.0539 std_match=0.0001 tail=0.0053  (465.8/s)
+step  82000  loss 0.05119  varnorm=0.0489 std_match=0.0001 tail=0.0046  (465.9/s)
+step  82100  loss 0.05225  varnorm=0.0500 std_match=0.0001 tail=0.0044  (465.9/s)
+step  82200  loss 0.05036  varnorm=0.0479 std_match=0.0001 tail=0.0048  (465.9/s)
+step  82300  loss 0.03823  varnorm=0.0362 std_match=0.0001 tail=0.0040  (466.0/s)
+step  82400  loss 0.04796  varnorm=0.0457 std_match=0.0001 tail=0.0044  (466.1/s)
+step  82500  loss 0.05015  varnorm=0.0477 std_match=0.0001 tail=0.0047  (466.1/s)
+step  82600  loss 0.05664  varnorm=0.0533 std_match=0.0002 tail=0.0063  (466.0/s)
+step  82700  loss 0.04977  varnorm=0.0472 std_match=0.0001 tail=0.0051  (466.1/s)
+step  82800  loss 0.04660  varnorm=0.0447 std_match=0.0000 tail=0.0036  (466.1/s)
+step  82900  loss 0.04268  varnorm=0.0409 std_match=0.0000 tail=0.0034  (466.2/s)
+step  83000  loss 0.04781  varnorm=0.0460 std_match=0.0000 tail=0.0035  (466.3/s)
+step  83100  loss 0.04662  varnorm=0.0443 std_match=0.0001 tail=0.0044  (466.3/s)
+step  83200  loss 0.05018  varnorm=0.0477 std_match=0.0000 tail=0.0048  (466.3/s)
+step  83300  loss 0.05192  varnorm=0.0495 std_match=0.0001 tail=0.0047  (466.4/s)
+step  83400  loss 0.05158  varnorm=0.0494 std_match=0.0001 tail=0.0043  (466.4/s)
+step  83500  loss 0.04985  varnorm=0.0468 std_match=0.0001 tail=0.0059  (466.4/s)
+step  83600  loss 0.04869  varnorm=0.0465 std_match=0.0001 tail=0.0044  (466.5/s)
+step  83700  loss 0.04503  varnorm=0.0425 std_match=0.0001 tail=0.0049  (466.5/s)
+step  83800  loss 0.05276  varnorm=0.0499 std_match=0.0001 tail=0.0056  (466.5/s)
+step  83900  loss 0.04644  varnorm=0.0444 std_match=0.0000 tail=0.0040  (466.6/s)
+step  84000  loss 0.04838  varnorm=0.0463 std_match=0.0001 tail=0.0041  (466.6/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0126 (gate <0.10) [PASS]
+  ratio p95:  0.0340
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.910
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0090 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0107 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0107 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0110 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0045 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0115 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.55583
+  MouthUpperUpLeft         1.17665
+  MouthUpperUpRight        1.01661
+  CheekSquintRight         0.99645
+  MouthStretchLeft         0.98628
+  EyeSquintRight           0.96201
+  LeftEyeRoll              0.93996
+  TongueOut                0.92951
+  BrowInnerUp              0.88963
+  MouthRollLower           0.80350
+=== Bottom sensitivity ===
+  EyeWideRight             0.24432
+  MouthPucker              0.23294
+  EyeWideLeft              0.19984
+  BrowDownRight            0.15757
+  BrowDownLeft             0.13917
+  [eval@84000] ratio=0.01263 R²≥0.7=1.000 *BEST_RATIO*
+step  84100  loss 0.05925  varnorm=0.0554 std_match=0.0001 tail=0.0074  (466.5/s)
+step  84200  loss 0.04834  varnorm=0.0462 std_match=0.0000 tail=0.0041  (466.5/s)
+step  84300  loss 0.05275  varnorm=0.0502 std_match=0.0001 tail=0.0050  (466.5/s)
+step  84400  loss 0.05911  varnorm=0.0564 std_match=0.0001 tail=0.0052  (466.4/s)
+step  84500  loss 0.05462  varnorm=0.0520 std_match=0.0001 tail=0.0051  (466.3/s)
+step  84600  loss 0.04758  varnorm=0.0453 std_match=0.0000 tail=0.0044  (466.1/s)
+step  84700  loss 0.05606  varnorm=0.0532 std_match=0.0001 tail=0.0056  (465.9/s)
+step  84800  loss 0.04962  varnorm=0.0471 std_match=0.0001 tail=0.0048  (465.8/s)
+step  84900  loss 0.04976  varnorm=0.0476 std_match=0.0001 tail=0.0042  (465.7/s)
+step  85000  loss 0.05224  varnorm=0.0497 std_match=0.0001 tail=0.0050  (465.5/s)
+step  85100  loss 0.04532  varnorm=0.0432 std_match=0.0001 tail=0.0041  (465.4/s)
+step  85200  loss 0.04666  varnorm=0.0444 std_match=0.0001 tail=0.0044  (465.2/s)
+step  85300  loss 0.05113  varnorm=0.0484 std_match=0.0001 tail=0.0052  (465.2/s)
+step  85400  loss 0.04996  varnorm=0.0476 std_match=0.0001 tail=0.0046  (465.1/s)
+step  85500  loss 0.04970  varnorm=0.0474 std_match=0.0001 tail=0.0045  (465.2/s)
+step  85600  loss 0.05607  varnorm=0.0537 std_match=0.0001 tail=0.0047  (465.2/s)
+step  85700  loss 0.04687  varnorm=0.0444 std_match=0.0000 tail=0.0048  (465.2/s)
+step  85800  loss 0.05410  varnorm=0.0510 std_match=0.0001 tail=0.0061  (465.3/s)
+step  85900  loss 0.05337  varnorm=0.0502 std_match=0.0001 tail=0.0061  (465.2/s)
+step  86000  loss 0.04999  varnorm=0.0480 std_match=0.0001 tail=0.0038  (465.2/s)
+step  86100  loss 0.04644  varnorm=0.0439 std_match=0.0001 tail=0.0050  (465.2/s)
+step  86200  loss 0.05263  varnorm=0.0500 std_match=0.0000 tail=0.0052  (465.3/s)
+step  86300  loss 0.04065  varnorm=0.0388 std_match=0.0001 tail=0.0036  (465.2/s)
+step  86400  loss 0.05499  varnorm=0.0506 std_match=0.0001 tail=0.0085  (465.2/s)
+step  86500  loss 0.04704  varnorm=0.0447 std_match=0.0001 tail=0.0044  (465.3/s)
+step  86600  loss 0.04865  varnorm=0.0465 std_match=0.0001 tail=0.0041  (465.4/s)
+step  86700  loss 0.04819  varnorm=0.0456 std_match=0.0001 tail=0.0050  (465.3/s)
+step  86800  loss 0.04648  varnorm=0.0442 std_match=0.0001 tail=0.0045  (465.3/s)
+step  86900  loss 0.04827  varnorm=0.0462 std_match=0.0000 tail=0.0041  (465.3/s)
+step  87000  loss 0.05624  varnorm=0.0531 std_match=0.0001 tail=0.0062  (465.4/s)
+step  87100  loss 0.05389  varnorm=0.0511 std_match=0.0001 tail=0.0055  (465.4/s)
+step  87200  loss 0.04765  varnorm=0.0451 std_match=0.0001 tail=0.0050  (465.4/s)
+step  87300  loss 0.04755  varnorm=0.0453 std_match=0.0000 tail=0.0043  (465.4/s)
+step  87400  loss 0.04738  varnorm=0.0450 std_match=0.0001 tail=0.0047  (465.5/s)
+step  87500  loss 0.05499  varnorm=0.0526 std_match=0.0001 tail=0.0046  (465.5/s)
+step  87600  loss 0.05140  varnorm=0.0491 std_match=0.0000 tail=0.0045  (465.5/s)
+step  87700  loss 0.04770  varnorm=0.0456 std_match=0.0000 tail=0.0041  (465.6/s)
+step  87800  loss 0.04892  varnorm=0.0462 std_match=0.0001 tail=0.0053  (465.6/s)
+step  87900  loss 0.04413  varnorm=0.0420 std_match=0.0001 tail=0.0041  (465.6/s)
+step  88000  loss 0.04469  varnorm=0.0430 std_match=0.0001 tail=0.0033  (465.6/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0124 (gate <0.10) [PASS]
+  ratio p95:  0.0347
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.911
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0086 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0109 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0107 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0105 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0048 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0117 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.49516
+  MouthUpperUpLeft         1.17458
+  CheekSquintRight         1.05747
+  MouthStretchLeft         1.02844
+  MouthUpperUpRight        1.00515
+  EyeSquintRight           0.96502
+  LeftEyeRoll              0.96427
+  TongueOut                0.94315
+  BrowInnerUp              0.89674
+  MouthRollLower           0.80672
+=== Bottom sensitivity ===
+  EyeWideRight             0.23531
+  MouthPucker              0.22983
+  EyeWideLeft              0.18975
+  BrowDownRight            0.15545
+  BrowDownLeft             0.14625
+  [eval@88000] ratio=0.01239 R²≥0.7=1.000 *BEST_RATIO*
+step  88100  loss 0.05031  varnorm=0.0481 std_match=0.0001 tail=0.0043  (465.5/s)
+step  88200  loss 0.05387  varnorm=0.0516 std_match=0.0001 tail=0.0044  (465.5/s)
+step  88300  loss 0.05744  varnorm=0.0551 std_match=0.0001 tail=0.0045  (465.5/s)
+step  88400  loss 0.04967  varnorm=0.0475 std_match=0.0001 tail=0.0042  (465.4/s)
+step  88500  loss 0.04747  varnorm=0.0453 std_match=0.0001 tail=0.0042  (465.2/s)
+step  88600  loss 0.05159  varnorm=0.0494 std_match=0.0001 tail=0.0042  (465.0/s)
+step  88700  loss 0.04528  varnorm=0.0431 std_match=0.0000 tail=0.0044  (464.8/s)
+step  88800  loss 0.04624  varnorm=0.0439 std_match=0.0000 tail=0.0045  (464.6/s)
+step  88900  loss 0.04989  varnorm=0.0475 std_match=0.0001 tail=0.0046  (464.5/s)
+step  89000  loss 0.04660  varnorm=0.0444 std_match=0.0000 tail=0.0042  (464.4/s)
+step  89100  loss 0.05387  varnorm=0.0513 std_match=0.0000 tail=0.0051  (464.3/s)
+step  89200  loss 0.04941  varnorm=0.0469 std_match=0.0001 tail=0.0049  (464.1/s)
+step  89300  loss 0.05035  varnorm=0.0478 std_match=0.0001 tail=0.0051  (464.1/s)
+step  89400  loss 0.04702  varnorm=0.0452 std_match=0.0000 tail=0.0036  (464.0/s)
+step  89500  loss 0.04815  varnorm=0.0466 std_match=0.0000 tail=0.0030  (464.0/s)
+step  89600  loss 0.04849  varnorm=0.0461 std_match=0.0001 tail=0.0047  (464.0/s)
+step  89700  loss 0.05278  varnorm=0.0504 std_match=0.0001 tail=0.0046  (464.0/s)
+step  89800  loss 0.04912  varnorm=0.0470 std_match=0.0000 tail=0.0041  (464.1/s)
+step  89900  loss 0.05163  varnorm=0.0492 std_match=0.0001 tail=0.0048  (464.1/s)
+step  90000  loss 0.04493  varnorm=0.0429 std_match=0.0000 tail=0.0039  (464.0/s)
+step  90100  loss 0.04460  varnorm=0.0429 std_match=0.0000 tail=0.0034  (464.1/s)
+step  90200  loss 0.04570  varnorm=0.0434 std_match=0.0000 tail=0.0044  (464.0/s)
+step  90300  loss 0.04944  varnorm=0.0470 std_match=0.0001 tail=0.0047  (464.0/s)
+step  90400  loss 0.04471  varnorm=0.0427 std_match=0.0001 tail=0.0039  (464.0/s)
+step  90500  loss 0.04687  varnorm=0.0444 std_match=0.0001 tail=0.0049  (464.0/s)
+step  90600  loss 0.04952  varnorm=0.0471 std_match=0.0001 tail=0.0047  (464.0/s)
+step  90700  loss 0.04195  varnorm=0.0402 std_match=0.0000 tail=0.0035  (464.0/s)
+step  90800  loss 0.04436  varnorm=0.0416 std_match=0.0001 tail=0.0053  (464.0/s)
+step  90900  loss 0.04674  varnorm=0.0442 std_match=0.0001 tail=0.0049  (464.1/s)
+step  91000  loss 0.04591  varnorm=0.0440 std_match=0.0000 tail=0.0036  (464.0/s)
+step  91100  loss 0.05213  varnorm=0.0499 std_match=0.0001 tail=0.0044  (464.1/s)
+step  91200  loss 0.04633  varnorm=0.0444 std_match=0.0000 tail=0.0038  (464.0/s)
+step  91300  loss 0.05426  varnorm=0.0517 std_match=0.0001 tail=0.0050  (464.1/s)
+step  91400  loss 0.05577  varnorm=0.0520 std_match=0.0001 tail=0.0074  (464.1/s)
+step  91500  loss 0.05203  varnorm=0.0495 std_match=0.0001 tail=0.0049  (464.1/s)
+step  91600  loss 0.04083  varnorm=0.0391 std_match=0.0000 tail=0.0034  (464.1/s)
+step  91700  loss 0.05364  varnorm=0.0508 std_match=0.0001 tail=0.0055  (464.1/s)
+step  91800  loss 0.04595  varnorm=0.0439 std_match=0.0000 tail=0.0040  (464.2/s)
+step  91900  loss 0.05018  varnorm=0.0471 std_match=0.0001 tail=0.0061  (464.2/s)
+step  92000  loss 0.04835  varnorm=0.0461 std_match=0.0001 tail=0.0044  (464.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0123 (gate <0.10) [PASS]
+  ratio p95:  0.0334
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.913
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0085 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0107 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0104 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0106 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0044 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0116 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.41763
+  MouthUpperUpLeft         1.16699
+  CheekSquintRight         1.08739
+  TongueOut                1.02125
+  MouthStretchLeft         1.01207
+  MouthUpperUpRight        0.98399
+  EyeSquintRight           0.97565
+  LeftEyeRoll              0.94672
+  BrowInnerUp              0.86604
+  MouthRollLower           0.83077
+=== Bottom sensitivity ===
+  RightEyeRoll             0.23418
+  MouthPucker              0.22690
+  EyeWideLeft              0.18991
+  BrowDownRight            0.15584
+  BrowDownLeft             0.13552
+  [eval@92000] ratio=0.01227 R²≥0.7=1.000 *BEST_RATIO*
+step  92100  loss 0.04554  varnorm=0.0429 std_match=0.0000 tail=0.0052  (464.1/s)
+step  92200  loss 0.04604  varnorm=0.0438 std_match=0.0000 tail=0.0044  (464.2/s)
+step  92300  loss 0.05176  varnorm=0.0488 std_match=0.0001 tail=0.0058  (464.2/s)
+step  92400  loss 0.04431  varnorm=0.0424 std_match=0.0000 tail=0.0037  (464.0/s)
+step  92500  loss 0.05461  varnorm=0.0523 std_match=0.0001 tail=0.0046  (463.8/s)
+step  92600  loss 0.04901  varnorm=0.0466 std_match=0.0000 tail=0.0048  (463.7/s)
+step  92700  loss 0.04986  varnorm=0.0479 std_match=0.0001 tail=0.0038  (463.6/s)
+step  92800  loss 0.05155  varnorm=0.0483 std_match=0.0001 tail=0.0063  (463.4/s)
+step  92900  loss 0.05151  varnorm=0.0492 std_match=0.0001 tail=0.0046  (463.3/s)
+step  93000  loss 0.04664  varnorm=0.0443 std_match=0.0001 tail=0.0046  (463.1/s)
+step  93100  loss 0.04998  varnorm=0.0475 std_match=0.0001 tail=0.0049  (462.9/s)
+step  93200  loss 0.04290  varnorm=0.0409 std_match=0.0001 tail=0.0039  (462.8/s)
+step  93300  loss 0.04985  varnorm=0.0479 std_match=0.0000 tail=0.0038  (462.6/s)
+step  93400  loss 0.04484  varnorm=0.0429 std_match=0.0000 tail=0.0038  (462.6/s)
+step  93500  loss 0.05169  varnorm=0.0489 std_match=0.0001 tail=0.0055  (462.5/s)
+step  93600  loss 0.04697  varnorm=0.0444 std_match=0.0001 tail=0.0049  (462.5/s)
+step  93700  loss 0.04215  varnorm=0.0405 std_match=0.0000 tail=0.0032  (462.5/s)
+step  93800  loss 0.04825  varnorm=0.0452 std_match=0.0001 tail=0.0059  (462.5/s)
+step  93900  loss 0.04671  varnorm=0.0447 std_match=0.0001 tail=0.0039  (462.6/s)
+step  94000  loss 0.05216  varnorm=0.0495 std_match=0.0001 tail=0.0052  (462.5/s)
+step  94100  loss 0.04361  varnorm=0.0414 std_match=0.0000 tail=0.0044  (462.5/s)
+step  94200  loss 0.04380  varnorm=0.0420 std_match=0.0000 tail=0.0036  (462.6/s)
+step  94300  loss 0.04461  varnorm=0.0429 std_match=0.0000 tail=0.0034  (462.6/s)
+step  94400  loss 0.04640  varnorm=0.0442 std_match=0.0001 tail=0.0043  (462.6/s)
+step  94500  loss 0.04974  varnorm=0.0476 std_match=0.0001 tail=0.0042  (462.6/s)
+step  94600  loss 0.04938  varnorm=0.0469 std_match=0.0001 tail=0.0048  (462.6/s)
+step  94700  loss 0.04580  varnorm=0.0438 std_match=0.0000 tail=0.0040  (462.5/s)
+step  94800  loss 0.04335  varnorm=0.0412 std_match=0.0001 tail=0.0041  (462.6/s)
+step  94900  loss 0.04567  varnorm=0.0436 std_match=0.0000 tail=0.0041  (462.6/s)
+step  95000  loss 0.04419  varnorm=0.0419 std_match=0.0000 tail=0.0045  (462.7/s)
+step  95100  loss 0.04628  varnorm=0.0439 std_match=0.0001 tail=0.0046  (462.6/s)
+step  95200  loss 0.04162  varnorm=0.0396 std_match=0.0001 tail=0.0039  (462.7/s)
+step  95300  loss 0.04515  varnorm=0.0432 std_match=0.0000 tail=0.0038  (462.7/s)
+step  95400  loss 0.05370  varnorm=0.0504 std_match=0.0001 tail=0.0065  (462.8/s)
+step  95500  loss 0.04929  varnorm=0.0471 std_match=0.0000 tail=0.0042  (462.8/s)
+step  95600  loss 0.04893  varnorm=0.0458 std_match=0.0001 tail=0.0060  (462.7/s)
+step  95700  loss 0.05696  varnorm=0.0533 std_match=0.0001 tail=0.0071  (462.7/s)
+step  95800  loss 0.05064  varnorm=0.0483 std_match=0.0001 tail=0.0046  (462.8/s)
+step  95900  loss 0.05063  varnorm=0.0486 std_match=0.0001 tail=0.0039  (462.8/s)
+step  96000  loss 0.06001  varnorm=0.0563 std_match=0.0001 tail=0.0072  (462.8/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0119 (gate <0.10) [PASS]
+  ratio p95:  0.0330
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.914
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0089 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0104 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0099 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0110 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0046 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0113 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.41632
+  MouthUpperUpLeft         1.17515
+  CheekSquintRight         1.14469
+  TongueOut                1.03548
+  MouthUpperUpRight        0.99854
+  EyeSquintRight           0.98499
+  MouthStretchLeft         0.97530
+  LeftEyeRoll              0.91810
+  BrowInnerUp              0.87349
+  MouthRollLower           0.82630
+=== Bottom sensitivity ===
+  MouthPucker              0.22674
+  MouthLowerDownLeft       0.22546
+  EyeWideLeft              0.18925
+  BrowDownRight            0.14956
+  BrowDownLeft             0.14040
+  [eval@96000] ratio=0.01191 R²≥0.7=1.000 *BEST_RATIO*
+step  96100  loss 0.04772  varnorm=0.0453 std_match=0.0001 tail=0.0047  (462.8/s)
+step  96200  loss 0.05155  varnorm=0.0490 std_match=0.0001 tail=0.0051  (462.9/s)
+step  96300  loss 0.04611  varnorm=0.0439 std_match=0.0001 tail=0.0043  (463.0/s)
+step  96400  loss 0.04414  varnorm=0.0420 std_match=0.0000 tail=0.0042  (463.0/s)
+step  96500  loss 0.04397  varnorm=0.0421 std_match=0.0001 tail=0.0037  (462.9/s)
+step  96600  loss 0.04756  varnorm=0.0452 std_match=0.0000 tail=0.0047  (462.8/s)
+step  96700  loss 0.04140  varnorm=0.0396 std_match=0.0001 tail=0.0036  (462.7/s)
+step  96800  loss 0.04170  varnorm=0.0400 std_match=0.0000 tail=0.0034  (462.6/s)
+step  96900  loss 0.04308  varnorm=0.0410 std_match=0.0001 tail=0.0040  (462.4/s)
+step  97000  loss 0.04609  varnorm=0.0442 std_match=0.0001 tail=0.0037  (462.2/s)
+step  97100  loss 0.05181  varnorm=0.0494 std_match=0.0001 tail=0.0047  (462.1/s)
+step  97200  loss 0.04994  varnorm=0.0469 std_match=0.0001 tail=0.0059  (462.0/s)
+step  97300  loss 0.04759  varnorm=0.0452 std_match=0.0001 tail=0.0046  (461.9/s)
+step  97400  loss 0.04257  varnorm=0.0406 std_match=0.0001 tail=0.0038  (461.8/s)
+step  97500  loss 0.04579  varnorm=0.0433 std_match=0.0001 tail=0.0047  (461.8/s)
+step  97600  loss 0.04419  varnorm=0.0421 std_match=0.0000 tail=0.0040  (461.8/s)
+step  97700  loss 0.04661  varnorm=0.0441 std_match=0.0001 tail=0.0050  (461.8/s)
+step  97800  loss 0.04540  varnorm=0.0434 std_match=0.0000 tail=0.0040  (461.8/s)
+step  97900  loss 0.05029  varnorm=0.0481 std_match=0.0001 tail=0.0043  (461.8/s)
+step  98000  loss 0.05081  varnorm=0.0475 std_match=0.0001 tail=0.0065  (461.9/s)
+step  98100  loss 0.05111  varnorm=0.0470 std_match=0.0001 tail=0.0081  (461.9/s)
+step  98200  loss 0.04411  varnorm=0.0423 std_match=0.0001 tail=0.0034  (462.0/s)
+step  98300  loss 0.04619  varnorm=0.0440 std_match=0.0000 tail=0.0043  (462.0/s)
+step  98400  loss 0.04514  varnorm=0.0432 std_match=0.0000 tail=0.0039  (462.1/s)
+step  98500  loss 0.04269  varnorm=0.0410 std_match=0.0000 tail=0.0034  (462.2/s)
+step  98600  loss 0.04706  varnorm=0.0446 std_match=0.0001 tail=0.0048  (462.2/s)
+step  98700  loss 0.04584  varnorm=0.0431 std_match=0.0001 tail=0.0053  (462.3/s)
+step  98800  loss 0.04896  varnorm=0.0464 std_match=0.0000 tail=0.0050  (462.4/s)
+step  98900  loss 0.03997  varnorm=0.0383 std_match=0.0000 tail=0.0033  (462.4/s)
+step  99000  loss 0.04343  varnorm=0.0414 std_match=0.0001 tail=0.0039  (462.4/s)
+step  99100  loss 0.04579  varnorm=0.0438 std_match=0.0001 tail=0.0039  (462.5/s)
+step  99200  loss 0.04609  varnorm=0.0437 std_match=0.0000 tail=0.0047  (462.6/s)
+step  99300  loss 0.04798  varnorm=0.0456 std_match=0.0001 tail=0.0045  (462.6/s)
+step  99400  loss 0.04525  varnorm=0.0432 std_match=0.0001 tail=0.0040  (462.6/s)
+step  99500  loss 0.04714  varnorm=0.0447 std_match=0.0001 tail=0.0047  (462.7/s)
+step  99600  loss 0.04948  varnorm=0.0473 std_match=0.0000 tail=0.0042  (462.8/s)
+step  99700  loss 0.04655  varnorm=0.0442 std_match=0.0001 tail=0.0045  (462.8/s)
+step  99800  loss 0.04336  varnorm=0.0413 std_match=0.0001 tail=0.0040  (462.9/s)
+step  99900  loss 0.04411  varnorm=0.0420 std_match=0.0001 tail=0.0040  (463.0/s)
+step 100000  loss 0.04851  varnorm=0.0462 std_match=0.0000 tail=0.0045  (463.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0119 (gate <0.10) [PASS]
+  ratio p95:  0.0323
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.916
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0085 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0104 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0101 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0106 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0045 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0111 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.31620
+  MouthUpperUpLeft         1.17400
+  CheekSquintRight         1.15696
+  TongueOut                1.07245
+  MouthStretchLeft         1.01616
+  MouthUpperUpRight        0.98255
+  EyeSquintRight           0.96951
+  LeftEyeRoll              0.88256
+  BrowInnerUp              0.85693
+  EyeLookOutRight          0.80128
+=== Bottom sensitivity ===
+  MouthLowerDownLeft       0.22676
+  MouthPucker              0.22066
+  EyeWideLeft              0.18581
+  BrowDownRight            0.14814
+  BrowDownLeft             0.14569
+  [eval@100000] ratio=0.01187 R²≥0.7=1.000 *BEST_RATIO*
+step 100100  loss 0.04526  varnorm=0.0431 std_match=0.0001 tail=0.0042  (462.9/s)
+step 100200  loss 0.05114  varnorm=0.0489 std_match=0.0000 tail=0.0043  (462.9/s)
+step 100300  loss 0.04662  varnorm=0.0443 std_match=0.0001 tail=0.0045  (462.9/s)
+step 100400  loss 0.05552  varnorm=0.0516 std_match=0.0001 tail=0.0077  (462.9/s)
+step 100500  loss 0.04434  varnorm=0.0423 std_match=0.0000 tail=0.0040  (462.8/s)
+step 100600  loss 0.04393  varnorm=0.0419 std_match=0.0000 tail=0.0041  (462.7/s)
+step 100700  loss 0.04777  varnorm=0.0453 std_match=0.0001 tail=0.0049  (462.5/s)
+step 100800  loss 0.05272  varnorm=0.0496 std_match=0.0001 tail=0.0062  (462.4/s)
+step 100900  loss 0.04820  varnorm=0.0462 std_match=0.0000 tail=0.0040  (462.3/s)
+step 101000  loss 0.04457  varnorm=0.0424 std_match=0.0001 tail=0.0043  (462.2/s)
+step 101100  loss 0.04590  varnorm=0.0442 std_match=0.0001 tail=0.0032  (462.1/s)
+step 101200  loss 0.04604  varnorm=0.0439 std_match=0.0000 tail=0.0042  (462.0/s)
+step 101300  loss 0.04710  varnorm=0.0450 std_match=0.0001 tail=0.0041  (461.9/s)
+step 101400  loss 0.04195  varnorm=0.0397 std_match=0.0001 tail=0.0045  (461.8/s)
+step 101500  loss 0.04821  varnorm=0.0456 std_match=0.0001 tail=0.0050  (461.9/s)
+step 101600  loss 0.04370  varnorm=0.0417 std_match=0.0001 tail=0.0039  (461.8/s)
+step 101700  loss 0.04488  varnorm=0.0429 std_match=0.0001 tail=0.0039  (461.8/s)
+step 101800  loss 0.04522  varnorm=0.0429 std_match=0.0001 tail=0.0045  (461.9/s)
+step 101900  loss 0.04570  varnorm=0.0435 std_match=0.0001 tail=0.0044  (461.9/s)
+step 102000  loss 0.04275  varnorm=0.0408 std_match=0.0000 tail=0.0038  (461.9/s)
+step 102100  loss 0.05102  varnorm=0.0485 std_match=0.0001 tail=0.0048  (462.0/s)
+step 102200  loss 0.04360  varnorm=0.0417 std_match=0.0001 tail=0.0037  (462.0/s)
+step 102300  loss 0.05065  varnorm=0.0485 std_match=0.0001 tail=0.0042  (462.1/s)
+step 102400  loss 0.04552  varnorm=0.0429 std_match=0.0000 tail=0.0051  (462.1/s)
+step 102500  loss 0.03933  varnorm=0.0374 std_match=0.0000 tail=0.0039  (462.1/s)
+step 102600  loss 0.04689  varnorm=0.0444 std_match=0.0001 tail=0.0047  (462.2/s)
+step 102700  loss 0.04634  varnorm=0.0442 std_match=0.0001 tail=0.0041  (462.2/s)
+step 102800  loss 0.05605  varnorm=0.0533 std_match=0.0001 tail=0.0054  (462.3/s)
+step 102900  loss 0.04938  varnorm=0.0473 std_match=0.0001 tail=0.0041  (462.3/s)
+step 103000  loss 0.04794  varnorm=0.0452 std_match=0.0001 tail=0.0053  (462.4/s)
+step 103100  loss 0.04227  varnorm=0.0404 std_match=0.0000 tail=0.0036  (462.5/s)
+step 103200  loss 0.04053  varnorm=0.0387 std_match=0.0000 tail=0.0037  (462.5/s)
+step 103300  loss 0.04064  varnorm=0.0388 std_match=0.0001 tail=0.0036  (462.6/s)
+step 103400  loss 0.04803  varnorm=0.0458 std_match=0.0000 tail=0.0044  (462.7/s)
+step 103500  loss 0.04484  varnorm=0.0423 std_match=0.0001 tail=0.0049  (462.7/s)
+step 103600  loss 0.04891  varnorm=0.0464 std_match=0.0001 tail=0.0050  (462.8/s)
+step 103700  loss 0.04293  varnorm=0.0409 std_match=0.0001 tail=0.0039  (462.8/s)
+step 103800  loss 0.04867  varnorm=0.0459 std_match=0.0000 tail=0.0054  (462.9/s)
+step 103900  loss 0.04725  varnorm=0.0453 std_match=0.0000 tail=0.0039  (462.9/s)
+step 104000  loss 0.04157  varnorm=0.0397 std_match=0.0000 tail=0.0037  (463.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0117 (gate <0.10) [PASS]
+  ratio p95:  0.0319
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.917
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0084 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0102 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0100 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0104 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0045 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0110 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.31471
+  MouthUpperUpLeft         1.20857
+  CheekSquintRight         1.17767
+  TongueOut                1.08973
+  MouthUpperUpRight        0.98510
+  EyeSquintRight           0.97654
+  MouthStretchLeft         0.92389
+  LeftEyeRoll              0.85726
+  BrowInnerUp              0.85344
+  EyeLookOutRight          0.79603
+=== Bottom sensitivity ===
+  RightEyeRoll             0.22412
+  MouthShrugLower          0.21565
+  EyeWideLeft              0.18173
+  BrowDownRight            0.14622
+  BrowDownLeft             0.14239
+  [eval@104000] ratio=0.01168 R²≥0.7=1.000 *BEST_RATIO*
+step 104100  loss 0.04998  varnorm=0.0478 std_match=0.0001 tail=0.0042  (462.9/s)
+step 104200  loss 0.04861  varnorm=0.0463 std_match=0.0001 tail=0.0045  (462.9/s)
+step 104300  loss 0.05074  varnorm=0.0487 std_match=0.0000 tail=0.0041  (463.0/s)
+step 104400  loss 0.04098  varnorm=0.0390 std_match=0.0000 tail=0.0039  (462.9/s)
+step 104500  loss 0.03988  varnorm=0.0379 std_match=0.0001 tail=0.0038  (462.9/s)
+step 104600  loss 0.04740  varnorm=0.0447 std_match=0.0001 tail=0.0054  (462.8/s)
+step 104700  loss 0.04319  varnorm=0.0412 std_match=0.0001 tail=0.0038  (462.7/s)
+step 104800  loss 0.04105  varnorm=0.0394 std_match=0.0000 tail=0.0032  (462.6/s)
+step 104900  loss 0.04252  varnorm=0.0405 std_match=0.0000 tail=0.0040  (462.5/s)
+step 105000  loss 0.04346  varnorm=0.0413 std_match=0.0001 tail=0.0043  (462.3/s)
+step 105100  loss 0.04420  varnorm=0.0423 std_match=0.0000 tail=0.0037  (462.2/s)
+step 105200  loss 0.04416  varnorm=0.0421 std_match=0.0000 tail=0.0039  (462.1/s)
+step 105300  loss 0.04344  varnorm=0.0412 std_match=0.0001 tail=0.0044  (462.1/s)
+step 105400  loss 0.03977  varnorm=0.0377 std_match=0.0001 tail=0.0041  (462.0/s)
+step 105500  loss 0.04541  varnorm=0.0431 std_match=0.0000 tail=0.0046  (462.0/s)
+step 105600  loss 0.04817  varnorm=0.0461 std_match=0.0001 tail=0.0039  (462.0/s)
+step 105700  loss 0.04728  varnorm=0.0450 std_match=0.0001 tail=0.0045  (462.0/s)
+step 105800  loss 0.04629  varnorm=0.0441 std_match=0.0001 tail=0.0042  (462.1/s)
+step 105900  loss 0.04285  varnorm=0.0408 std_match=0.0000 tail=0.0040  (462.1/s)
+step 106000  loss 0.04596  varnorm=0.0436 std_match=0.0001 tail=0.0047  (462.2/s)
+step 106100  loss 0.04576  varnorm=0.0436 std_match=0.0001 tail=0.0042  (462.2/s)
+step 106200  loss 0.05140  varnorm=0.0485 std_match=0.0001 tail=0.0056  (462.3/s)
+step 106300  loss 0.04202  varnorm=0.0400 std_match=0.0000 tail=0.0039  (462.3/s)
+step 106400  loss 0.04806  varnorm=0.0457 std_match=0.0001 tail=0.0047  (462.4/s)
+step 106500  loss 0.04200  varnorm=0.0401 std_match=0.0001 tail=0.0037  (462.4/s)
+step 106600  loss 0.04616  varnorm=0.0437 std_match=0.0000 tail=0.0049  (462.4/s)
+step 106700  loss 0.05251  varnorm=0.0485 std_match=0.0001 tail=0.0079  (462.5/s)
+step 106800  loss 0.04482  varnorm=0.0427 std_match=0.0001 tail=0.0041  (462.6/s)
+step 106900  loss 0.04401  varnorm=0.0416 std_match=0.0001 tail=0.0047  (462.6/s)
+step 107000  loss 0.04053  varnorm=0.0383 std_match=0.0000 tail=0.0043  (462.6/s)
+step 107100  loss 0.04878  varnorm=0.0465 std_match=0.0001 tail=0.0045  (462.7/s)
+step 107200  loss 0.03661  varnorm=0.0350 std_match=0.0001 tail=0.0032  (462.8/s)
+step 107300  loss 0.05355  varnorm=0.0507 std_match=0.0001 tail=0.0054  (462.8/s)
+step 107400  loss 0.04296  varnorm=0.0408 std_match=0.0000 tail=0.0043  (462.9/s)
+step 107500  loss 0.04200  varnorm=0.0400 std_match=0.0001 tail=0.0040  (462.9/s)
+step 107600  loss 0.04634  varnorm=0.0440 std_match=0.0001 tail=0.0045  (463.0/s)
+step 107700  loss 0.04870  varnorm=0.0459 std_match=0.0001 tail=0.0054  (463.1/s)
+step 107800  loss 0.04583  varnorm=0.0436 std_match=0.0000 tail=0.0043  (463.1/s)
+step 107900  loss 0.04502  varnorm=0.0428 std_match=0.0001 tail=0.0044  (463.2/s)
+step 108000  loss 0.04782  varnorm=0.0454 std_match=0.0001 tail=0.0048  (463.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0116 (gate <0.10) [PASS]
+  ratio p95:  0.0312
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.916
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0088 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0101 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0100 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0106 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0044 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0113 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthUpperUpLeft         1.23795
+  MouthPressLeft           1.21471
+  TongueOut                1.14257
+  CheekSquintRight         1.13769
+  MouthUpperUpRight        0.99434
+  MouthStretchLeft         0.93603
+  EyeSquintRight           0.89474
+  EyeLookOutRight          0.84448
+  LeftEyeRoll              0.84346
+  BrowInnerUp              0.82375
+=== Bottom sensitivity ===
+  RightEyeRoll             0.21942
+  MouthShrugLower          0.21646
+  EyeWideLeft              0.18007
+  BrowDownLeft             0.15178
+  BrowDownRight            0.14350
+  [eval@108000] ratio=0.01165 R²≥0.7=1.000 *BEST_RATIO*
+step 108100  loss 0.04143  varnorm=0.0396 std_match=0.0001 tail=0.0036  (463.2/s)
+step 108200  loss 0.04287  varnorm=0.0406 std_match=0.0001 tail=0.0044  (463.3/s)
+step 108300  loss 0.04119  varnorm=0.0392 std_match=0.0001 tail=0.0039  (463.3/s)
+step 108400  loss 0.04963  varnorm=0.0469 std_match=0.0001 tail=0.0053  (463.3/s)
+step 108500  loss 0.03676  varnorm=0.0350 std_match=0.0000 tail=0.0034  (463.1/s)
+step 108600  loss 0.03997  varnorm=0.0381 std_match=0.0001 tail=0.0037  (462.9/s)
+step 108700  loss 0.04362  varnorm=0.0414 std_match=0.0001 tail=0.0043  (462.8/s)
+step 108800  loss 0.04579  varnorm=0.0435 std_match=0.0001 tail=0.0044  (462.7/s)
+step 108900  loss 0.04462  varnorm=0.0425 std_match=0.0001 tail=0.0041  (462.6/s)
+step 109000  loss 0.04951  varnorm=0.0469 std_match=0.0001 tail=0.0052  (462.5/s)
+step 109100  loss 0.04485  varnorm=0.0426 std_match=0.0001 tail=0.0044  (462.3/s)
+step 109200  loss 0.04635  varnorm=0.0437 std_match=0.0000 tail=0.0052  (462.2/s)
+step 109300  loss 0.04692  varnorm=0.0448 std_match=0.0001 tail=0.0042  (462.1/s)
+step 109400  loss 0.04031  varnorm=0.0386 std_match=0.0000 tail=0.0033  (462.1/s)
+step 109500  loss 0.03937  varnorm=0.0379 std_match=0.0000 tail=0.0029  (462.0/s)
+step 109600  loss 0.04770  varnorm=0.0453 std_match=0.0001 tail=0.0048  (461.9/s)
+step 109700  loss 0.04357  varnorm=0.0418 std_match=0.0000 tail=0.0035  (461.9/s)
+step 109800  loss 0.04667  varnorm=0.0444 std_match=0.0001 tail=0.0044  (462.0/s)
+step 109900  loss 0.04908  varnorm=0.0468 std_match=0.0001 tail=0.0044  (462.0/s)
+step 110000  loss 0.04575  varnorm=0.0439 std_match=0.0000 tail=0.0037  (462.0/s)
+step 110100  loss 0.04763  varnorm=0.0454 std_match=0.0001 tail=0.0044  (462.1/s)
+step 110200  loss 0.04661  varnorm=0.0449 std_match=0.0001 tail=0.0033  (462.1/s)
+step 110300  loss 0.04285  varnorm=0.0408 std_match=0.0000 tail=0.0041  (462.1/s)
+step 110400  loss 0.04447  varnorm=0.0424 std_match=0.0001 tail=0.0039  (462.1/s)
+step 110500  loss 0.04769  varnorm=0.0447 std_match=0.0001 tail=0.0060  (462.1/s)
+step 110600  loss 0.04263  varnorm=0.0406 std_match=0.0000 tail=0.0039  (462.1/s)
+step 110700  loss 0.03979  varnorm=0.0381 std_match=0.0000 tail=0.0033  (462.2/s)
+step 110800  loss 0.04647  varnorm=0.0439 std_match=0.0001 tail=0.0050  (462.3/s)
+step 110900  loss 0.04395  varnorm=0.0419 std_match=0.0001 tail=0.0040  (462.3/s)
+step 111000  loss 0.04049  varnorm=0.0384 std_match=0.0000 tail=0.0040  (462.3/s)
+step 111100  loss 0.04640  varnorm=0.0443 std_match=0.0001 tail=0.0041  (462.3/s)
+step 111200  loss 0.04675  varnorm=0.0444 std_match=0.0000 tail=0.0045  (462.3/s)
+step 111300  loss 0.04464  varnorm=0.0428 std_match=0.0000 tail=0.0036  (462.3/s)
+step 111400  loss 0.04331  varnorm=0.0411 std_match=0.0001 tail=0.0042  (462.4/s)
+step 111500  loss 0.04093  varnorm=0.0392 std_match=0.0000 tail=0.0034  (462.4/s)
+step 111600  loss 0.04224  varnorm=0.0404 std_match=0.0000 tail=0.0037  (462.3/s)
+step 111700  loss 0.04811  varnorm=0.0454 std_match=0.0001 tail=0.0053  (462.4/s)
+step 111800  loss 0.04075  varnorm=0.0390 std_match=0.0001 tail=0.0033  (462.4/s)
+step 111900  loss 0.04582  varnorm=0.0433 std_match=0.0000 tail=0.0050  (462.4/s)
+step 112000  loss 0.04720  varnorm=0.0442 std_match=0.0001 tail=0.0058  (462.4/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0115 (gate <0.10) [PASS]
+  ratio p95:  0.0313
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.918
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0088 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0101 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0097 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0105 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0042 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0110 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.24604
+  MouthUpperUpLeft         1.23125
+  CheekSquintRight         1.18205
+  TongueOut                1.13092
+  MouthUpperUpRight        0.95662
+  MouthStretchLeft         0.92355
+  EyeSquintRight           0.91665
+  BrowInnerUp              0.82849
+  EyeLookOutRight          0.81947
+  LeftEyeRoll              0.81945
+=== Bottom sensitivity ===
+  RightEyeRoll             0.21115
+  MouthShrugLower          0.20958
+  EyeWideLeft              0.17932
+  BrowDownRight            0.14964
+  BrowDownLeft             0.14583
+  [eval@112000] ratio=0.01147 R²≥0.7=1.000 *BEST_RATIO*
+step 112100  loss 0.04361  varnorm=0.0416 std_match=0.0001 tail=0.0039  (462.3/s)
+step 112200  loss 0.04562  varnorm=0.0435 std_match=0.0001 tail=0.0040  (462.4/s)
+step 112300  loss 0.04010  varnorm=0.0381 std_match=0.0000 tail=0.0039  (462.4/s)
+step 112400  loss 0.04012  varnorm=0.0384 std_match=0.0000 tail=0.0034  (462.3/s)
+step 112500  loss 0.04239  varnorm=0.0404 std_match=0.0000 tail=0.0038  (462.2/s)
+step 112600  loss 0.04074  varnorm=0.0388 std_match=0.0000 tail=0.0037  (462.1/s)
+step 112700  loss 0.03851  varnorm=0.0368 std_match=0.0000 tail=0.0033  (462.0/s)
+step 112800  loss 0.04554  varnorm=0.0430 std_match=0.0000 tail=0.0049  (461.9/s)
+step 112900  loss 0.05358  varnorm=0.0496 std_match=0.0001 tail=0.0079  (461.7/s)
+step 113000  loss 0.04469  varnorm=0.0429 std_match=0.0000 tail=0.0035  (461.6/s)
+step 113100  loss 0.04045  varnorm=0.0387 std_match=0.0000 tail=0.0035  (461.5/s)
+step 113200  loss 0.04413  varnorm=0.0420 std_match=0.0001 tail=0.0041  (461.3/s)
+step 113300  loss 0.04227  varnorm=0.0405 std_match=0.0001 tail=0.0035  (461.3/s)
+step 113400  loss 0.04539  varnorm=0.0434 std_match=0.0001 tail=0.0039  (461.2/s)
+step 113500  loss 0.04306  varnorm=0.0409 std_match=0.0001 tail=0.0041  (461.0/s)
+step 113600  loss 0.05606  varnorm=0.0529 std_match=0.0001 tail=0.0062  (461.0/s)
+step 113700  loss 0.04390  varnorm=0.0416 std_match=0.0001 tail=0.0044  (460.9/s)
+step 113800  loss 0.04352  varnorm=0.0415 std_match=0.0000 tail=0.0039  (461.0/s)
+step 113900  loss 0.04186  varnorm=0.0401 std_match=0.0000 tail=0.0035  (461.0/s)
+step 114000  loss 0.03705  varnorm=0.0356 std_match=0.0000 tail=0.0029  (461.0/s)
+step 114100  loss 0.04014  varnorm=0.0384 std_match=0.0001 tail=0.0033  (461.1/s)
+step 114200  loss 0.04332  varnorm=0.0412 std_match=0.0001 tail=0.0041  (461.2/s)
+step 114300  loss 0.04050  varnorm=0.0387 std_match=0.0000 tail=0.0036  (461.2/s)
+step 114400  loss 0.04092  varnorm=0.0392 std_match=0.0000 tail=0.0034  (461.2/s)
+step 114500  loss 0.04364  varnorm=0.0417 std_match=0.0001 tail=0.0038  (461.3/s)
+step 114600  loss 0.04924  varnorm=0.0470 std_match=0.0000 tail=0.0044  (461.3/s)
+step 114700  loss 0.04250  varnorm=0.0405 std_match=0.0000 tail=0.0039  (461.3/s)
+step 114800  loss 0.04284  varnorm=0.0410 std_match=0.0000 tail=0.0036  (461.4/s)
+step 114900  loss 0.04712  varnorm=0.0453 std_match=0.0000 tail=0.0036  (461.4/s)
+step 115000  loss 0.04169  varnorm=0.0397 std_match=0.0000 tail=0.0038  (461.5/s)
+step 115100  loss 0.04840  varnorm=0.0456 std_match=0.0001 tail=0.0055  (461.5/s)
+step 115200  loss 0.04053  varnorm=0.0386 std_match=0.0000 tail=0.0038  (461.5/s)
+step 115300  loss 0.04164  varnorm=0.0399 std_match=0.0000 tail=0.0033  (461.6/s)
+step 115400  loss 0.04721  varnorm=0.0447 std_match=0.0001 tail=0.0048  (461.7/s)
+step 115500  loss 0.04213  varnorm=0.0399 std_match=0.0000 tail=0.0044  (461.7/s)
+step 115600  loss 0.04336  varnorm=0.0412 std_match=0.0001 tail=0.0043  (461.6/s)
+step 115700  loss 0.04011  varnorm=0.0383 std_match=0.0000 tail=0.0036  (461.7/s)
+step 115800  loss 0.04394  varnorm=0.0420 std_match=0.0001 tail=0.0037  (461.8/s)
+step 115900  loss 0.04736  varnorm=0.0450 std_match=0.0001 tail=0.0047  (461.8/s)
+step 116000  loss 0.04102  varnorm=0.0392 std_match=0.0000 tail=0.0036  (461.9/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0114 (gate <0.10) [PASS]
+  ratio p95:  0.0304
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.918
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0082 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0102 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0100 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0103 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0042 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0109 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthUpperUpLeft         1.30984
+  CheekSquintRight         1.26069
+  MouthPressLeft           1.15179
+  TongueOut                1.12698
+  MouthUpperUpRight        0.97253
+  EyeSquintRight           0.95139
+  MouthStretchLeft         0.95045
+  JawRight                 0.83553
+  EyeLookOutRight          0.83487
+  LeftEyeRoll              0.79036
+=== Bottom sensitivity ===
+  MouthShrugLower          0.20427
+  MouthPucker              0.20400
+  EyeWideLeft              0.18052
+  BrowDownLeft             0.15480
+  BrowDownRight            0.14146
+  [eval@116000] ratio=0.01137 R²≥0.7=1.000 *BEST_RATIO*
+step 116100  loss 0.04608  varnorm=0.0433 std_match=0.0000 tail=0.0055  (461.8/s)
+step 116200  loss 0.05077  varnorm=0.0485 std_match=0.0001 tail=0.0045  (461.8/s)
+step 116300  loss 0.05032  varnorm=0.0481 std_match=0.0001 tail=0.0043  (461.9/s)
+step 116400  loss 0.04134  varnorm=0.0395 std_match=0.0000 tail=0.0037  (461.9/s)
+step 116500  loss 0.04315  varnorm=0.0410 std_match=0.0000 tail=0.0042  (461.8/s)
+step 116600  loss 0.04055  varnorm=0.0384 std_match=0.0000 tail=0.0043  (461.7/s)
+step 116700  loss 0.04003  varnorm=0.0383 std_match=0.0000 tail=0.0033  (461.6/s)
+step 116800  loss 0.04133  varnorm=0.0395 std_match=0.0000 tail=0.0035  (461.5/s)
+step 116900  loss 0.04561  varnorm=0.0431 std_match=0.0001 tail=0.0049  (461.4/s)
+step 117000  loss 0.04351  varnorm=0.0410 std_match=0.0001 tail=0.0050  (461.3/s)
+step 117100  loss 0.03543  varnorm=0.0340 std_match=0.0001 tail=0.0027  (461.2/s)
+step 117200  loss 0.04354  varnorm=0.0418 std_match=0.0000 tail=0.0034  (461.1/s)
+step 117300  loss 0.03876  varnorm=0.0369 std_match=0.0000 tail=0.0035  (461.0/s)
+step 117400  loss 0.04179  varnorm=0.0401 std_match=0.0000 tail=0.0033  (460.9/s)
+step 117500  loss 0.03960  varnorm=0.0379 std_match=0.0000 tail=0.0033  (460.8/s)
+step 117600  loss 0.04445  varnorm=0.0422 std_match=0.0001 tail=0.0044  (460.7/s)
+step 117700  loss 0.04112  varnorm=0.0392 std_match=0.0001 tail=0.0036  (460.6/s)
+step 117800  loss 0.03621  varnorm=0.0345 std_match=0.0001 tail=0.0033  (460.6/s)
+step 117900  loss 0.03785  varnorm=0.0362 std_match=0.0000 tail=0.0032  (460.6/s)
+step 118000  loss 0.04601  varnorm=0.0437 std_match=0.0000 tail=0.0045  (460.6/s)
+step 118100  loss 0.04159  varnorm=0.0398 std_match=0.0000 tail=0.0035  (460.7/s)
+step 118200  loss 0.04515  varnorm=0.0430 std_match=0.0000 tail=0.0041  (460.7/s)
+step 118300  loss 0.04767  varnorm=0.0454 std_match=0.0000 tail=0.0044  (460.7/s)
+step 118400  loss 0.04534  varnorm=0.0431 std_match=0.0001 tail=0.0044  (460.7/s)
+step 118500  loss 0.03781  varnorm=0.0361 std_match=0.0000 tail=0.0033  (460.8/s)
+step 118600  loss 0.04581  varnorm=0.0429 std_match=0.0000 tail=0.0058  (460.8/s)
+step 118700  loss 0.04689  varnorm=0.0441 std_match=0.0001 tail=0.0054  (460.8/s)
+step 118800  loss 0.04528  varnorm=0.0431 std_match=0.0000 tail=0.0042  (460.9/s)
+step 118900  loss 0.03900  varnorm=0.0375 std_match=0.0000 tail=0.0030  (461.0/s)
+step 119000  loss 0.04510  varnorm=0.0429 std_match=0.0001 tail=0.0043  (461.0/s)
+step 119100  loss 0.03752  varnorm=0.0360 std_match=0.0000 tail=0.0030  (461.0/s)
+step 119200  loss 0.04405  varnorm=0.0419 std_match=0.0001 tail=0.0043  (461.1/s)
+step 119300  loss 0.04318  varnorm=0.0413 std_match=0.0000 tail=0.0036  (461.1/s)
+step 119400  loss 0.03911  varnorm=0.0373 std_match=0.0000 tail=0.0035  (461.1/s)
+step 119500  loss 0.03873  varnorm=0.0370 std_match=0.0000 tail=0.0034  (461.2/s)
+step 119600  loss 0.04289  varnorm=0.0407 std_match=0.0001 tail=0.0042  (461.2/s)
+step 119700  loss 0.04246  varnorm=0.0405 std_match=0.0000 tail=0.0038  (461.2/s)
+step 119800  loss 0.04362  varnorm=0.0415 std_match=0.0001 tail=0.0041  (461.3/s)
+step 119900  loss 0.04408  varnorm=0.0421 std_match=0.0000 tail=0.0039  (461.3/s)
+step 120000  loss 0.04292  varnorm=0.0401 std_match=0.0000 tail=0.0056  (461.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0115 (gate <0.10) [PASS]
+  ratio p95:  0.0311
+  R² ≥ 0.7 fraction: 1.000 (gate ≥0.80) [PASS]
+  R² median: 0.917
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0087 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0101 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0095 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0110 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0042 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0113 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthUpperUpLeft         1.31953
+  CheekSquintRight         1.21451
+  TongueOut                1.16155
+  MouthPressLeft           1.15000
+  MouthUpperUpRight        0.95205
+  MouthStretchLeft         0.93784
+  EyeSquintRight           0.89749
+  JawRight                 0.86137
+  EyeLookOutRight          0.84442
+  LeftEyeRoll              0.80426
+=== Bottom sensitivity ===
+  MouthShrugLower          0.20515
+  RightEyeRoll             0.20508
+  EyeWideLeft              0.18018
+  BrowDownLeft             0.15388
+  BrowDownRight            0.13893
+  [eval@120000] ratio=0.01149 R²≥0.7=1.000 (plateau=1/3)
+done. best_ratio=0.01137 @ step 116000

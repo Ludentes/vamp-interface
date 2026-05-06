@@ -1,0 +1,17 @@
+loading data/arkit_bridge_pairs/all
+loading data/arkit_bridge_pairs/holdout_v3
+  train: b(15622, 58) y(15622, 512); holdout: b(822, 58) y(822, 512)
+  σ = 1.3003 (median)
+fitting landmarks: mode=full k=11
+  landmarks shape: (15622, 58)
+building train design matrix Φ_train
+  Φ_train shape: (15622, 15622); Φ_tr stats: min=1.087e-02 mean=5.986e-01 max=1.000e+00
+building holdout design matrix Φ_holdout
+computing normal equations PtP, PtY (float64)...
+  λ=1e-03: ratio=0.02725 r2_median=0.809 r2_above_0_7=0.908
+  λ=1e-01: ratio=0.03662 r2_median=0.744 r2_above_0_7=0.691
+  λ=1e+01: ratio=0.04869 r2_median=0.658 r2_above_0_7=0.338
+  λ=1e+03: ratio=0.06838 r2_median=0.526 r2_above_0_7=0.051
+
+wrote exp_output/arkit_bridge/krr_baseline/full/scorecard.json
+best λ=1e-03 ratio=0.02725 r2_median=0.809
