@@ -40,6 +40,12 @@ if __name__ == "__main__":
     ap.add_argument("--anneal_to_step", type=int, default=0,
                     help="for weighted_mse_jvp_anneal: linearly fade A+B+C "
                          "augmentation to 0 by this step (0=disabled)")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="seed for torch/numpy/random; 0=unseeded")
+    ap.add_argument("--lr_schedule", default="constant",
+                    choices=["constant", "cosine"])
+    ap.add_argument("--lr_min", type=float, default=5e-5,
+                    help="cosine schedule eta_min")
     args = ap.parse_args()
     train(
         args.pairs_dir, args.out_dir,
@@ -54,4 +60,6 @@ if __name__ == "__main__":
         lam_std=args.lam_std, lam_tail=args.lam_tail, tail_z=args.tail_z,
         lam_jvp=args.lam_jvp, alpha=args.alpha,
         anneal_to_step=args.anneal_to_step,
+        seed=args.seed,
+        lr_schedule=args.lr_schedule, lr_min=args.lr_min,
     )

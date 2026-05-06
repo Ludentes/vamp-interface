@@ -257,9 +257,18 @@ def train(
     lam_jvp: float = 0.1,
     alpha: float = 0.5,
     anneal_to_step: int = 0,
+    seed: int = 0,
+    lr_schedule: str = "constant",
+    lr_min: float = 5e-5,
 ):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if seed:
+        import random
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
     ds = PairDataset(pairs_dir)
 
     stats = None
@@ -297,6 +306,14 @@ def train(
 
     s = MotEncoderStudent().to(device)
     opt = torch.optim.AdamW(s.parameters(), lr=lr)
+
+    sched = None
+    if lr_schedule == "cosine":
+        sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+            opt, T_max=steps, eta_min=lr_min,
+        )
+    elif lr_schedule != "constant":
+        raise ValueError(f"unknown lr_schedule={lr_schedule}")
 
     loss_fn = _make_loss(loss_mode, stats, device,
                          lam_std=lam_std, lam_tail=lam_tail, tail_z=tail_z,
@@ -359,6 +376,8 @@ def train(
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
+            if sched is not None:
+                sched.step()
             step += 1
             if step % log_every == 0:
                 rate = step / max(1e-6, time.time() - t0)
