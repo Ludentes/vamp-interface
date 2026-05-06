@@ -1,0 +1,812 @@
+Running as unit: run-rc7d1193ffda543aba2c44aabf74dc028.scope; invocation ID: 9d52a4c1e30f4fa3b9540805963367d2
+step    100  loss 1.60943  weighted_mse=1.4760 std_match=0.1335 sample_w_mean=1.0000  (124.1/s)
+step    200  loss 1.48163  weighted_mse=1.3498 std_match=0.1318 sample_w_mean=1.0000  (174.9/s)
+step    300  loss 1.48436  weighted_mse=1.3492 std_match=0.1352 sample_w_mean=1.0000  (220.9/s)
+step    400  loss 1.53493  weighted_mse=1.4075 std_match=0.1275 sample_w_mean=1.0000  (256.2/s)
+step    500  loss 1.11676  weighted_mse=1.0737 std_match=0.0430 sample_w_mean=1.0000  (281.8/s)
+step    600  loss 0.96160  weighted_mse=0.9341 std_match=0.0275 sample_w_mean=1.0000  (305.7/s)
+step    700  loss 1.02466  weighted_mse=1.0021 std_match=0.0226 sample_w_mean=1.0000  (321.6/s)
+step    800  loss 0.78383  weighted_mse=0.7656 std_match=0.0182 sample_w_mean=1.0000  (335.2/s)
+step    900  loss 0.86774  weighted_mse=0.8514 std_match=0.0164 sample_w_mean=1.0000  (348.0/s)
+step   1000  loss 0.66068  weighted_mse=0.6496 std_match=0.0110 sample_w_mean=1.0000  (357.4/s)
+step   1100  loss 0.61691  weighted_mse=0.6085 std_match=0.0084 sample_w_mean=1.0000  (368.6/s)
+step   1200  loss 0.67202  weighted_mse=0.6623 std_match=0.0097 sample_w_mean=1.0000  (377.2/s)
+step   1300  loss 0.60964  weighted_mse=0.6005 std_match=0.0091 sample_w_mean=1.0000  (385.6/s)
+step   1400  loss 0.64919  weighted_mse=0.6407 std_match=0.0085 sample_w_mean=1.0000  (392.6/s)
+step   1500  loss 0.57188  weighted_mse=0.5640 std_match=0.0079 sample_w_mean=1.0000  (397.5/s)
+step   1600  loss 0.56716  weighted_mse=0.5591 std_match=0.0081 sample_w_mean=1.0000  (403.5/s)
+step   1700  loss 0.61521  weighted_mse=0.6059 std_match=0.0093 sample_w_mean=1.0000  (408.7/s)
+step   1800  loss 0.52738  weighted_mse=0.5217 std_match=0.0057 sample_w_mean=1.0000  (412.7/s)
+step   1900  loss 0.59546  weighted_mse=0.5899 std_match=0.0055 sample_w_mean=1.0000  (417.6/s)
+step   2000  loss 0.48548  weighted_mse=0.4792 std_match=0.0062 sample_w_mean=1.0000  (422.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0662 (gate <0.10) [PASS]
+  ratio p95:  0.2075
+  R² ≥ 0.7 fraction: 0.092 (gate ≥0.80) [FAIL]
+  R² median: 0.540
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0607 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0767 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0734 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0813 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0574 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0709 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  JawRight                 0.76906
+  MouthRollUpper           0.76297
+  MouthPressRight          0.70817
+  MouthRight               0.69374
+  MouthRollLower           0.59465
+  CheekPuff                0.52160
+  MouthLeft                0.50047
+  MouthShrugUpper          0.46641
+  MouthPressLeft           0.46564
+  JawOpen                  0.44501
+=== Bottom sensitivity ===
+  MouthFunnel              0.11189
+  MouthClose               0.10619
+  CheekSquintLeft          0.10225
+  MouthFrownRight          0.09664
+  RightEyePitch            0.09223
+  [eval@2000] ratio=0.06615 R²≥0.7=0.092 *BEST_RATIO+BEST_R2*
+step   2100  loss 0.54293  weighted_mse=0.5390 std_match=0.0039 sample_w_mean=1.0000  (412.4/s)
+step   2200  loss 0.49059  weighted_mse=0.4860 std_match=0.0046 sample_w_mean=1.0000  (416.1/s)
+step   2300  loss 0.54827  weighted_mse=0.5411 std_match=0.0071 sample_w_mean=1.0000  (420.9/s)
+step   2400  loss 0.48118  weighted_mse=0.4751 std_match=0.0061 sample_w_mean=1.0000  (419.3/s)
+step   2500  loss 0.48599  weighted_mse=0.4805 std_match=0.0055 sample_w_mean=1.0000  (414.0/s)
+step   2600  loss 0.45434  weighted_mse=0.4493 std_match=0.0050 sample_w_mean=1.0000  (413.5/s)
+step   2700  loss 0.45676  weighted_mse=0.4526 std_match=0.0041 sample_w_mean=1.0000  (415.8/s)
+step   2800  loss 0.44904  weighted_mse=0.4445 std_match=0.0046 sample_w_mean=1.0000  (419.3/s)
+step   2900  loss 0.47810  weighted_mse=0.4726 std_match=0.0055 sample_w_mean=1.0000  (419.9/s)
+step   3000  loss 0.38372  weighted_mse=0.3808 std_match=0.0030 sample_w_mean=1.0000  (420.3/s)
+step   3100  loss 0.47363  weighted_mse=0.4693 std_match=0.0044 sample_w_mean=1.0000  (420.4/s)
+step   3200  loss 0.49421  weighted_mse=0.4902 std_match=0.0040 sample_w_mean=1.0000  (422.7/s)
+step   3300  loss 0.42174  weighted_mse=0.4184 std_match=0.0034 sample_w_mean=1.0000  (423.5/s)
+step   3400  loss 0.42291  weighted_mse=0.4195 std_match=0.0034 sample_w_mean=1.0000  (425.3/s)
+step   3500  loss 0.42908  weighted_mse=0.4255 std_match=0.0035 sample_w_mean=1.0000  (426.8/s)
+step   3600  loss 0.42269  weighted_mse=0.4196 std_match=0.0031 sample_w_mean=1.0000  (427.3/s)
+step   3700  loss 0.42030  weighted_mse=0.4163 std_match=0.0040 sample_w_mean=1.0000  (429.0/s)
+step   3800  loss 0.40462  weighted_mse=0.4013 std_match=0.0033 sample_w_mean=1.0000  (431.0/s)
+step   3900  loss 0.30485  weighted_mse=0.3033 std_match=0.0016 sample_w_mean=1.0000  (432.2/s)
+step   4000  loss 0.42339  weighted_mse=0.4205 std_match=0.0029 sample_w_mean=1.0000  (431.8/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0517 (gate <0.10) [PASS]
+  ratio p95:  0.1750
+  R² ≥ 0.7 fraction: 0.285 (gate ≥0.80) [FAIL]
+  R² median: 0.638
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0421 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0605 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0562 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0613 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0218 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0557 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  JawRight                 0.98037
+  MouthRollUpper           0.93918
+  MouthRight               0.85290
+  MouthPressRight          0.85093
+  MouthRollLower           0.71868
+  EyeSquintLeft            0.65893
+  MouthLeft                0.59369
+  MouthPressLeft           0.55881
+  EyeLookOutLeft           0.53229
+  CheekPuff                0.50589
+=== Bottom sensitivity ===
+  MouthClose               0.16054
+  BrowDownLeft             0.14550
+  NoseSneerRight           0.14115
+  RightEyePitch            0.13724
+  EyeWideRight             0.13045
+  [eval@4000] ratio=0.05171 R²≥0.7=0.285 *BEST_RATIO+BEST_R2*
+step   4100  loss 0.37820  weighted_mse=0.3751 std_match=0.0031 sample_w_mean=1.0000  (430.8/s)
+step   4200  loss 0.45640  weighted_mse=0.4515 std_match=0.0049 sample_w_mean=1.0000  (432.7/s)
+step   4300  loss 0.31635  weighted_mse=0.3144 std_match=0.0020 sample_w_mean=1.0000  (434.7/s)
+step   4400  loss 0.31081  weighted_mse=0.3089 std_match=0.0019 sample_w_mean=1.0000  (429.8/s)
+step   4500  loss 0.36042  weighted_mse=0.3575 std_match=0.0029 sample_w_mean=1.0000  (428.0/s)
+step   4600  loss 0.29026  weighted_mse=0.2878 std_match=0.0024 sample_w_mean=1.0000  (429.5/s)
+step   4700  loss 0.34134  weighted_mse=0.3389 std_match=0.0024 sample_w_mean=1.0000  (430.2/s)
+step   4800  loss 0.30872  weighted_mse=0.3067 std_match=0.0020 sample_w_mean=1.0000  (430.6/s)
+step   4900  loss 0.34174  weighted_mse=0.3400 std_match=0.0017 sample_w_mean=1.0000  (431.3/s)
+step   5000  loss 0.35990  weighted_mse=0.3577 std_match=0.0022 sample_w_mean=1.0000  (432.2/s)
+step   5100  loss 0.38465  weighted_mse=0.3820 std_match=0.0027 sample_w_mean=1.0000  (432.3/s)
+step   5200  loss 0.27816  weighted_mse=0.2766 std_match=0.0016 sample_w_mean=1.0000  (431.2/s)
+step   5300  loss 0.30035  weighted_mse=0.2987 std_match=0.0016 sample_w_mean=1.0000  (431.7/s)
+step   5400  loss 0.31400  weighted_mse=0.3117 std_match=0.0022 sample_w_mean=1.0000  (432.5/s)
+step   5500  loss 0.33396  weighted_mse=0.3317 std_match=0.0022 sample_w_mean=1.0000  (433.6/s)
+step   5600  loss 0.38198  weighted_mse=0.3786 std_match=0.0034 sample_w_mean=1.0000  (434.9/s)
+step   5700  loss 0.29990  weighted_mse=0.2978 std_match=0.0021 sample_w_mean=1.0000  (433.3/s)
+step   5800  loss 0.28278  weighted_mse=0.2800 std_match=0.0027 sample_w_mean=1.0000  (434.0/s)
+step   5900  loss 0.38657  weighted_mse=0.3843 std_match=0.0023 sample_w_mean=1.0000  (435.6/s)
+step   6000  loss 0.26933  weighted_mse=0.2672 std_match=0.0021 sample_w_mean=1.0000  (437.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0455 (gate <0.10) [PASS]
+  ratio p95:  0.1652
+  R² ≥ 0.7 fraction: 0.436 (gate ≥0.80) [FAIL]
+  R² median: 0.678
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0329 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0511 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0487 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0516 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0154 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0463 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthRollUpper           1.15660
+  JawRight                 1.05692
+  MouthPressRight          0.89050
+  EyeSquintLeft            0.81344
+  MouthRollLower           0.73965
+  MouthPressLeft           0.73858
+  BrowInnerUp              0.68059
+  MouthRight               0.66449
+  CheekSquintRight         0.60984
+  EyeLookOutLeft           0.58240
+=== Bottom sensitivity ===
+  EyeWideRight             0.16863
+  EyeLookDownRight         0.16340
+  NoseSneerRight           0.15690
+  RightEyePitch            0.15676
+  BrowDownLeft             0.11741
+  [eval@6000] ratio=0.04549 R²≥0.7=0.436 *BEST_RATIO+BEST_R2*
+step   6100  loss 0.21345  weighted_mse=0.2123 std_match=0.0012 sample_w_mean=1.0000  (437.1/s)
+step   6200  loss 0.25218  weighted_mse=0.2509 std_match=0.0013 sample_w_mean=1.0000  (438.4/s)
+step   6300  loss 0.30205  weighted_mse=0.2999 std_match=0.0021 sample_w_mean=1.0000  (438.4/s)
+step   6400  loss 0.27895  weighted_mse=0.2773 std_match=0.0016 sample_w_mean=1.0000  (436.8/s)
+step   6500  loss 0.31784  weighted_mse=0.3164 std_match=0.0014 sample_w_mean=1.0000  (436.6/s)
+step   6600  loss 0.31648  weighted_mse=0.3149 std_match=0.0015 sample_w_mean=1.0000  (438.1/s)
+step   6700  loss 0.29701  weighted_mse=0.2955 std_match=0.0015 sample_w_mean=1.0000  (438.4/s)
+step   6800  loss 0.27428  weighted_mse=0.2723 std_match=0.0020 sample_w_mean=1.0000  (439.5/s)
+step   6900  loss 0.26005  weighted_mse=0.2590 std_match=0.0010 sample_w_mean=1.0000  (440.3/s)
+step   7000  loss 0.23901  weighted_mse=0.2378 std_match=0.0012 sample_w_mean=1.0000  (441.6/s)
+step   7100  loss 0.23740  weighted_mse=0.2359 std_match=0.0015 sample_w_mean=1.0000  (441.9/s)
+step   7200  loss 0.23267  weighted_mse=0.2313 std_match=0.0013 sample_w_mean=1.0000  (442.3/s)
+step   7300  loss 0.29764  weighted_mse=0.2959 std_match=0.0017 sample_w_mean=1.0000  (443.0/s)
+step   7400  loss 0.24604  weighted_mse=0.2444 std_match=0.0016 sample_w_mean=1.0000  (444.0/s)
+step   7500  loss 0.20697  weighted_mse=0.2064 std_match=0.0006 sample_w_mean=1.0000  (444.7/s)
+step   7600  loss 0.24141  weighted_mse=0.2402 std_match=0.0012 sample_w_mean=1.0000  (445.5/s)
+step   7700  loss 0.26478  weighted_mse=0.2633 std_match=0.0014 sample_w_mean=1.0000  (445.5/s)
+step   7800  loss 0.24475  weighted_mse=0.2440 std_match=0.0008 sample_w_mean=1.0000  (445.7/s)
+step   7900  loss 0.28481  weighted_mse=0.2832 std_match=0.0016 sample_w_mean=1.0000  (446.4/s)
+step   8000  loss 0.24309  weighted_mse=0.2419 std_match=0.0012 sample_w_mean=1.0000  (447.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0410 (gate <0.10) [PASS]
+  ratio p95:  0.1493
+  R² ≥ 0.7 fraction: 0.535 (gate ≥0.80) [FAIL]
+  R² median: 0.711
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0281 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0444 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0423 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0444 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0154 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0396 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthRollUpper           1.29668
+  JawRight                 0.95286
+  EyeSquintLeft            0.80251
+  MouthPressLeft           0.78561
+  BrowInnerUp              0.78301
+  MouthRollLower           0.76172
+  MouthPressRight          0.70748
+  CheekSquintRight         0.66084
+  EyeSquintRight           0.64498
+  MouthRight               0.64315
+=== Bottom sensitivity ===
+  EyeWideRight             0.17567
+  EyeLookDownRight         0.17306
+  RightEyePitch            0.16974
+  MouthStretchRight        0.14987
+  BrowDownLeft             0.10746
+  [eval@8000] ratio=0.04100 R²≥0.7=0.535 *BEST_RATIO+BEST_R2*
+step   8100  loss 0.26501  weighted_mse=0.2638 std_match=0.0012 sample_w_mean=1.0000  (446.6/s)
+step   8200  loss 0.27532  weighted_mse=0.2732 std_match=0.0021 sample_w_mean=1.0000  (447.1/s)
+step   8300  loss 0.22590  weighted_mse=0.2252 std_match=0.0007 sample_w_mean=1.0000  (447.3/s)
+step   8400  loss 0.26579  weighted_mse=0.2647 std_match=0.0011 sample_w_mean=1.0000  (446.0/s)
+step   8500  loss 0.25426  weighted_mse=0.2525 std_match=0.0018 sample_w_mean=1.0000  (445.0/s)
+step   8600  loss 0.25215  weighted_mse=0.2503 std_match=0.0019 sample_w_mean=1.0000  (445.5/s)
+step   8700  loss 0.27348  weighted_mse=0.2713 std_match=0.0021 sample_w_mean=1.0000  (445.7/s)
+step   8800  loss 0.22244  weighted_mse=0.2209 std_match=0.0015 sample_w_mean=1.0000  (446.0/s)
+step   8900  loss 0.26107  weighted_mse=0.2597 std_match=0.0014 sample_w_mean=1.0000  (446.2/s)
+step   9000  loss 0.20453  weighted_mse=0.2037 std_match=0.0009 sample_w_mean=1.0000  (446.7/s)
+step   9100  loss 0.23560  weighted_mse=0.2345 std_match=0.0011 sample_w_mean=1.0000  (446.9/s)
+step   9200  loss 0.30193  weighted_mse=0.2999 std_match=0.0020 sample_w_mean=1.0000  (446.8/s)
+step   9300  loss 0.17896  weighted_mse=0.1777 std_match=0.0012 sample_w_mean=1.0000  (447.3/s)
+step   9400  loss 0.19707  weighted_mse=0.1964 std_match=0.0007 sample_w_mean=1.0000  (447.8/s)
+step   9500  loss 0.21124  weighted_mse=0.2100 std_match=0.0012 sample_w_mean=1.0000  (447.9/s)
+step   9600  loss 0.31771  weighted_mse=0.3162 std_match=0.0015 sample_w_mean=1.0000  (448.1/s)
+step   9700  loss 0.21705  weighted_mse=0.2161 std_match=0.0010 sample_w_mean=1.0000  (448.5/s)
+step   9800  loss 0.19270  weighted_mse=0.1920 std_match=0.0007 sample_w_mean=1.0000  (449.2/s)
+step   9900  loss 0.18415  weighted_mse=0.1836 std_match=0.0006 sample_w_mean=1.0000  (449.4/s)
+step  10000  loss 0.19983  weighted_mse=0.1987 std_match=0.0011 sample_w_mean=1.0000  (450.0/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0373 (gate <0.10) [PASS]
+  ratio p95:  0.1216
+  R² ≥ 0.7 fraction: 0.652 (gate ≥0.80) [FAIL]
+  R² median: 0.736
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0262 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0375 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0373 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0379 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0129 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0348 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthRollUpper           1.30351
+  JawRight                 0.98775
+  MouthPressLeft           0.80395
+  BrowInnerUp              0.76211
+  EyeSquintLeft            0.75227
+  MouthRollLower           0.74559
+  CheekSquintRight         0.73310
+  MouthStretchLeft         0.69698
+  EyeSquintRight           0.67312
+  MouthRight               0.67206
+=== Bottom sensitivity ===
+  EyeBlinkLeft             0.18710
+  MouthStretchRight        0.16259
+  EyeWideRight             0.16194
+  RightEyePitch            0.15613
+  BrowDownLeft             0.11012
+  [eval@10000] ratio=0.03726 R²≥0.7=0.652 *BEST_RATIO+BEST_R2*
+step  10100  loss 0.25210  weighted_mse=0.2505 std_match=0.0016 sample_w_mean=1.0000  (448.7/s)
+step  10200  loss 0.22261  weighted_mse=0.2216 std_match=0.0010 sample_w_mean=1.0000  (448.6/s)
+step  10300  loss 0.19550  weighted_mse=0.1948 std_match=0.0007 sample_w_mean=1.0000  (447.7/s)
+step  10400  loss 0.19397  weighted_mse=0.1934 std_match=0.0005 sample_w_mean=1.0000  (446.7/s)
+step  10500  loss 0.21080  weighted_mse=0.2098 std_match=0.0010 sample_w_mean=1.0000  (446.5/s)
+step  10600  loss 0.20882  weighted_mse=0.2079 std_match=0.0009 sample_w_mean=1.0000  (446.5/s)
+step  10700  loss 0.20532  weighted_mse=0.2037 std_match=0.0016 sample_w_mean=1.0000  (447.2/s)
+step  10800  loss 0.20555  weighted_mse=0.2047 std_match=0.0008 sample_w_mean=1.0000  (447.5/s)
+step  10900  loss 0.22221  weighted_mse=0.2205 std_match=0.0017 sample_w_mean=1.0000  (448.0/s)
+step  11000  loss 0.17688  weighted_mse=0.1760 std_match=0.0009 sample_w_mean=1.0000  (448.3/s)
+step  11100  loss 0.15557  weighted_mse=0.1550 std_match=0.0006 sample_w_mean=1.0000  (448.6/s)
+step  11200  loss 0.21218  weighted_mse=0.2113 std_match=0.0009 sample_w_mean=1.0000  (449.2/s)
+step  11300  loss 0.18094  weighted_mse=0.1801 std_match=0.0008 sample_w_mean=1.0000  (449.6/s)
+step  11400  loss 0.21617  weighted_mse=0.2151 std_match=0.0010 sample_w_mean=1.0000  (449.9/s)
+step  11500  loss 0.18155  weighted_mse=0.1809 std_match=0.0007 sample_w_mean=1.0000  (449.9/s)
+step  11600  loss 0.16881  weighted_mse=0.1684 std_match=0.0004 sample_w_mean=1.0000  (450.1/s)
+step  11700  loss 0.21700  weighted_mse=0.2164 std_match=0.0006 sample_w_mean=1.0000  (450.6/s)
+step  11800  loss 0.16382  weighted_mse=0.1629 std_match=0.0009 sample_w_mean=1.0000  (451.0/s)
+step  11900  loss 0.16788  weighted_mse=0.1670 std_match=0.0009 sample_w_mean=1.0000  (451.2/s)
+step  12000  loss 0.18507  weighted_mse=0.1841 std_match=0.0009 sample_w_mean=1.0000  (451.5/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0347 (gate <0.10) [PASS]
+  ratio p95:  0.1124
+  R² ≥ 0.7 fraction: 0.729 (gate ≥0.80) [FAIL]
+  R² median: 0.756
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0230 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0358 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0348 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0335 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0119 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0315 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthRollUpper           1.23084
+  MouthPressLeft           1.02708
+  JawRight                 0.93113
+  CheekSquintRight         0.81382
+  BrowInnerUp              0.78180
+  MouthStretchLeft         0.76031
+  MouthRollLower           0.74346
+  EyeSquintRight           0.73928
+  EyeSquintLeft            0.73478
+  MouthRight               0.69585
+=== Bottom sensitivity ===
+  EyeWideLeft              0.18071
+  MouthStretchRight        0.17927
+  RightEyePitch            0.16940
+  EyeWideRight             0.16177
+  BrowDownLeft             0.11391
+  [eval@12000] ratio=0.03466 R²≥0.7=0.729 *BEST_RATIO+BEST_R2*
+step  12100  loss 0.17471  weighted_mse=0.1741 std_match=0.0007 sample_w_mean=1.0000  (450.7/s)
+step  12200  loss 0.17788  weighted_mse=0.1772 std_match=0.0006 sample_w_mean=1.0000  (451.1/s)
+step  12300  loss 0.19589  weighted_mse=0.1950 std_match=0.0009 sample_w_mean=1.0000  (451.1/s)
+step  12400  loss 0.17555  weighted_mse=0.1743 std_match=0.0012 sample_w_mean=1.0000  (450.2/s)
+step  12500  loss 0.23881  weighted_mse=0.2373 std_match=0.0015 sample_w_mean=1.0000  (449.6/s)
+step  12600  loss 0.14988  weighted_mse=0.1492 std_match=0.0007 sample_w_mean=1.0000  (449.4/s)
+step  12700  loss 0.17541  weighted_mse=0.1746 std_match=0.0009 sample_w_mean=1.0000  (449.8/s)
+step  12800  loss 0.16980  weighted_mse=0.1689 std_match=0.0009 sample_w_mean=1.0000  (450.2/s)
+step  12900  loss 0.19652  weighted_mse=0.1956 std_match=0.0009 sample_w_mean=1.0000  (450.7/s)
+step  13000  loss 0.15917  weighted_mse=0.1587 std_match=0.0005 sample_w_mean=1.0000  (451.2/s)
+step  13100  loss 0.19834  weighted_mse=0.1973 std_match=0.0010 sample_w_mean=1.0000  (451.7/s)
+step  13200  loss 0.19318  weighted_mse=0.1919 std_match=0.0012 sample_w_mean=1.0000  (451.9/s)
+step  13300  loss 0.15453  weighted_mse=0.1540 std_match=0.0006 sample_w_mean=1.0000  (452.3/s)
+step  13400  loss 0.14157  weighted_mse=0.1411 std_match=0.0005 sample_w_mean=1.0000  (452.7/s)
+step  13500  loss 0.16700  weighted_mse=0.1664 std_match=0.0007 sample_w_mean=1.0000  (453.1/s)
+step  13600  loss 0.16520  weighted_mse=0.1646 std_match=0.0006 sample_w_mean=1.0000  (453.4/s)
+step  13700  loss 0.17229  weighted_mse=0.1718 std_match=0.0005 sample_w_mean=1.0000  (453.7/s)
+step  13800  loss 0.17288  weighted_mse=0.1717 std_match=0.0011 sample_w_mean=1.0000  (453.9/s)
+step  13900  loss 0.21929  weighted_mse=0.2182 std_match=0.0011 sample_w_mean=1.0000  (453.9/s)
+step  14000  loss 0.15465  weighted_mse=0.1541 std_match=0.0006 sample_w_mean=1.0000  (454.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0328 (gate <0.10) [PASS]
+  ratio p95:  0.0987
+  R² ≥ 0.7 fraction: 0.764 (gate ≥0.80) [FAIL]
+  R² median: 0.768
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0222 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0310 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0328 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0318 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0111 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0291 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           1.63273
+  MouthRollUpper           1.16723
+  JawRight                 0.85913
+  CheekSquintRight         0.80851
+  MouthPressRight          0.80491
+  MouthStretchLeft         0.75858
+  BrowInnerUp              0.75676
+  EyeSquintLeft            0.74193
+  MouthRollLower           0.68955
+  MouthRight               0.68356
+=== Bottom sensitivity ===
+  MouthStretchRight        0.18866
+  EyeWideLeft              0.18472
+  RightEyePitch            0.18235
+  EyeWideRight             0.17849
+  BrowDownLeft             0.10328
+  [eval@14000] ratio=0.03285 R²≥0.7=0.764 *BEST_RATIO+BEST_R2*
+step  14100  loss 0.14862  weighted_mse=0.1480 std_match=0.0006 sample_w_mean=1.0000  (453.5/s)
+step  14200  loss 0.15228  weighted_mse=0.1518 std_match=0.0005 sample_w_mean=1.0000  (453.3/s)
+step  14300  loss 0.15502  weighted_mse=0.1545 std_match=0.0005 sample_w_mean=1.0000  (453.3/s)
+step  14400  loss 0.17837  weighted_mse=0.1776 std_match=0.0008 sample_w_mean=1.0000  (452.8/s)
+step  14500  loss 0.15584  weighted_mse=0.1553 std_match=0.0005 sample_w_mean=1.0000  (452.3/s)
+step  14600  loss 0.14225  weighted_mse=0.1419 std_match=0.0004 sample_w_mean=1.0000  (452.9/s)
+step  14700  loss 0.15584  weighted_mse=0.1553 std_match=0.0006 sample_w_mean=1.0000  (453.6/s)
+step  14800  loss 0.16064  weighted_mse=0.1596 std_match=0.0010 sample_w_mean=1.0000  (453.9/s)
+step  14900  loss 0.15711  weighted_mse=0.1565 std_match=0.0006 sample_w_mean=1.0000  (454.5/s)
+step  15000  loss 0.14797  weighted_mse=0.1473 std_match=0.0006 sample_w_mean=1.0000  (455.2/s)
+step  15100  loss 0.13926  weighted_mse=0.1387 std_match=0.0006 sample_w_mean=1.0000  (455.6/s)
+step  15200  loss 0.16988  weighted_mse=0.1690 std_match=0.0009 sample_w_mean=1.0000  (456.1/s)
+step  15300  loss 0.15990  weighted_mse=0.1591 std_match=0.0008 sample_w_mean=1.0000  (456.7/s)
+step  15400  loss 0.15232  weighted_mse=0.1518 std_match=0.0005 sample_w_mean=1.0000  (457.1/s)
+step  15500  loss 0.16326  weighted_mse=0.1626 std_match=0.0006 sample_w_mean=1.0000  (457.7/s)
+step  15600  loss 0.14919  weighted_mse=0.1487 std_match=0.0005 sample_w_mean=1.0000  (458.4/s)
+step  15700  loss 0.12900  weighted_mse=0.1286 std_match=0.0004 sample_w_mean=1.0000  (458.6/s)
+step  15800  loss 0.15989  weighted_mse=0.1592 std_match=0.0007 sample_w_mean=1.0000  (459.1/s)
+step  15900  loss 0.13330  weighted_mse=0.1330 std_match=0.0003 sample_w_mean=1.0000  (459.6/s)
+step  16000  loss 0.14706  weighted_mse=0.1468 std_match=0.0003 sample_w_mean=1.0000  (460.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0304 (gate <0.10) [PASS]
+  ratio p95:  0.0860
+  R² ≥ 0.7 fraction: 0.824 (gate ≥0.80) [PASS]
+  R² median: 0.784
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0205 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0262 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0285 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0281 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0092 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0259 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           2.35379
+  MouthRollUpper           1.12402
+  MouthPressRight          0.95152
+  MouthStretchLeft         0.77978
+  CheekSquintRight         0.77774
+  EyeSquintLeft            0.77030
+  JawRight                 0.76153
+  BrowInnerUp              0.74604
+  MouthRight               0.74225
+  MouthUpperUpLeft         0.71917
+=== Bottom sensitivity ===
+  EyeLookInRight           0.20039
+  RightEyeYaw              0.19726
+  EyeWideRight             0.17967
+  EyeWideLeft              0.17761
+  BrowDownLeft             0.10501
+  [eval@16000] ratio=0.03036 R²≥0.7=0.824 *BEST_RATIO+BEST_R2*
+step  16100  loss 0.14595  weighted_mse=0.1451 std_match=0.0008 sample_w_mean=1.0000  (459.1/s)
+step  16200  loss 0.16162  weighted_mse=0.1612 std_match=0.0005 sample_w_mean=1.0000  (459.4/s)
+step  16300  loss 0.14633  weighted_mse=0.1456 std_match=0.0007 sample_w_mean=1.0000  (459.8/s)
+step  16400  loss 0.15606  weighted_mse=0.1557 std_match=0.0004 sample_w_mean=1.0000  (459.4/s)
+step  16500  loss 0.13447  weighted_mse=0.1341 std_match=0.0004 sample_w_mean=1.0000  (459.0/s)
+step  16600  loss 0.13668  weighted_mse=0.1358 std_match=0.0009 sample_w_mean=1.0000  (458.7/s)
+step  16700  loss 0.14881  weighted_mse=0.1482 std_match=0.0006 sample_w_mean=1.0000  (458.8/s)
+step  16800  loss 0.14066  weighted_mse=0.1401 std_match=0.0006 sample_w_mean=1.0000  (459.4/s)
+step  16900  loss 0.12641  weighted_mse=0.1260 std_match=0.0005 sample_w_mean=1.0000  (459.7/s)
+step  17000  loss 0.13423  weighted_mse=0.1337 std_match=0.0006 sample_w_mean=1.0000  (460.3/s)
+step  17100  loss 0.13396  weighted_mse=0.1334 std_match=0.0005 sample_w_mean=1.0000  (460.9/s)
+step  17200  loss 0.13269  weighted_mse=0.1320 std_match=0.0007 sample_w_mean=1.0000  (461.3/s)
+step  17300  loss 0.15185  weighted_mse=0.1512 std_match=0.0006 sample_w_mean=1.0000  (461.7/s)
+step  17400  loss 0.15764  weighted_mse=0.1566 std_match=0.0010 sample_w_mean=1.0000  (461.9/s)
+step  17500  loss 0.15826  weighted_mse=0.1574 std_match=0.0008 sample_w_mean=1.0000  (462.5/s)
+step  17600  loss 0.14145  weighted_mse=0.1409 std_match=0.0006 sample_w_mean=1.0000  (462.8/s)
+step  17700  loss 0.12251  weighted_mse=0.1220 std_match=0.0005 sample_w_mean=1.0000  (463.2/s)
+step  17800  loss 0.12329  weighted_mse=0.1230 std_match=0.0003 sample_w_mean=1.0000  (463.7/s)
+step  17900  loss 0.13085  weighted_mse=0.1304 std_match=0.0004 sample_w_mean=1.0000  (464.3/s)
+step  18000  loss 0.12385  weighted_mse=0.1233 std_match=0.0005 sample_w_mean=1.0000  (464.7/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0285 (gate <0.10) [PASS]
+  ratio p95:  0.0765
+  R² ≥ 0.7 fraction: 0.852 (gate ≥0.80) [PASS]
+  R² median: 0.795
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0191 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0237 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0263 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0252 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0094 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0245 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           3.28922
+  MouthPressRight          1.25614
+  MouthRollUpper           1.00649
+  MouthUpperUpLeft         0.78308
+  MouthStretchLeft         0.77656
+  MouthRight               0.77082
+  EyeSquintLeft            0.74070
+  CheekSquintRight         0.72823
+  BrowInnerUp              0.71212
+  JawRight                 0.69411
+=== Bottom sensitivity ===
+  EyeLookInRight           0.20392
+  BrowOuterUpLeft          0.20364
+  RightEyeYaw              0.20216
+  EyeWideRight             0.16824
+  BrowDownLeft             0.10819
+  [eval@18000] ratio=0.02851 R²≥0.7=0.852 *BEST_RATIO+BEST_R2*
+step  18100  loss 0.12929  weighted_mse=0.1290 std_match=0.0003 sample_w_mean=1.0000  (464.6/s)
+step  18200  loss 0.14922  weighted_mse=0.1487 std_match=0.0005 sample_w_mean=1.0000  (465.1/s)
+step  18300  loss 0.12342  weighted_mse=0.1230 std_match=0.0005 sample_w_mean=1.0000  (465.7/s)
+step  18400  loss 0.11444  weighted_mse=0.1141 std_match=0.0004 sample_w_mean=1.0000  (465.6/s)
+step  18500  loss 0.11104  weighted_mse=0.1108 std_match=0.0003 sample_w_mean=1.0000  (465.2/s)
+step  18600  loss 0.13202  weighted_mse=0.1314 std_match=0.0007 sample_w_mean=1.0000  (465.0/s)
+step  18700  loss 0.11865  weighted_mse=0.1183 std_match=0.0004 sample_w_mean=1.0000  (465.0/s)
+step  18800  loss 0.12371  weighted_mse=0.1233 std_match=0.0004 sample_w_mean=1.0000  (465.1/s)
+step  18900  loss 0.14752  weighted_mse=0.1472 std_match=0.0004 sample_w_mean=1.0000  (465.4/s)
+step  19000  loss 0.14544  weighted_mse=0.1450 std_match=0.0005 sample_w_mean=1.0000  (465.7/s)
+step  19100  loss 0.11463  weighted_mse=0.1143 std_match=0.0004 sample_w_mean=1.0000  (466.1/s)
+step  19200  loss 0.14953  weighted_mse=0.1488 std_match=0.0007 sample_w_mean=1.0000  (466.2/s)
+step  19300  loss 0.09253  weighted_mse=0.0924 std_match=0.0002 sample_w_mean=1.0000  (466.1/s)
+step  19400  loss 0.11584  weighted_mse=0.1154 std_match=0.0005 sample_w_mean=1.0000  (465.6/s)
+step  19500  loss 0.10834  weighted_mse=0.1081 std_match=0.0003 sample_w_mean=1.0000  (465.9/s)
+step  19600  loss 0.12095  weighted_mse=0.1204 std_match=0.0005 sample_w_mean=1.0000  (466.4/s)
+step  19700  loss 0.12763  weighted_mse=0.1272 std_match=0.0005 sample_w_mean=1.0000  (466.9/s)
+step  19800  loss 0.12626  weighted_mse=0.1257 std_match=0.0005 sample_w_mean=1.0000  (467.4/s)
+step  19900  loss 0.13332  weighted_mse=0.1326 std_match=0.0007 sample_w_mean=1.0000  (467.8/s)
+step  20000  loss 0.12035  weighted_mse=0.1201 std_match=0.0002 sample_w_mean=1.0000  (467.9/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0273 (gate <0.10) [PASS]
+  ratio p95:  0.0779
+  R² ≥ 0.7 fraction: 0.881 (gate ≥0.80) [PASS]
+  R² median: 0.803
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0169 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0217 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0249 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0233 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0083 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0227 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           4.17014
+  MouthPressRight          1.56859
+  MouthRollUpper           0.94555
+  MouthUpperUpLeft         0.87794
+  MouthRight               0.82383
+  MouthUpperUpRight        0.76173
+  MouthStretchLeft         0.75243
+  EyeSquintLeft            0.73834
+  CheekSquintRight         0.70966
+  BrowInnerUp              0.70586
+=== Bottom sensitivity ===
+  RightEyeYaw              0.20158
+  EyeWideLeft              0.20108
+  EyeLookInRight           0.19511
+  EyeWideRight             0.17692
+  BrowDownLeft             0.11295
+  [eval@20000] ratio=0.02727 R²≥0.7=0.881 *BEST_RATIO+BEST_R2*
+step  20100  loss 0.11500  weighted_mse=0.1145 std_match=0.0005 sample_w_mean=1.0000  (468.1/s)
+step  20200  loss 0.12647  weighted_mse=0.1261 std_match=0.0004 sample_w_mean=1.0000  (468.5/s)
+step  20300  loss 0.10754  weighted_mse=0.1072 std_match=0.0003 sample_w_mean=1.0000  (468.8/s)
+step  20400  loss 0.14816  weighted_mse=0.1475 std_match=0.0007 sample_w_mean=1.0000  (468.8/s)
+step  20500  loss 0.11283  weighted_mse=0.1126 std_match=0.0002 sample_w_mean=1.0000  (468.4/s)
+step  20600  loss 0.11166  weighted_mse=0.1113 std_match=0.0003 sample_w_mean=1.0000  (468.1/s)
+step  20700  loss 0.15629  weighted_mse=0.1558 std_match=0.0005 sample_w_mean=1.0000  (467.9/s)
+step  20800  loss 0.10952  weighted_mse=0.1091 std_match=0.0005 sample_w_mean=1.0000  (468.4/s)
+step  20900  loss 0.12550  weighted_mse=0.1251 std_match=0.0004 sample_w_mean=1.0000  (468.8/s)
+step  21000  loss 0.10580  weighted_mse=0.1056 std_match=0.0002 sample_w_mean=1.0000  (468.9/s)
+step  21100  loss 0.12658  weighted_mse=0.1262 std_match=0.0004 sample_w_mean=1.0000  (469.2/s)
+step  21200  loss 0.08833  weighted_mse=0.0882 std_match=0.0002 sample_w_mean=1.0000  (469.5/s)
+step  21300  loss 0.10180  weighted_mse=0.1015 std_match=0.0003 sample_w_mean=1.0000  (470.0/s)
+step  21400  loss 0.11291  weighted_mse=0.1124 std_match=0.0005 sample_w_mean=1.0000  (470.4/s)
+step  21500  loss 0.10154  weighted_mse=0.1012 std_match=0.0003 sample_w_mean=1.0000  (470.6/s)
+step  21600  loss 0.12432  weighted_mse=0.1240 std_match=0.0003 sample_w_mean=1.0000  (471.0/s)
+step  21700  loss 0.10437  weighted_mse=0.1038 std_match=0.0005 sample_w_mean=1.0000  (471.5/s)
+step  21800  loss 0.11498  weighted_mse=0.1146 std_match=0.0003 sample_w_mean=1.0000  (471.7/s)
+step  21900  loss 0.10230  weighted_mse=0.1020 std_match=0.0003 sample_w_mean=1.0000  (472.0/s)
+step  22000  loss 0.14221  weighted_mse=0.1416 std_match=0.0006 sample_w_mean=1.0000  (472.4/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0264 (gate <0.10) [PASS]
+  ratio p95:  0.0757
+  R² ≥ 0.7 fraction: 0.898 (gate ≥0.80) [PASS]
+  R² median: 0.811
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0156 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0218 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0239 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0210 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0079 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0217 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           4.68942
+  MouthPressRight          1.72368
+  MouthUpperUpLeft         0.95264
+  MouthRight               0.88880
+  MouthRollUpper           0.86476
+  MouthUpperUpRight        0.79446
+  MouthStretchLeft         0.71428
+  EyeSquintLeft            0.70713
+  JawRight                 0.70417
+  CheekSquintRight         0.66448
+=== Bottom sensitivity ===
+  RightEyeYaw              0.20164
+  LeftEyePitch             0.19426
+  EyeLookInRight           0.18849
+  EyeWideRight             0.17385
+  BrowDownLeft             0.11645
+  [eval@22000] ratio=0.02636 R²≥0.7=0.898 *BEST_RATIO+BEST_R2*
+step  22100  loss 0.10597  weighted_mse=0.1056 std_match=0.0003 sample_w_mean=1.0000  (472.2/s)
+step  22200  loss 0.11544  weighted_mse=0.1151 std_match=0.0004 sample_w_mean=1.0000  (472.7/s)
+step  22300  loss 0.10036  weighted_mse=0.1001 std_match=0.0002 sample_w_mean=1.0000  (473.1/s)
+step  22400  loss 0.13007  weighted_mse=0.1297 std_match=0.0004 sample_w_mean=1.0000  (473.3/s)
+step  22500  loss 0.09319  weighted_mse=0.0929 std_match=0.0002 sample_w_mean=1.0000  (472.9/s)
+step  22600  loss 0.13022  weighted_mse=0.1297 std_match=0.0005 sample_w_mean=1.0000  (472.3/s)
+step  22700  loss 0.10652  weighted_mse=0.1062 std_match=0.0003 sample_w_mean=1.0000  (472.1/s)
+step  22800  loss 0.12014  weighted_mse=0.1198 std_match=0.0004 sample_w_mean=1.0000  (472.3/s)
+step  22900  loss 0.10216  weighted_mse=0.1019 std_match=0.0003 sample_w_mean=1.0000  (472.6/s)
+step  23000  loss 0.10006  weighted_mse=0.0998 std_match=0.0002 sample_w_mean=1.0000  (473.1/s)
+step  23100  loss 0.10021  weighted_mse=0.1000 std_match=0.0002 sample_w_mean=1.0000  (473.4/s)
+step  23200  loss 0.11954  weighted_mse=0.1191 std_match=0.0004 sample_w_mean=1.0000  (473.8/s)
+step  23300  loss 0.10077  weighted_mse=0.1006 std_match=0.0002 sample_w_mean=1.0000  (474.3/s)
+step  23400  loss 0.10036  weighted_mse=0.1000 std_match=0.0004 sample_w_mean=1.0000  (474.7/s)
+step  23500  loss 0.09742  weighted_mse=0.0972 std_match=0.0003 sample_w_mean=1.0000  (475.0/s)
+step  23600  loss 0.11375  weighted_mse=0.1134 std_match=0.0004 sample_w_mean=1.0000  (475.5/s)
+step  23700  loss 0.10891  weighted_mse=0.1085 std_match=0.0004 sample_w_mean=1.0000  (475.9/s)
+step  23800  loss 0.10154  weighted_mse=0.1012 std_match=0.0004 sample_w_mean=1.0000  (476.1/s)
+step  23900  loss 0.11213  weighted_mse=0.1117 std_match=0.0004 sample_w_mean=1.0000  (476.6/s)
+step  24000  loss 0.10815  weighted_mse=0.1078 std_match=0.0004 sample_w_mean=1.0000  (476.9/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0251 (gate <0.10) [PASS]
+  ratio p95:  0.0656
+  R² ≥ 0.7 fraction: 0.941 (gate ≥0.80) [PASS]
+  R² median: 0.819
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0148 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0198 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0229 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0195 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0077 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0203 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.20964
+  MouthPressRight          1.94687
+  MouthUpperUpLeft         1.03181
+  MouthRight               0.93511
+  MouthUpperUpRight        0.82428
+  MouthRollUpper           0.80065
+  MouthStretchLeft         0.71463
+  JawRight                 0.71251
+  EyeSquintLeft            0.67223
+  MouthSmileRight          0.65778
+=== Bottom sensitivity ===
+  MouthShrugLower          0.20828
+  RightEyeYaw              0.20220
+  EyeLookInRight           0.19155
+  EyeWideRight             0.16871
+  BrowDownLeft             0.11492
+  [eval@24000] ratio=0.02506 R²≥0.7=0.941 *BEST_RATIO+BEST_R2*
+step  24100  loss 0.09218  weighted_mse=0.0920 std_match=0.0002 sample_w_mean=1.0000  (476.9/s)
+step  24200  loss 0.12459  weighted_mse=0.1239 std_match=0.0007 sample_w_mean=1.0000  (477.0/s)
+step  24300  loss 0.12458  weighted_mse=0.1240 std_match=0.0006 sample_w_mean=1.0000  (477.1/s)
+step  24400  loss 0.10849  weighted_mse=0.1082 std_match=0.0003 sample_w_mean=1.0000  (477.2/s)
+step  24500  loss 0.09275  weighted_mse=0.0925 std_match=0.0002 sample_w_mean=1.0000  (477.0/s)
+step  24600  loss 0.11144  weighted_mse=0.1110 std_match=0.0004 sample_w_mean=1.0000  (476.6/s)
+step  24700  loss 0.11754  weighted_mse=0.1172 std_match=0.0003 sample_w_mean=1.0000  (476.4/s)
+step  24800  loss 0.07929  weighted_mse=0.0791 std_match=0.0002 sample_w_mean=1.0000  (476.6/s)
+step  24900  loss 0.11317  weighted_mse=0.1129 std_match=0.0003 sample_w_mean=1.0000  (476.9/s)
+step  25000  loss 0.10300  weighted_mse=0.1026 std_match=0.0004 sample_w_mean=1.0000  (477.4/s)
+step  25100  loss 0.09155  weighted_mse=0.0914 std_match=0.0002 sample_w_mean=1.0000  (477.8/s)
+step  25200  loss 0.09749  weighted_mse=0.0971 std_match=0.0004 sample_w_mean=1.0000  (478.1/s)
+step  25300  loss 0.09228  weighted_mse=0.0921 std_match=0.0001 sample_w_mean=1.0000  (478.3/s)
+step  25400  loss 0.10684  weighted_mse=0.1066 std_match=0.0002 sample_w_mean=1.0000  (478.3/s)
+step  25500  loss 0.10160  weighted_mse=0.1013 std_match=0.0003 sample_w_mean=1.0000  (478.7/s)
+step  25600  loss 0.09196  weighted_mse=0.0917 std_match=0.0002 sample_w_mean=1.0000  (479.1/s)
+step  25700  loss 0.11150  weighted_mse=0.1110 std_match=0.0005 sample_w_mean=1.0000  (479.6/s)
+step  25800  loss 0.08850  weighted_mse=0.0883 std_match=0.0002 sample_w_mean=1.0000  (479.9/s)
+step  25900  loss 0.08647  weighted_mse=0.0863 std_match=0.0002 sample_w_mean=1.0000  (480.3/s)
+step  26000  loss 0.10253  weighted_mse=0.1023 std_match=0.0003 sample_w_mean=1.0000  (480.5/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0242 (gate <0.10) [PASS]
+  ratio p95:  0.0647
+  R² ≥ 0.7 fraction: 0.955 (gate ≥0.80) [PASS]
+  R² median: 0.825
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0140 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0192 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0218 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0185 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0079 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0190 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.21047
+  MouthPressRight          1.89044
+  MouthUpperUpLeft         1.06987
+  MouthRight               0.98472
+  MouthUpperUpRight        0.83351
+  MouthStretchLeft         0.75512
+  MouthRollUpper           0.75376
+  JawRight                 0.71697
+  EyeSquintLeft            0.70317
+  BrowInnerUp              0.68136
+=== Bottom sensitivity ===
+  BrowOuterUpLeft          0.20743
+  RightEyeYaw              0.20285
+  EyeLookInRight           0.19510
+  EyeWideRight             0.17988
+  BrowDownLeft             0.12058
+  [eval@26000] ratio=0.02422 R²≥0.7=0.955 *BEST_RATIO+BEST_R2*
+step  26100  loss 0.09767  weighted_mse=0.0973 std_match=0.0003 sample_w_mean=1.0000  (480.5/s)
+step  26200  loss 0.10721  weighted_mse=0.1066 std_match=0.0006 sample_w_mean=1.0000  (480.8/s)
+step  26300  loss 0.09619  weighted_mse=0.0959 std_match=0.0003 sample_w_mean=1.0000  (481.1/s)
+step  26400  loss 0.10029  weighted_mse=0.1000 std_match=0.0003 sample_w_mean=1.0000  (481.1/s)
+step  26500  loss 0.09482  weighted_mse=0.0946 std_match=0.0002 sample_w_mean=1.0000  (480.6/s)
+step  26600  loss 0.08287  weighted_mse=0.0826 std_match=0.0002 sample_w_mean=1.0000  (480.3/s)
+step  26700  loss 0.10609  weighted_mse=0.1057 std_match=0.0004 sample_w_mean=1.0000  (480.0/s)
+step  26800  loss 0.10461  weighted_mse=0.1042 std_match=0.0004 sample_w_mean=1.0000  (480.1/s)
+step  26900  loss 0.08996  weighted_mse=0.0898 std_match=0.0002 sample_w_mean=1.0000  (480.5/s)
+step  27000  loss 0.09944  weighted_mse=0.0992 std_match=0.0002 sample_w_mean=1.0000  (480.6/s)
+step  27100  loss 0.08988  weighted_mse=0.0897 std_match=0.0002 sample_w_mean=1.0000  (480.9/s)
+step  27200  loss 0.09303  weighted_mse=0.0928 std_match=0.0002 sample_w_mean=1.0000  (481.1/s)
+step  27300  loss 0.09557  weighted_mse=0.0951 std_match=0.0005 sample_w_mean=1.0000  (481.5/s)
+step  27400  loss 0.08121  weighted_mse=0.0809 std_match=0.0003 sample_w_mean=1.0000  (481.7/s)
+step  27500  loss 0.08593  weighted_mse=0.0856 std_match=0.0004 sample_w_mean=1.0000  (482.1/s)
+step  27600  loss 0.09113  weighted_mse=0.0909 std_match=0.0003 sample_w_mean=1.0000  (482.4/s)
+step  27700  loss 0.10160  weighted_mse=0.1013 std_match=0.0003 sample_w_mean=1.0000  (482.6/s)
+step  27800  loss 0.09344  weighted_mse=0.0932 std_match=0.0003 sample_w_mean=1.0000  (482.9/s)
+step  27900  loss 0.09793  weighted_mse=0.0975 std_match=0.0004 sample_w_mean=1.0000  (483.2/s)
+step  28000  loss 0.09183  weighted_mse=0.0916 std_match=0.0003 sample_w_mean=1.0000  (483.3/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0235 (gate <0.10) [PASS]
+  ratio p95:  0.0645
+  R² ≥ 0.7 fraction: 0.969 (gate ≥0.80) [PASS]
+  R² median: 0.830
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0142 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0179 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0209 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0176 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0079 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0180 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.41797
+  MouthPressRight          2.08003
+  MouthUpperUpLeft         1.15514
+  MouthRight               0.98107
+  MouthUpperUpRight        0.84094
+  JawRight                 0.76517
+  MouthStretchLeft         0.73633
+  MouthRollUpper           0.68905
+  MouthSmileRight          0.68660
+  CheekSquintRight         0.67254
+=== Bottom sensitivity ===
+  RightEyeYaw              0.20478
+  BrowOuterUpLeft          0.20186
+  EyeLookInRight           0.19783
+  EyeWideRight             0.19082
+  BrowDownLeft             0.11655
+  [eval@28000] ratio=0.02345 R²≥0.7=0.969 *BEST_RATIO+BEST_R2*
+step  28100  loss 0.10280  weighted_mse=0.1025 std_match=0.0003 sample_w_mean=1.0000  (483.1/s)
+step  28200  loss 0.07320  weighted_mse=0.0730 std_match=0.0002 sample_w_mean=1.0000  (483.1/s)
+step  28300  loss 0.08600  weighted_mse=0.0857 std_match=0.0003 sample_w_mean=1.0000  (483.3/s)
+step  28400  loss 0.11725  weighted_mse=0.1169 std_match=0.0004 sample_w_mean=1.0000  (482.7/s)
+step  28500  loss 0.08599  weighted_mse=0.0858 std_match=0.0002 sample_w_mean=1.0000  (482.5/s)
+step  28600  loss 0.08304  weighted_mse=0.0829 std_match=0.0002 sample_w_mean=1.0000  (482.1/s)
+step  28700  loss 0.08371  weighted_mse=0.0835 std_match=0.0002 sample_w_mean=1.0000  (481.9/s)
+step  28800  loss 0.09998  weighted_mse=0.0997 std_match=0.0003 sample_w_mean=1.0000  (482.0/s)
+step  28900  loss 0.09152  weighted_mse=0.0912 std_match=0.0004 sample_w_mean=1.0000  (482.3/s)
+step  29000  loss 0.08758  weighted_mse=0.0874 std_match=0.0002 sample_w_mean=1.0000  (482.6/s)
+step  29100  loss 0.09250  weighted_mse=0.0923 std_match=0.0002 sample_w_mean=1.0000  (482.9/s)
+step  29200  loss 0.07637  weighted_mse=0.0760 std_match=0.0003 sample_w_mean=1.0000  (483.0/s)
+step  29300  loss 0.08863  weighted_mse=0.0883 std_match=0.0004 sample_w_mean=1.0000  (483.2/s)
+step  29400  loss 0.08392  weighted_mse=0.0837 std_match=0.0002 sample_w_mean=1.0000  (483.3/s)
+step  29500  loss 0.08474  weighted_mse=0.0845 std_match=0.0002 sample_w_mean=1.0000  (483.5/s)
+step  29600  loss 0.09053  weighted_mse=0.0903 std_match=0.0002 sample_w_mean=1.0000  (483.6/s)
+step  29700  loss 0.09178  weighted_mse=0.0916 std_match=0.0002 sample_w_mean=1.0000  (483.9/s)
+step  29800  loss 0.07237  weighted_mse=0.0722 std_match=0.0002 sample_w_mean=1.0000  (483.9/s)
+step  29900  loss 0.09166  weighted_mse=0.0913 std_match=0.0004 sample_w_mean=1.0000  (484.0/s)
+step  30000  loss 0.10814  weighted_mse=0.1077 std_match=0.0004 sample_w_mean=1.0000  (484.2/s)
+
+=== Tier 1 ===
+  ratio mean: 0.0226 (gate <0.10) [PASS]
+  ratio p95:  0.0601
+  R² ≥ 0.7 fraction: 0.979 (gate ≥0.80) [PASS]
+  R² median: 0.835
+
+=== Tier 2 (per-category) ===
+  neutral        n=0 (no frames in category)
+  broad_smile    n=  46 ratio=0.0133 (below 100-frame floor — out of v1 scope)
+  speech         n=  84 ratio=0.0172 (below 100-frame floor — out of v1 scope)
+  brow_raise     n= 121 ratio=0.0200 (gate <0.15) [PASS]
+  blink_squint   n= 114 ratio=0.0169 (gate <0.15) [PASS]
+  asym_smile     n=  11 ratio=0.0073 (below 100-frame floor — out of v1 scope)
+  eye_gaze       n= 192 ratio=0.0176 (gate <0.15) [PASS]
+
+=== Top sensitivity (descending RMS response) ===
+  MouthPressLeft           5.39194
+  MouthPressRight          2.06126
+  MouthUpperUpLeft         1.25736
+  MouthRight               0.93234
+  MouthUpperUpRight        0.86680
+  JawRight                 0.77119
+  MouthStretchLeft         0.72418
+  CheekSquintRight         0.70349
+  MouthSmileRight          0.69405
+  EyeSquintRight           0.69035
+=== Bottom sensitivity ===
+  RightEyeYaw              0.20063
+  RightEyeRoll             0.19521
+  EyeLookInRight           0.19278
+  EyeWideRight             0.19015
+  BrowDownLeft             0.12862
+  [eval@30000] ratio=0.02256 R²≥0.7=0.979 *BEST_RATIO+BEST_R2*
+done. best_ratio=0.02256 @ step 30000
