@@ -144,14 +144,22 @@ Before running the full pool we need:
 
 ## Slate (resolved 2026-05-06)
 
-Final pool: **84 photoreal anchors** (42 Flux-grid + 42 FFHQ-real, parallel demographic taxonomies) + **3 stylistic anchors**.
+Trimmed to **9 anchors** — three demographic cells × two photoreal pools, plus three stylistic anchors. The same three cells appear in both photoreal pools so Flux-rendered vs real-photo are **directly A/B-comparable on identical demographic targets**:
 
-| Category | Count | File(s) | License |
-|---|---|---|---|
-| Photoreal Flux | 42 | `data/anchors/photoreal_grid/<race>__<age>__<gender>__seed*.png` | Internal |
-| Photoreal real (FFHQ) | 42 | `data/anchors/photoreal_ffhq/<race>__<age>__<gender>__<sha8>.png` | FFHQ research license |
-| Anime | 1 | `data/anchors/anime/anime__01_oksmith.png` (1570×2400) | CC0 |
-| Old photo / B&W | 1 | `data/anchors/oldphoto_tikhonov/tikhonov__1948.jpg` (600×451) | Public domain |
-| Painting | 1 | `data/anchors/painting_pushkin/pushkin__01_kiprensky.jpg` (3455×4000) | Public domain |
+| Demographic cell        | Stress thesis                                            |
+|-------------------------|----------------------------------------------------------|
+| white__young__f         | Easy baseline — well-represented in PersonaLive prior    |
+| east_asian__adult__m    | Race + gender + age all shifted from baseline            |
+| south_asian__elderly__f | Most stressed — extreme age + underrepresented race      |
 
-**Total: 87 anchors.** Internal-use only confirmed. No public release of derived renders without a separate review.
+| Category | Count | Path |
+|---|---|---|
+| Photoreal Flux | 3 | `data/anchors/photoreal_grid/{white__young__f, east_asian__adult__m, south_asian__elderly__f}*.png` |
+| Photoreal real (FFHQ) | 3 | `data/anchors/photoreal_ffhq/{white__young__f, east_asian__adult__m, south_asian__elderly__f}*.png` |
+| Anime | 1 | `data/anchors/anime/anime__01_oksmith.png` |
+| Old photo / B&W | 1 | `data/anchors/oldphoto_tikhonov/tikhonov__1948.jpg` |
+| Painting | 1 | `data/anchors/painting_pushkin/pushkin__01_kiprensky.jpg` |
+
+**Total: 9 anchors.** Each photoreal pool retains its full 42-row index at `manifest.full.parquet`; `scripts/curate_anchor_subset.py` produced the curated `manifest.parquet` and pruned the staged PNGs. Re-expand by re-running the upstream selectors.
+
+Internal-use only confirmed. No public release of derived renders without a separate review.

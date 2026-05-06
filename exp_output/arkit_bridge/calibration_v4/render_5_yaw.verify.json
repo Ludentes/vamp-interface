@@ -1,0 +1,17 @@
+{
+  "take_dir": "data/llf-clips-auto/20260505_MySlate_5_yaw",
+  "out_mp4": "exp_output/arkit_bridge/calibration_v4/render_5_yaw.mp4",
+  "n_frames_total": 600,
+  "n_frames_valid": 513,
+  "n_frames_dropped": 87,
+  "mean_angular_distance_rad": 0.5012752654995504,
+  "median_angular_distance_rad": 0.49315198063881105,
+  "p90_angular_distance_rad": 0.7408743696423719,
+  "pass_threshold_rad": 0.05,
+  "passed": false,
+  "euler_signs": [
+    1.0,
+    -1.0,
+    -1.0
+  ]
+}
