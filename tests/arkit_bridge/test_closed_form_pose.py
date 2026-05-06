@@ -86,39 +86,51 @@ def test_euler_signs_preserved():
 
 # ---- compose_kd: F applied once on kp_ref ----
 
-def test_compose_kd_zero_rotation_applies_F_to_kpref():
-    """With identity R and zero translation, compose_kd applies F_KP_REF to kp_ref."""
+def test_compose_kd_zero_rotation_is_identity_on_kpref():
+    """Identity R: F R F^T = I, so k_d = kp_ref (zero translation, unit scale)."""
     kp_ref = torch.randn(1, 21, 3)
     R = torch.eye(3).unsqueeze(0)
     s = torch.ones(1)
     t = torch.zeros(1, 2)
     out = compose_kd(kp_ref, R, s, t)
-    expected = kp_ref @ F_KP_REF
-    assert torch.allclose(out, expected, atol=1e-6)
+    assert torch.allclose(out, kp_ref, atol=1e-6)
 
 
 def test_compose_kd_zero_rotation_with_scale_and_translation():
-    """Identity R, nonzero (s, t): out = (kp_ref @ F) * s + (tx, ty, 0)."""
+    """Identity R, nonzero (s, t): out = kp_ref * s + (tx, ty, 0)."""
     kp_ref = torch.randn(1, 21, 3)
     t_ref = torch.tensor([[0.1, -0.2, 0.0]])
     s_ref = torch.tensor([[1.5]])
     R = torch.eye(3).unsqueeze(0)
     k_d = compose_kd(kp_ref, R, s_ref, t_ref)
-    expected = (kp_ref @ F_KP_REF) * 1.5
+    expected = kp_ref * 1.5
     expected[..., 0:2] = expected[..., 0:2] + t_ref[:, None, 0:2]
     assert torch.allclose(k_d, expected, atol=1e-5)
 
 
-def test_compose_kd_nonzero_rotation():
-    """compose_kd applies F to kp_ref, then R, then s."""
+def test_compose_kd_nonzero_rotation_conjugates_R_by_F():
+    """compose_kd substitutes R with F R F^T (frame conjugation per v3 calibration)."""
     kp_ref = torch.tensor([[[1., 2., 3.]]])  # (1, 1, 3)
     yaw = torch.tensor([0.5]); pitch = torch.zeros(1); roll = torch.zeros(1)
     R = euler_to_rotmat(yaw, pitch, roll)
     s = torch.tensor([1.5])
     t = torch.zeros(1, 2)
     out = compose_kd(kp_ref, R, s, t)
-    expected = (kp_ref @ F_KP_REF) @ R * 1.5
+    R_eff = F_KP_REF @ R @ F_KP_REF.transpose(-1, -2)
+    expected = (kp_ref @ R_eff) * 1.5
     assert torch.allclose(out, expected, atol=1e-5)
+
+
+def test_F_KP_REF_is_involution():
+    """F = F^T = F^{-1} (diagonal sign matrix). Under conjugation F R F^T,
+    a rotation about y is preserved (F is the y-mirror), while rotations
+    about x or z get sign-flipped components.
+    """
+    F = F_KP_REF
+    assert torch.allclose(F @ F.transpose(-1, -2), torch.eye(3), atol=1e-6)
+    # rotation about y is preserved by conjugation with diag(+,-,+)
+    yaw_only = euler_to_rotmat(torch.tensor(0.4), torch.tensor(0.0), torch.tensor(0.0))
+    assert torch.allclose(F @ yaw_only @ F.transpose(-1, -2), yaw_only, atol=1e-5)
 
 
 def test_compose_kd_shape():

@@ -62,11 +62,14 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
 
 def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
                s: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-    """k_d = ((kp_ref @ F_KP_REF) @ R) * s + (t_x, t_y, 0).
+    """k_d = (kp_ref @ (F R F^T)) * s + (t_x, t_y, 0).
 
-    F_KP_REF=diag(+1,-1,+1) corrects a kp_ref↔ARKit-frame y-axis mirror
-    identified by calibration v3; it is applied once on the reference
-    keypoints, not per-frame.
+    Calibration v3 measured F* as a *frame conjugation*: R_render ≈
+    F R_input F^T. To make the rendered rotation track the ARKit Eulers
+    we must apply the inverse — substitute R with F R F^T inside the
+    closed-form path. F_KP_REF = diag(+1,-1,+1) is symmetric so
+    F^T = F. F is applied per-frame on the rotation matrix; kp_ref is
+    untouched.
     """
     if R.dim() == 2:
         R = R.unsqueeze(0)
@@ -78,7 +81,8 @@ def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
         t = t.unsqueeze(0)
 
     F = F_KP_REF.to(dtype=kp_ref.dtype, device=kp_ref.device)
-    k = (kp_ref @ F) @ R
+    R_eff = F @ R @ F.transpose(-1, -2)
+    k = kp_ref @ R_eff
     k = k * s.unsqueeze(-1)
     k = k.clone()
     k[..., 0:2] = k[..., 0:2] + t[:, None, 0:2]
