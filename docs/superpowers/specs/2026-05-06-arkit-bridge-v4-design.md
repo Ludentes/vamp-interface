@@ -59,18 +59,28 @@ L_AB = varnorm_MSE(student, teacher) * sample_weight(b) * cell_weight + λ_std *
 
 Targets: each rare-channel-active example gets a big loss multiplier (sample weight); each output cell coupled to rare channels gets a big loss multiplier (cell weight). Together: rare-channel gradient flows are amplified at both ends.
 
-### Variant C — importance-sampled Jacobian-column matching
+### Variant C — Jacobian-norm regularizer
 
 ```
-L_C = varnorm_MSE(student, teacher) + λ_std * std_match + λ_jac * ‖J_s e_k - J_t e_k‖²
+L_C = varnorm_MSE(student, teacher) + λ_std * std_match + λ_jvp * (‖J_s e_k‖ - ‖C[:,k]‖)²
 ```
 
 - per training step: `k ~ Categorical(w_k normalized)`, `w_k = 1/freq_k**α`, **α = 0.5**
-- `J e_k` via JVP (one extra fwd+bwd per step on each network)
-- λ_std = 1.0, **λ_jac = 0.1**
-- Cost: ~60 min training (2× per-step cost vs MSE baseline).
+- `J_s e_k` via JVP on **student only** (we don't have a differentiable teacher
+  from `b_expr` to `m_f` — teacher operates on RGB; stored pairs `(b_expr, m_f)`
+  don't admit a teacher Jacobian along `b_expr`)
+- target magnitude `‖C[:, k]‖` = empirical coupling norm of teacher's response
+  to channel k, precomputed once via finite-difference probes on the train pair
+  corpus
+- λ_std = 1.0, **λ_jvp = 0.1**
+- Cost: ~60 min training (one extra fwd+bwd per step on student).
 
-Targets: directly constrain student's local sensitivity to rare channels to match teacher's, sample-by-sample. More principled than A+B (input-channel granularity) but more expensive.
+Targets: forces student's instantaneous local response magnitude to rare
+channels to equal the empirical teacher response magnitude. Constrains
+*magnitude only*, not direction — strictly weaker than full Jacobian matching
+but well-defined given our data, and addresses the "weak-channel response is
+too small" failure directly at the local-derivative level (vs A+B which
+operates on stored loss multipliers).
 
 ## Bake-off scorecard
 
