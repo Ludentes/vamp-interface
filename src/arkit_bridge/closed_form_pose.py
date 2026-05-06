@@ -62,7 +62,12 @@ def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,
 
 def compose_kd(kp_ref: torch.Tensor, R: torch.Tensor,
                s: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-    """k_d = (kp_ref @ R) * s + (t_x, t_y, 0)."""
+    """k_d = ((kp_ref @ F_KP_REF) @ R) * s + (t_x, t_y, 0).
+
+    F_KP_REF=diag(+1,-1,+1) corrects a kp_ref↔ARKit-frame y-axis mirror
+    identified by calibration v3; it is applied once on the reference
+    keypoints, not per-frame.
+    """
     if R.dim() == 2:
         R = R.unsqueeze(0)
     if s.dim() == 1:
