@@ -30,31 +30,29 @@ Per-anchor scorecard (computed on a fixed synthetic ARKit drive sequence so anch
 
 ## Anchor pool inventory
 
-### What we already have (local, photoreal Flux baselines)
+### Photoreal pool — `data/anchors/photoreal_grid/` (42 cells)
 
-`data/llf-phase2/*.midframe.png` — 3 demographics × 6 expressions; the `*__06_neutral.midframe.png` of each is the canonical anchor:
+Lifted directly from the Solver-A squint grid corpus (`output/demographic_pc/solver_a_squint_grid/` on the Seagate archive drive) via `scripts/select_photoreal_anchors.py`. Full factorial: **7 races × 3 ages × 2 genders = 42 cells**, one PNG per cell, picked by neutrality score:
 
-- `asian_m__06_neutral.midframe.png` — current default anchor in `calibrate_euler_signs_v3.py`
-- `black_f__06_neutral.midframe.png`
-- `european_m__06_neutral.midframe.png`
+| Axis    | Levels                                                                        |
+|---------|-------------------------------------------------------------------------------|
+| race    | black, east_asian, latino, middle_eastern, south_asian, southeast_asian, white |
+| age     | young, adult, elderly                                                         |
+| gender  | m, f                                                                          |
 
-`output/demographic_pc/phase3_full_replay/` — additional Flux baselines at `s+0.00`:
+Selection rule (`scripts/select_photoreal_anchors.py`):
 
-- `young_european_f_s777_x+0.00.png` (young / female)
-- `elderly_latin_m_s777_x+0.00.png` (elderly / latin / male)
+1. Require `anchor_face_detected = True`.
+2. Drop seeds where any of `{glasses, eyes_closed, smiling, open_mouth, surprised, puckered_lips, angry}` SigLIP probe ≥ 0.05. **Note:** `wrinkled` deliberately excluded — it correlates with the elderly demographic by construction; filtering on it would bias elderly cells toward atypically smooth faces.
+3. Among survivors, minimise `anchor_squint + anchor_smile_bs + |anchor_brow|`.
+4. Tie-break on lowest seed (deterministic).
+5. Manifest at `data/anchors/photoreal_grid/manifest.parquet` (`format_version: 1`); `fallback_used` column flags any cell where the strict filter wiped all 16 seeds and we relaxed to face-detected-only. **Current run: 0/42 fallback** — every cell has at least one clean seed.
 
-**Coverage today:** races {asian, black, european, latin} × genders {m, f} × ages {young (implicit), elderly (1)} — 5 identities. Skewed: only one explicit elderly, no child, no south-asian/indian, no mixed.
+This **subsumes** the earlier hand-curated `data/llf-phase2/*` demographics (asian_m, black_f, european_m) and `phase3_full_replay/{young_european_f, elderly_latin_m}` — the grid covers all those cells and 35 more, with consistent prompt template + neutral expression by construction.
 
-### Gaps to fill from existing Flux infrastructure
+### Earlier (legacy) per-cell baselines — kept for backward compatibility
 
-If a quick render budget appears, generate (FluxSpace node, neutral prompt, no edit, seed=2026, scale=0):
-
-- `indian_f__neutral` — fills south-asian female
-- `latin_f__neutral` — fills latin female (companion to `elderly_latin_m`)
-- `child__neutral` (race-balanced) — fills age-young extreme
-- `elderly_european_f__neutral` — fills age × race × gender corner currently empty
-
-Recipe is already in `output/demographic_pc/phase3_full_replay/` — same prompt template, swap the demographic slot. Defer until GPU returns.
+`data/llf-phase2/*__06_neutral.midframe.png` is still the default anchor in `calibrate_euler_signs_v3.py:--anchor` (path: `data/llf-phase2/asian_m__06_neutral.midframe.png`). Don't break that pinning until calibration is finished. Once anchor-pool sweep is the active workload, switch to the grid manifest.
 
 ### Stylistic anchors (need to source)
 
