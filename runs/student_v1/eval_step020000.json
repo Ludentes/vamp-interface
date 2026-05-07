@@ -1,0 +1,355 @@
+{
+  "ckpt": "runs/student_v1/student_step020000.pt",
+  "n": 1652,
+  "tier1": {
+    "ratio_mean": 0.008428221568465233,
+    "ratio_p95": 0.019252873584628096,
+    "var_mean": 0.8419297337532043,
+    "mse_mean": 0.007082212250679731,
+    "r2_above_0_7_fraction": 0.90234375,
+    "per_cell_r2_shape": [
+      32,
+      16
+    ],
+    "per_cell_r2_min": 0.4479161500930786,
+    "per_cell_r2_median": 0.7960495948791504,
+    "passes_ratio_0_10": true,
+    "passes_r2_mask": true
+  },
+  "tier2": {
+    "neutral": {
+      "n": 0,
+      "ratio_mean": null
+    },
+    "broad_smile": {
+      "n": 110,
+      "ratio_mean": 0.006178096402436495,
+      "ratio_p95": 0.01527898167259991,
+      "passes_0_15": true
+    },
+    "speech": {
+      "n": 166,
+      "ratio_mean": 0.00801128800958395,
+      "ratio_p95": 0.01631980575621128,
+      "passes_0_15": true
+    },
+    "brow_raise": {
+      "n": 252,
+      "ratio_mean": 0.008977994322776794,
+      "ratio_p95": 0.019014034513384098,
+      "passes_0_15": true
+    },
+    "blink_squint": {
+      "n": 225,
+      "ratio_mean": 0.009178252890706062,
+      "ratio_p95": 0.022366071119904515,
+      "passes_0_15": true
+    },
+    "asym_smile": {
+      "n": 14,
+      "ratio_mean": 0.004786643665283918,
+      "ratio_p95": 0.008218953246250747,
+      "passes_0_15": true
+    },
+    "eye_gaze": {
+      "n": 380,
+      "ratio_mean": 0.008712129667401314,
+      "ratio_p95": 0.019535685982555152,
+      "passes_0_15": true
+    }
+  },
+  "sensitivity": {
+    "EyeBlinkLeft": 0.16765196621418,
+    "EyeLookDownLeft": 0.0861891657114029,
+    "EyeLookInLeft": 0.43731755018234253,
+    "EyeLookOutLeft": 0.556336522102356,
+    "EyeLookUpLeft": 0.21738062798976898,
+    "EyeSquintLeft": 0.30079546570777893,
+    "EyeWideLeft": 0.0975075289607048,
+    "EyeBlinkRight": 0.07297280430793762,
+    "EyeLookDownRight": 0.09252668172121048,
+    "EyeLookInRight": 0.35509827733039856,
+    "EyeLookOutRight": 0.5859940052032471,
+    "EyeLookUpRight": 0.2585650682449341,
+    "EyeSquintRight": 0.2068658471107483,
+    "EyeWideRight": 0.11167778074741364,
+    "JawForward": 0.8292141556739807,
+    "JawLeft": 0.39752107858657837,
+    "JawRight": 0.7240666151046753,
+    "JawOpen": 0.22992411255836487,
+    "MouthClose": 0.2227587252855301,
+    "MouthFunnel": 0.1944500058889389,
+    "MouthPucker": 0.19537147879600525,
+    "MouthLeft": 0.24781140685081482,
+    "MouthRight": 0.8376201391220093,
+    "MouthSmileLeft": 0.1657959520816803,
+    "MouthSmileRight": 0.35174092650413513,
+    "MouthFrownLeft": 0.3729152977466583,
+    "MouthFrownRight": 0.30033329129219055,
+    "MouthDimpleLeft": 0.3590226173400879,
+    "MouthDimpleRight": 0.3393375873565674,
+    "MouthStretchLeft": 0.47181403636932373,
+    "MouthStretchRight": 0.2785337567329407,
+    "MouthRollLower": 0.5192447304725647,
+    "MouthRollUpper": 1.0019186735153198,
+    "MouthShrugLower": 0.45566675066947937,
+    "MouthShrugUpper": 0.33026638627052307,
+    "MouthPressLeft": 1.7551460266113281,
+    "MouthPressRight": 1.4331395626068115,
+    "MouthLowerDownLeft": 0.3645382821559906,
+    "MouthLowerDownRight": 0.3084007501602173,
+    "MouthUpperUpLeft": 0.3029259741306305,
+    "MouthUpperUpRight": 0.3150169253349304,
+    "BrowDownLeft": 0.10284338891506195,
+    "BrowDownRight": 0.0915236547589302,
+    "BrowInnerUp": 0.5576795339584351,
+    "BrowOuterUpLeft": 0.3001651167869568,
+    "BrowOuterUpRight": 0.40032312273979187,
+    "CheekPuff": 0.4327448606491089,
+    "CheekSquintLeft": 0.24751125276088715,
+    "CheekSquintRight": 0.5193994045257568,
+    "NoseSneerLeft": 0.27254459261894226,
+    "NoseSneerRight": 0.37099066376686096,
+    "TongueOut": 0.33598795533180237,
+    "LeftEyeYaw": 0.3818404972553253,
+    "LeftEyePitch": 0.07435877621173859,
+    "LeftEyeRoll": 0.30450403690338135,
+    "RightEyeYaw": 0.3716321289539337,
+    "RightEyePitch": 0.06383558362722397,
+    "RightEyeRoll": 0.5127729773521423
+  },
+  "ranked_sensitivity": [
+    [
+      "MouthPressLeft",
+      1.7551460266113281
+    ],
+    [
+      "MouthPressRight",
+      1.4331395626068115
+    ],
+    [
+      "MouthRollUpper",
+      1.0019186735153198
+    ],
+    [
+      "MouthRight",
+      0.8376201391220093
+    ],
+    [
+      "JawForward",
+      0.8292141556739807
+    ],
+    [
+      "JawRight",
+      0.7240666151046753
+    ],
+    [
+      "EyeLookOutRight",
+      0.5859940052032471
+    ],
+    [
+      "BrowInnerUp",
+      0.5576795339584351
+    ],
+    [
+      "EyeLookOutLeft",
+      0.556336522102356
+    ],
+    [
+      "CheekSquintRight",
+      0.5193994045257568
+    ],
+    [
+      "MouthRollLower",
+      0.5192447304725647
+    ],
+    [
+      "RightEyeRoll",
+      0.5127729773521423
+    ],
+    [
+      "MouthStretchLeft",
+      0.47181403636932373
+    ],
+    [
+      "MouthShrugLower",
+      0.45566675066947937
+    ],
+    [
+      "EyeLookInLeft",
+      0.43731755018234253
+    ],
+    [
+      "CheekPuff",
+      0.4327448606491089
+    ],
+    [
+      "BrowOuterUpRight",
+      0.40032312273979187
+    ],
+    [
+      "JawLeft",
+      0.39752107858657837
+    ],
+    [
+      "LeftEyeYaw",
+      0.3818404972553253
+    ],
+    [
+      "MouthFrownLeft",
+      0.3729152977466583
+    ],
+    [
+      "RightEyeYaw",
+      0.3716321289539337
+    ],
+    [
+      "NoseSneerRight",
+      0.37099066376686096
+    ],
+    [
+      "MouthLowerDownLeft",
+      0.3645382821559906
+    ],
+    [
+      "MouthDimpleLeft",
+      0.3590226173400879
+    ],
+    [
+      "EyeLookInRight",
+      0.35509827733039856
+    ],
+    [
+      "MouthSmileRight",
+      0.35174092650413513
+    ],
+    [
+      "MouthDimpleRight",
+      0.3393375873565674
+    ],
+    [
+      "TongueOut",
+      0.33598795533180237
+    ],
+    [
+      "MouthShrugUpper",
+      0.33026638627052307
+    ],
+    [
+      "MouthUpperUpRight",
+      0.3150169253349304
+    ],
+    [
+      "MouthLowerDownRight",
+      0.3084007501602173
+    ],
+    [
+      "LeftEyeRoll",
+      0.30450403690338135
+    ],
+    [
+      "MouthUpperUpLeft",
+      0.3029259741306305
+    ],
+    [
+      "EyeSquintLeft",
+      0.30079546570777893
+    ],
+    [
+      "MouthFrownRight",
+      0.30033329129219055
+    ],
+    [
+      "BrowOuterUpLeft",
+      0.3001651167869568
+    ],
+    [
+      "MouthStretchRight",
+      0.2785337567329407
+    ],
+    [
+      "NoseSneerLeft",
+      0.27254459261894226
+    ],
+    [
+      "EyeLookUpRight",
+      0.2585650682449341
+    ],
+    [
+      "MouthLeft",
+      0.24781140685081482
+    ],
+    [
+      "CheekSquintLeft",
+      0.24751125276088715
+    ],
+    [
+      "JawOpen",
+      0.22992411255836487
+    ],
+    [
+      "MouthClose",
+      0.2227587252855301
+    ],
+    [
+      "EyeLookUpLeft",
+      0.21738062798976898
+    ],
+    [
+      "EyeSquintRight",
+      0.2068658471107483
+    ],
+    [
+      "MouthPucker",
+      0.19537147879600525
+    ],
+    [
+      "MouthFunnel",
+      0.1944500058889389
+    ],
+    [
+      "EyeBlinkLeft",
+      0.16765196621418
+    ],
+    [
+      "MouthSmileLeft",
+      0.1657959520816803
+    ],
+    [
+      "EyeWideRight",
+      0.11167778074741364
+    ],
+    [
+      "BrowDownLeft",
+      0.10284338891506195
+    ],
+    [
+      "EyeWideLeft",
+      0.0975075289607048
+    ],
+    [
+      "EyeLookDownRight",
+      0.09252668172121048
+    ],
+    [
+      "BrowDownRight",
+      0.0915236547589302
+    ],
+    [
+      "EyeLookDownLeft",
+      0.0861891657114029
+    ],
+    [
+      "LeftEyePitch",
+      0.07435877621173859
+    ],
+    [
+      "EyeBlinkRight",
+      0.07297280430793762
+    ],
+    [
+      "RightEyePitch",
+      0.06383558362722397
+    ]
+  ]
+}

@@ -121,6 +121,35 @@ def default_registry(root: Path) -> list[Entry]:
                              stride=2, start_frame=0,
                              teacher_ref_mp4=ref if ref.exists() else None))
 
+    # auto-discover all `<tag>_full/<take>_bridge.mp4` directories under
+    # exp_output/arkit_bridge/render/. Catches v4a_full, v4b_full, v2_120k_full,
+    # any future bake-off tag using the same convention. The corresponding
+    # teacher_full_cache mp4 is reused as the reference.
+    render_root = root / "exp_output/arkit_bridge/render"
+    if render_root.exists():
+        for tag_dir in sorted(render_root.iterdir()):
+            if not tag_dir.is_dir(): continue
+            tag = tag_dir.name
+            # skip ones we already enumerated above
+            if tag in {"v3_full", "v3_compare", "teacher_full_cache",
+                       "anchor_pool_teacher_full", "stylized_pool_teacher_full",
+                       "teacher_full", "teacher_full_cache",
+                       "teacher_rot", "smoke", "smoke_v2", "full",
+                       "bridge_v2_fixed", "v3_full_yawfix", "v3_smoke"}:
+                continue
+            if not tag.endswith("_full"):
+                continue
+            for p in sorted(tag_dir.glob(f"{take_name(1)[:-1]}*_bridge.mp4")):
+                m = re.search(r"_(\d+)_bridge\.mp4$", p.name)
+                if not m: continue
+                t = int(m.group(1))
+                ref = (cache /
+                       f"{take_name(t)}__{ANCHOR_STEM}__n1200_s2_o0.mp4")
+                run_tag = tag[:-5] if tag.endswith("_full") else tag
+                out.append(Entry(run_tag, t, p, "bridge", "n/a", "full",
+                                 stride=2, start_frame=0,
+                                 teacher_ref_mp4=ref if ref.exists() else None))
+
     # 60-frame compare set (v3_compare/) — superseded by v3_full but worth indexing
     v3c = root / "exp_output/arkit_bridge/render/v3_compare"
     if v3c.exists():

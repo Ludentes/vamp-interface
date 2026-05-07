@@ -1,0 +1,40 @@
+=== top-15 channels by m_f delta L2 (most influential) ===
+  ch37 mouthLowerDownLeft      L2=88.006  peak[15, 2] R²=+0.819  low_r2_frac=0.000
+  ch19 mouthFunnel             L2=82.534  peak[ 7, 2] R²=+0.869  low_r2_frac=0.000
+  ch50 noseSneerRight          L2=78.287  peak[ 7, 6] R²=+0.891  low_r2_frac=0.000
+  ch43 browInnerUp             L2=78.201  peak[20,11] R²=+0.860  low_r2_frac=0.000
+  ch49 noseSneerLeft           L2=76.038  peak[ 7, 6] R²=+0.891  low_r2_frac=0.000
+  ch35 mouthPressLeft          L2=70.209  peak[ 7, 2] R²=+0.869  low_r2_frac=0.000
+  ch52 leftEyeYaw              L2=66.836  peak[ 7, 2] R²=+0.869  low_r2_frac=0.000
+  ch29 mouthStretchLeft        L2=66.418  peak[ 7, 6] R²=+0.891  low_r2_frac=0.000
+  ch48 cheekSquintRight        L2=62.222  peak[12,11] R²=+0.896  low_r2_frac=0.000
+  ch30 mouthStretchRight       L2=60.361  peak[ 7, 6] R²=+0.891  low_r2_frac=0.000
+  ch45 browOuterUpRight        L2=59.269  peak[27,13] R²=+0.916  low_r2_frac=0.000
+  ch31 mouthRollLower          L2=57.993  peak[12,11] R²=+0.896  low_r2_frac=0.000
+  ch36 mouthPressRight         L2=56.106  peak[ 7, 2] R²=+0.869  low_r2_frac=0.000
+  ch14 jawForward              L2=54.694  peak[ 7, 6] R²=+0.891  low_r2_frac=0.000
+  ch12 eyeSquintRight          L2=53.355  peak[20,11] R²=+0.860  low_r2_frac=0.000
+
+=== top-15 channels with most response in LOW-R² cells (risk) ===
+  ch 0 eyeBlinkLeft            low_r2_frac=0.000  L2=39.114  peak[27,13] R²=+0.916
+  ch 1 eyeLookDownLeft         low_r2_frac=0.000  L2=35.105  peak[ 7, 6] R²=+0.891
+  ch 2 eyeLookInLeft           low_r2_frac=0.000  L2=30.073  peak[ 7, 6] R²=+0.891
+  ch 3 eyeLookOutLeft          low_r2_frac=0.000  L2=31.531  peak[ 7, 6] R²=+0.891
+  ch 4 eyeLookUpLeft           low_r2_frac=0.000  L2=14.154  peak[ 7, 2] R²=+0.869
+  ch 5 eyeSquintLeft           low_r2_frac=0.000  L2=34.324  peak[ 7, 2] R²=+0.869
+  ch 6 eyeWideLeft             low_r2_frac=0.000  L2=36.078  peak[ 9,14] R²=+0.824
+  ch 7 eyeBlinkRight           low_r2_frac=0.000  L2=31.408  peak[ 7, 6] R²=+0.891
+  ch 8 eyeLookDownRight        low_r2_frac=0.000  L2=41.738  peak[ 7, 6] R²=+0.891
+  ch 9 eyeLookInRight          low_r2_frac=0.000  L2=52.269  peak[ 7, 6] R²=+0.891
+  ch10 eyeLookOutRight         low_r2_frac=0.000  L2=9.089  peak[ 9,14] R²=+0.824
+  ch11 eyeLookUpRight          low_r2_frac=0.000  L2=14.716  peak[ 7, 2] R²=+0.869
+  ch12 eyeSquintRight          low_r2_frac=0.000  L2=53.355  peak[20,11] R²=+0.860
+  ch13 eyeWideRight            low_r2_frac=0.000  L2=38.038  peak[ 9,14] R²=+0.824
+  ch14 jawForward              low_r2_frac=0.000  L2=54.694  peak[ 7, 6] R²=+0.891
+
+=== brow channels detail ===
+  ch41 browDownLeft            L2=49.035  peak[ 5,11] R²=+0.899  low_r2_frac=0.000
+  ch42 browDownRight           L2=41.021  peak[20,11] R²=+0.860  low_r2_frac=0.000
+  ch43 browInnerUp             L2=78.201  peak[20,11] R²=+0.860  low_r2_frac=0.000
+  ch44 browOuterUpLeft         L2=49.353  peak[ 3, 4] R²=+0.935  low_r2_frac=0.000
+  ch45 browOuterUpRight        L2=59.269  peak[27,13] R²=+0.916  low_r2_frac=0.000

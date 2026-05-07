@@ -1,0 +1,756 @@
+[
+  {
+    "channel": 0,
+    "name": "eyeBlinkLeft",
+    "b_p95": 0.36074382066726685,
+    "delta_l2": 39.114105224609375,
+    "delta_peak_abs": 5.886268615722656,
+    "peak_cell": [
+      27,
+      13
+    ],
+    "peak_cell_r2": 0.916195809841156,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 1,
+    "name": "eyeLookDownLeft",
+    "b_p95": 0.43720749020576477,
+    "delta_l2": 35.10470962524414,
+    "delta_peak_abs": 6.682172775268555,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 2,
+    "name": "eyeLookInLeft",
+    "b_p95": 0.2861296236515045,
+    "delta_l2": 30.073305130004883,
+    "delta_peak_abs": 5.459192276000977,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 3,
+    "name": "eyeLookOutLeft",
+    "b_p95": 0.23602262139320374,
+    "delta_l2": 31.530960083007812,
+    "delta_peak_abs": 6.482992172241211,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 4,
+    "name": "eyeLookUpLeft",
+    "b_p95": 0.16945458948612213,
+    "delta_l2": 14.153515815734863,
+    "delta_peak_abs": 2.4267282485961914,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 5,
+    "name": "eyeSquintLeft",
+    "b_p95": 0.45723527669906616,
+    "delta_l2": 34.32384490966797,
+    "delta_peak_abs": 6.090346336364746,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 6,
+    "name": "eyeWideLeft",
+    "b_p95": 0.6181690692901611,
+    "delta_l2": 36.07805633544922,
+    "delta_peak_abs": 6.609989643096924,
+    "peak_cell": [
+      9,
+      14
+    ],
+    "peak_cell_r2": 0.824020504951477,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 7,
+    "name": "eyeBlinkRight",
+    "b_p95": 0.3489575684070587,
+    "delta_l2": 31.408138275146484,
+    "delta_peak_abs": 5.885040283203125,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 8,
+    "name": "eyeLookDownRight",
+    "b_p95": 0.4369405508041382,
+    "delta_l2": 41.738311767578125,
+    "delta_peak_abs": 8.07500171661377,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 9,
+    "name": "eyeLookInRight",
+    "b_p95": 0.36107879877090454,
+    "delta_l2": 52.26853942871094,
+    "delta_peak_abs": 9.67635440826416,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 10,
+    "name": "eyeLookOutRight",
+    "b_p95": 0.16051341593265533,
+    "delta_l2": 9.088579177856445,
+    "delta_peak_abs": 1.4312934875488281,
+    "peak_cell": [
+      9,
+      14
+    ],
+    "peak_cell_r2": 0.824020504951477,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 11,
+    "name": "eyeLookUpRight",
+    "b_p95": 0.16957856714725494,
+    "delta_l2": 14.715847969055176,
+    "delta_peak_abs": 2.6338233947753906,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 12,
+    "name": "eyeSquintRight",
+    "b_p95": 0.4806203842163086,
+    "delta_l2": 53.35532760620117,
+    "delta_peak_abs": 8.268409729003906,
+    "peak_cell": [
+      20,
+      11
+    ],
+    "peak_cell_r2": 0.8601651191711426,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 13,
+    "name": "eyeWideRight",
+    "b_p95": 0.6170892119407654,
+    "delta_l2": 38.03756332397461,
+    "delta_peak_abs": 7.448990821838379,
+    "peak_cell": [
+      9,
+      14
+    ],
+    "peak_cell_r2": 0.824020504951477,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 14,
+    "name": "jawForward",
+    "b_p95": 0.16184845566749573,
+    "delta_l2": 54.69384765625,
+    "delta_peak_abs": 10.13094711303711,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 15,
+    "name": "jawLeft",
+    "b_p95": 0.15571749210357666,
+    "delta_l2": 42.053924560546875,
+    "delta_peak_abs": 6.865561485290527,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 16,
+    "name": "jawRight",
+    "b_p95": 0.016667699441313744,
+    "delta_l2": 2.8216347694396973,
+    "delta_peak_abs": 0.4965324401855469,
+    "peak_cell": [
+      25,
+      6
+    ],
+    "peak_cell_r2": 0.9138410687446594,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 17,
+    "name": "jawOpen",
+    "b_p95": 0.5272346138954163,
+    "delta_l2": 41.30200958251953,
+    "delta_peak_abs": 5.500198841094971,
+    "peak_cell": [
+      24,
+      2
+    ],
+    "peak_cell_r2": 0.8544664978981018,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 18,
+    "name": "mouthClose",
+    "b_p95": 0.2381998747587204,
+    "delta_l2": 21.294050216674805,
+    "delta_peak_abs": 3.251218795776367,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 19,
+    "name": "mouthFunnel",
+    "b_p95": 0.3488592207431793,
+    "delta_l2": 82.53392791748047,
+    "delta_peak_abs": 15.882776260375977,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 20,
+    "name": "mouthPucker",
+    "b_p95": 0.27426499128341675,
+    "delta_l2": 43.442508697509766,
+    "delta_peak_abs": 8.153328895568848,
+    "peak_cell": [
+      12,
+      11
+    ],
+    "peak_cell_r2": 0.896143913269043,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 21,
+    "name": "mouthLeft",
+    "b_p95": 0.07111334800720215,
+    "delta_l2": 13.928977966308594,
+    "delta_peak_abs": 2.720900774002075,
+    "peak_cell": [
+      25,
+      3
+    ],
+    "peak_cell_r2": 0.9040904641151428,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 22,
+    "name": "mouthRight",
+    "b_p95": 0.021434860303997993,
+    "delta_l2": 4.0894927978515625,
+    "delta_peak_abs": 0.7815933227539062,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 23,
+    "name": "mouthSmileLeft",
+    "b_p95": 0.6686105132102966,
+    "delta_l2": 30.874914169311523,
+    "delta_peak_abs": 4.98130464553833,
+    "peak_cell": [
+      9,
+      14
+    ],
+    "peak_cell_r2": 0.824020504951477,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 24,
+    "name": "mouthSmileRight",
+    "b_p95": 0.6480264067649841,
+    "delta_l2": 50.670631408691406,
+    "delta_peak_abs": 9.35788631439209,
+    "peak_cell": [
+      25,
+      3
+    ],
+    "peak_cell_r2": 0.9040904641151428,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 25,
+    "name": "mouthFrownLeft",
+    "b_p95": 0.27561572194099426,
+    "delta_l2": 32.84844207763672,
+    "delta_peak_abs": 4.82139253616333,
+    "peak_cell": [
+      8,
+      6
+    ],
+    "peak_cell_r2": 0.8971946239471436,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 26,
+    "name": "mouthFrownRight",
+    "b_p95": 0.23497778177261353,
+    "delta_l2": 22.20675277709961,
+    "delta_peak_abs": 4.002864837646484,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 27,
+    "name": "mouthDimpleLeft",
+    "b_p95": 0.15915009379386902,
+    "delta_l2": 47.73031997680664,
+    "delta_peak_abs": 9.299025535583496,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 28,
+    "name": "mouthDimpleRight",
+    "b_p95": 0.17354121804237366,
+    "delta_l2": 50.1572380065918,
+    "delta_peak_abs": 9.099292755126953,
+    "peak_cell": [
+      12,
+      11
+    ],
+    "peak_cell_r2": 0.896143913269043,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 29,
+    "name": "mouthStretchLeft",
+    "b_p95": 0.3684725761413574,
+    "delta_l2": 66.41800689697266,
+    "delta_peak_abs": 14.46307373046875,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 30,
+    "name": "mouthStretchRight",
+    "b_p95": 0.42364537715911865,
+    "delta_l2": 60.36090850830078,
+    "delta_peak_abs": 13.353076934814453,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 31,
+    "name": "mouthRollLower",
+    "b_p95": 0.15759113430976868,
+    "delta_l2": 57.9925422668457,
+    "delta_peak_abs": 10.395452499389648,
+    "peak_cell": [
+      12,
+      11
+    ],
+    "peak_cell_r2": 0.896143913269043,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 32,
+    "name": "mouthRollUpper",
+    "b_p95": 0.0741000697016716,
+    "delta_l2": 25.387144088745117,
+    "delta_peak_abs": 4.584867477416992,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 33,
+    "name": "mouthShrugLower",
+    "b_p95": 0.2014007717370987,
+    "delta_l2": 18.179244995117188,
+    "delta_peak_abs": 3.1254727840423584,
+    "peak_cell": [
+      5,
+      11
+    ],
+    "peak_cell_r2": 0.8990404009819031,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 34,
+    "name": "mouthShrugUpper",
+    "b_p95": 0.12566234171390533,
+    "delta_l2": 26.916004180908203,
+    "delta_peak_abs": 5.814447402954102,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 35,
+    "name": "mouthPressLeft",
+    "b_p95": 0.10351721942424774,
+    "delta_l2": 70.20852661132812,
+    "delta_peak_abs": 11.779584884643555,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 36,
+    "name": "mouthPressRight",
+    "b_p95": 0.10742534697055817,
+    "delta_l2": 56.1061897277832,
+    "delta_peak_abs": 9.23560905456543,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 37,
+    "name": "mouthLowerDownLeft",
+    "b_p95": 0.734658420085907,
+    "delta_l2": 88.00624084472656,
+    "delta_peak_abs": 14.091882705688477,
+    "peak_cell": [
+      15,
+      2
+    ],
+    "peak_cell_r2": 0.8191516399383545,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 38,
+    "name": "mouthLowerDownRight",
+    "b_p95": 0.7521035075187683,
+    "delta_l2": 34.575096130371094,
+    "delta_peak_abs": 5.410852909088135,
+    "peak_cell": [
+      29,
+      10
+    ],
+    "peak_cell_r2": 0.9116659164428711,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 39,
+    "name": "mouthUpperUpLeft",
+    "b_p95": 0.18201734125614166,
+    "delta_l2": 22.018075942993164,
+    "delta_peak_abs": 3.9066720008850098,
+    "peak_cell": [
+      4,
+      13
+    ],
+    "peak_cell_r2": 0.8775880336761475,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 40,
+    "name": "mouthUpperUpRight",
+    "b_p95": 0.18684592843055725,
+    "delta_l2": 28.103042602539062,
+    "delta_peak_abs": 5.154850959777832,
+    "peak_cell": [
+      4,
+      13
+    ],
+    "peak_cell_r2": 0.8775880336761475,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 41,
+    "name": "browDownLeft",
+    "b_p95": 0.7082734107971191,
+    "delta_l2": 49.035099029541016,
+    "delta_peak_abs": 7.56283712387085,
+    "peak_cell": [
+      5,
+      11
+    ],
+    "peak_cell_r2": 0.8990404009819031,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 42,
+    "name": "browDownRight",
+    "b_p95": 0.7075891494750977,
+    "delta_l2": 41.021324157714844,
+    "delta_peak_abs": 6.510585308074951,
+    "peak_cell": [
+      20,
+      11
+    ],
+    "peak_cell_r2": 0.8601651191711426,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 43,
+    "name": "browInnerUp",
+    "b_p95": 0.8313044905662537,
+    "delta_l2": 78.20106506347656,
+    "delta_peak_abs": 14.350202560424805,
+    "peak_cell": [
+      20,
+      11
+    ],
+    "peak_cell_r2": 0.8601651191711426,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 44,
+    "name": "browOuterUpLeft",
+    "b_p95": 0.7537738680839539,
+    "delta_l2": 49.35287857055664,
+    "delta_peak_abs": 8.005550384521484,
+    "peak_cell": [
+      3,
+      4
+    ],
+    "peak_cell_r2": 0.9347617626190186,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 45,
+    "name": "browOuterUpRight",
+    "b_p95": 0.7537456154823303,
+    "delta_l2": 59.26853942871094,
+    "delta_peak_abs": 8.275735855102539,
+    "peak_cell": [
+      27,
+      13
+    ],
+    "peak_cell_r2": 0.916195809841156,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 46,
+    "name": "cheekPuff",
+    "b_p95": 0.1281064748764038,
+    "delta_l2": 27.5620059967041,
+    "delta_peak_abs": 5.108570098876953,
+    "peak_cell": [
+      12,
+      11
+    ],
+    "peak_cell_r2": 0.896143913269043,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 47,
+    "name": "cheekSquintLeft",
+    "b_p95": 0.33143535256385803,
+    "delta_l2": 42.342628479003906,
+    "delta_peak_abs": 6.234180450439453,
+    "peak_cell": [
+      8,
+      4
+    ],
+    "peak_cell_r2": 0.91721510887146,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 48,
+    "name": "cheekSquintRight",
+    "b_p95": 0.35589227080345154,
+    "delta_l2": 62.22228240966797,
+    "delta_peak_abs": 11.264698028564453,
+    "peak_cell": [
+      12,
+      11
+    ],
+    "peak_cell_r2": 0.896143913269043,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 49,
+    "name": "noseSneerLeft",
+    "b_p95": 0.30131348967552185,
+    "delta_l2": 76.0379638671875,
+    "delta_peak_abs": 13.623590469360352,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 50,
+    "name": "noseSneerRight",
+    "b_p95": 0.3078785538673401,
+    "delta_l2": 78.28685760498047,
+    "delta_peak_abs": 14.516950607299805,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 51,
+    "name": "tongueOut",
+    "b_p95": 0.003006511367857456,
+    "delta_l2": 0.5496845841407776,
+    "delta_peak_abs": 0.0835103988647461,
+    "peak_cell": [
+      29,
+      15
+    ],
+    "peak_cell_r2": 0.9008698463439941,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 52,
+    "name": "leftEyeYaw",
+    "b_p95": 0.27212288975715637,
+    "delta_l2": 66.83617401123047,
+    "delta_peak_abs": 11.62782096862793,
+    "peak_cell": [
+      7,
+      2
+    ],
+    "peak_cell_r2": 0.8694097995758057,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 53,
+    "name": "leftEyePitch",
+    "b_p95": 0.2685002088546753,
+    "delta_l2": 25.71381950378418,
+    "delta_peak_abs": 4.769177436828613,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 54,
+    "name": "leftEyeRoll",
+    "b_p95": 0.024833014234900475,
+    "delta_l2": 5.627955436706543,
+    "delta_peak_abs": 0.9283065795898438,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 55,
+    "name": "rightEyeYaw",
+    "b_p95": 0.26433658599853516,
+    "delta_l2": 20.28665542602539,
+    "delta_peak_abs": 3.540062427520752,
+    "peak_cell": [
+      15,
+      2
+    ],
+    "peak_cell_r2": 0.8191516399383545,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 56,
+    "name": "rightEyePitch",
+    "b_p95": 0.2685352563858032,
+    "delta_l2": 28.01544761657715,
+    "delta_peak_abs": 5.207608222961426,
+    "peak_cell": [
+      7,
+      6
+    ],
+    "peak_cell_r2": 0.8907418251037598,
+    "low_r2_energy_frac": 0.0
+  },
+  {
+    "channel": 57,
+    "name": "rightEyeRoll",
+    "b_p95": 0.02487274818122387,
+    "delta_l2": 1.9740509986877441,
+    "delta_peak_abs": 0.4932851791381836,
+    "peak_cell": [
+      9,
+      14
+    ],
+    "peak_cell_r2": 0.824020504951477,
+    "low_r2_energy_frac": 0.0
+  }
+]

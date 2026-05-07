@@ -245,6 +245,152 @@ M=4 clean frames, and appends a fresh noisy chunk at the back.
   loose-crop reference + driving via MediaPipe FaceMesh as a preprocessing
   step before everything else. **Note:** breaks under mediapipe ≥ 0.10.x
   due to `mp.solutions` API removal — see below.
+- `StabilizedFaceCropper` (src/utils/util.py, added 2026-05-05) — causal
+  EMA wrapper around the same face_mesh + `scale_bb` flow, plus
+  `forehead_bias_frac` to stop hair-clipping. `--crop-strategy
+  {perframe,nocrop,ema}` exposed in `scripts/render_take.py`. **Default
+  for new code paths is `ema`**, with `nocrop` as a fixed-framing fallback;
+  `perframe` (legacy `crop_face` behaviour) is dominated by both per the
+  A/B/C take-render scoring (see
+  [`2026-05-05-personalive-take-render-observations.md`](2026-05-05-personalive-take-render-observations.md)).
+
+## Inference-time control surface (no retrain)
+
+Added 2026-05-06 after a focused dive into the rendering UNet ahead of
+the stylized-anchor batch (zombie / orc / duck / demon). This section
+catalogues every conditioning channel into the denoising UNet, every
+real knob exposed by `Pose2VideoPipeline_Stream.__call__`, and the small
+set of one-line internal patches that give meaningful runtime control
+without touching weights. Companion to *Per-component notes (deeper)*
+above — that section is per-module; this one is per-signal and per-knob.
+
+### Five conditioning channels into the denoising UNet
+
+| Signal | Source | Shape | Where it lands | What it controls |
+|---|---|---|---|---|
+| Reference image (global) | `CLIPVisionModelWithProjection` | (B, 1, 1280) | Cross-attn (`attn2`) of every spatial transformer block | Global appearance prior; weak channel |
+| Reference image (per-layer) | `reference_unet` → bank | per-layer KV | Self-attn (`attn1`) extension via `mutual_self_attention.py:171–217` | Texture / identity / lighting / background — the heavy lifting |
+| Driving motion | `MotEncoder` | (B, T, 32, 16) | Cross-attn (`attn2`) on **temporal** transformer blocks only | Expression dynamics, frame-to-frame motion |
+| Driving keypoints | `PoseGuider` | (B, 320, T, 64, 64) | **Additive residual** after `conv_in` (`unet_3d.py:511`) | Hard spatial anchor for head pose; assumes 21-pt human KP layout |
+| Timestep | sin/cos embed | (B, 4·time_embed_dim) | All ResNet + transformer blocks via `temb` | Diffusion schedule |
+
+The split between channels 2 and 3 is the architectural appearance/motion
+boundary: the **bank** carries identity through `attn1`; the **MotEncoder
+cross-attn** carries dynamics through temporal `attn2`. PoseGuider is
+neither — it's a structural prior that biases the latent toward "human
+head shape at this pose".
+
+### Pipeline call signature — every kwarg
+
+`Pose2VideoPipeline_Stream.__call__` (`src/pipelines/pipeline_pose2vid.py:748–768`):
+
+```python
+pipe(
+    tgt_images,                    # List[PIL] driving frames (face-cropped)
+    ref_image,                     # PIL reference identity
+    face_images,                   # List[PIL] driving face crops for MotEncoder
+    ref_face_image,                # PIL reference face crop
+    width=512, height=512,
+    video_length,                  # int total frames
+    num_inference_steps=4,         # effectively pinned; timesteps hardcoded [999,666,333,0]
+    guidance_scale=1.0,            # CFG; 1.0 = off
+    eta=0.0,
+    generator=None,                # torch.Generator
+    output_type="tensor",
+    return_dict=True,
+    temporal_window_size=4,        # chunk size for streaming
+    temporal_adaptive_step=4,      # sliding-window overlap count
+    temporal_kv_cache=True,        # cross-window keyframe bank for long-range consistency
+    init_latents=None,             # rarely used
+)
+```
+
+Knobs that actually do something at the API surface:
+
+- `guidance_scale` — interpolates `noise_pred_uncond + s·(noise_pred_cond − noise_pred_uncond)`. Uncond is currently `zeros_like(image_embeds)` so `s>1` pushes *away from a generic CLIP-zero prior* and *toward the ref*. Underused.
+- `temporal_window_size`, `temporal_adaptive_step` — chunking + sliding overlap; affects coherence vs VRAM.
+- `temporal_kv_cache` — toggles keyframe bank (HKM); off → cleaner but more drift on long takes.
+- `generator` — seed.
+- `eta` — DDIM stochasticity.
+
+Steps are nominally a parameter but the trajectory is hardcoded to
+`[999, 666, 333, 0]` (line 472, 778) post Stage-2 distill — increasing
+`num_inference_steps` does not actually subdivide the schedule. To
+get more steps you need a different scheduler instance.
+
+### One-line runtime levers (no retrain)
+
+Three small in-file patches give per-anchor A/B-able runtime control over
+ref vs motion vs pose. All are scalars; all are pipeline-state local; all
+work with the existing distilled weights.
+
+1. **`pose_guider_scale γ`** — `unet_3d.py:511`, change
+   `sample = sample + pose_cond_fea` → `sample = sample + γ * pose_cond_fea`.
+   Highest-leverage knob for stylized refs. PoseGuider is trained on
+   21-point human KP heatmaps; on a duck/demon those keypoints are
+   non-existent or wrong, so the additive residual *fights the bank*
+   trying to drag geometry back toward a human skull. Lower γ → trust
+   the ref bank for spatial layout; γ=0 disables the anchor entirely.
+2. **`ref_bank_scale α`** — `mutual_self_attention.py:171–217`, scale the
+   `bank_fea` list by α before `torch.cat([norm_hidden_states] + bank_fea, dim=1)`.
+   α<1 weakens identity grip → output slides toward SD1.5 prior; useful
+   diagnostic but expected to hurt non-human refs that need the bank to
+   keep looking like themselves. α>1 may overcommit to ref and stiffen
+   motion.
+3. **`motion_attn_scale β`** — `attention.py:263–268`, scale the residual
+   added by the temporal-block `attn2` call (the one with
+   `encoder_hidden_states[1]` = `motion_hidden_states`) by β. β<1 mutes
+   expression intensity; β>1 pushes motion harder. Hold for second pass
+   after γ/α are characterised.
+
+Plus one knob that doesn't require code edits but is currently
+underused:
+
+4. **CFG with a non-trivial uncond.** Replace the `zeros_like(image_embeds)`
+   uncond with a *neutral-face* CLIP embed (or a *generic-face* embed) and
+   raise `guidance_scale`. Pulls the output away from the chosen
+   uncond direction and toward the conditioned ref. Plausible mitigation
+   for ref-collapse on stylized inputs without touching the bank weights.
+
+There is also a per-layer reference attention weight already computed
+but unused: `ReferenceAttentionControl` builds
+`module.attn_weight = float(i) / float(len(attn_modules))` at line 332.
+It does nothing at inference today. Wiring it as a multiplier on
+`bank_fea` per layer would let us route ref injection toward late
+(texture) layers and away from early (structure) layers — the
+"keep the surface, give up the bones" trick that may help on
+non-humanoid refs (duck) more than uniform α.
+
+### Suggested probe order on stylized refs
+
+For a 5-anchor pool (zombie / orc / duck_head / duck_full / demon) on a
+fixed driver clip:
+
+1. **Baseline** γ=1, α=1, β=1, CFG=1. Establishes whether vanilla
+   PersonaLive even survives stylization. Expected partial failure on
+   duck/demon (PoseGuider geometry fight).
+2. **γ sweep** {1.0, 0.5, 0.0} on the failing anchors. If γ=0 visibly
+   improves the duck without breaking the orc, the human-KP additive
+   residual is the bottleneck and a non-human PoseGuider becomes the
+   first retraining priority.
+3. **Per-layer ref weight bias** (late-layer-only) on whichever anchor
+   shows ref-collapse. Cheap, one place to edit, falsifies whether the
+   bank "knows" stylization but the early structural layers override it.
+4. **CFG with neutral-face uncond** at `guidance_scale ∈ {1.5, 2.0}`,
+   only if (1)–(3) leave residual generic-face leak.
+
+α and β are diagnostic for later passes; γ is the first thing to try.
+
+### Where this leaves the appearance/motion separation hypothesis
+
+Pre-dive: we suspected the appearance encoder might collapse stylized
+refs to a generic face. Post-dive: the **bank** (channel 2) is the
+appearance carrier and is per-layer rich, so it can in principle
+represent stylized texture. The risk is in **PoseGuider** (channel 4)
+forcing human geometry, and in **CLIP** (channel 1) being weak on
+out-of-distribution art. The bank is the model's strongest tool against
+ref collapse, and it works without retraining; the channels around it
+are where stylized-ref failures actually originate.
 
 ## Perf budget (speculative; needs measurement)
 
@@ -296,7 +442,7 @@ Numbers above are speculative until that lands.
 
 ## Training notes (what we know about Stage 1)
 
-From `2026-05-05-moore-stage1-feasibility-probe.md`:
+From `2026-05-04-moore-stage1-feasibility-probe.md`:
 
 - **Single 5090 fits** Stage 1 at batch=1, 512², bf16, gradient checkpointing,
   **8-bit Adam (bnb)**, no xformers. ~1.05 s/it.
@@ -368,6 +514,115 @@ keypoint path needs no training at all. This is the v1's biggest win.
   this wrong. Correct call: `motion_extractor.detector(x)` returns the raw
   dict; `motion_extractor(x)` calls `get_kp(detector(x))` and returns the
   posed (B, 21, 3) tensor.
+
+## Artifact persistence and anchor reinjection (2026-05-05 long-take findings)
+
+Cross-reference: [`2026-05-05-personalive-take-render-observations.md`](2026-05-05-personalive-take-render-observations.md)
+quantifies what follows. Three measured facts shape this section:
+
+- **Identity drift is monotonic.** ArcFace-cos vs anchor on take 7 (clean,
+  107 s) goes 0.887 → 0.700 with regression slope −0.014 / 1000 frames
+  (p≈0). Once the rolling state moves away from anchor it does not come
+  back.
+- **Cut jitter causally amplifies output flicker.** On take 2, regressing
+  per-frame output flicker on input `center_jitter_px` gives r=+0.56
+  (n=3695, p≈0). Take 7 r=+0.31. The driver-side cut is co-driving the
+  output's temporal instability, not just a passive crop.
+- **Ghost glasses are a localized failure.** Take 2 has the highest
+  arcface_cos (0.865) of all takes but also the highest forehead-region
+  `ghost_resid` p95 (3.94). Identity is fine globally but the temporal
+  module has locked onto a glasses prior that the anchor doesn't have.
+
+This section enumerates where in the wrapper we could inject "truth" to
+attenuate problems 3 (artifacts persist) and 6 (ghost glasses). All
+options must respect the realtime causality constraint: no future-frame
+lookahead, ≤ a few ms of added per-frame budget.
+
+### State that carries artifacts forward
+
+`Wrapper.__call__` (`src/wrapper.py:280-400`) maintains four FIFO deques
+plus a stateful KV cache:
+
+| State | Where | What it accumulates | Carries artifacts? |
+|---|---|---|---|
+| `latents_pile` (deque of `(B,4,T,64,64)`) | wrapper.py:343 | Per-chunk denoised latents from previous calls; concatenated each call to form the model input | **Yes — directly** |
+| `motion_pile` (deque of `(B,T,32,16)`) | wrapper.py:317-328 | Per-chunk MotEncoder outputs from driving frames | Indirectly (drives next denoise) |
+| `pose_pile` (deque of `(B,320,T,64,64)`) | wrapper.py:335-338 | Per-chunk PoseGuider features | Indirectly (drives next denoise) |
+| `motion_bank` (`(B,L_bank,32,16)`) | wrapper.py:147,320,351 | HKM history of distinctive motion states; queried via `calculate_dis(..., threshold=17.0)` for keyframe selection | Yes — this is the long-term memory |
+| `reference_control_reader/writer` KV cache | wrapper.py:384 (`update_hkf`) | Reference UNet KV pairs; can be augmented with up to 3 detected keyframes (`num_khf < 3`) | Yes — drives cross-attn |
+
+`latents_pile` is the immediate culprit: line 343 seeds it once with
+`ref_image_latents + scheduler noise`, but on every subsequent call the
+model writes its own `pred_original_sample` back into the pile (line
+395-394: `self.latents_pile[i] = latents_model_input[...]`). Once a
+phantom feature establishes itself in those latents it survives every
+subsequent denoising pass as the temporal module's clean prefix.
+
+### Anchor-reinjection design space
+
+Three insertion points, ordered surgical → blunt:
+
+**A. Anchor-leak via HKM keyframes.** `update_hkf` (wrapper.py:384) already
+exists to add detected keyframes into the reference KV cache during
+streaming, but is gated by `num_khf < 3`. Replace the gate with a
+periodic *anchor reinsert* — re-inject the original `ref_image_latents`
+through `reference_unet` every N frames (or when `arcface_cos(prev_out,
+anchor)` falls below threshold). Cost: one ReferenceUNet pass (~30 ms)
+on the cadence frame; zero on others. Mechanism: refreshes the
+cross-attn KV the denoising UNet reads, without touching the visible
+latent prefix → no perceptible cut. Strongest candidate for problems 3
+and 6.
+
+**B. Latent-pile anchor blend.** After line 395 (the writeback that
+overwrites `latents_pile` with new pred_original_sample), every N chunks
+mix the front slot toward the anchor:
+`latents_pile[0] ← (1−α)·latents_pile[0] + α·ref_image_latents` with
+α∈[0.1, 0.3]. Cost: a single tensor blend, sub-ms. Visible if α too
+high; α=0.1 every 30 frames is the safe starting envelope. Directly
+attacks the autoregressive contamination chain.
+
+**C. Hard chunk reset.** Every N chunks, clear `latents_pile`,
+`motion_pile`, `pose_pile` and re-seed exactly as in
+`prepare_init_latents` (wrapper.py:202-218). Cleanest kill of artifact
+persistence; produces a visible discontinuity at the cadence frequency.
+Useful as a fallback or as a controlled experimental baseline against
+A/B.
+
+**D. (Stronger, post-MVP) MotEncoder anchor-conditioned re-encode.**
+Run MotEncoder on the anchor's face crop once per session and prepend
+it to `motion_pile` as an "always-here" reference state. Currently the
+ref motion is folded into `motion_bank` only at session start
+(wrapper.py:320: `self.motion_bank = ref_motion`); it is not re-presented
+to the temporal module after that. Making the ref motion permanently
+visible to cross-attn might pull the model back toward anchor-style
+expressions when the driving signal goes off-distribution (glasses,
+wide-angle face).
+
+### Why this is realtime-compatible
+
+All four use only state already in scope at the current frame: the
+session-static `ref_image_latents` + `motion_bank[0]` (computed once),
+and the present deques. None require future frames, none require
+re-running the offline pipeline. The cost of A is amortized across N
+frames; B/C/D are sub-ms.
+
+### Suggested experiment ordering
+
+1. **A at N=60** (1 s @ 60 fps): rerun take 2 and measure ArcFace slope,
+   ghost_resid p95, flicker. If ghost_resid drops without visible
+   cadence pulses, ship it.
+2. **B at α=0.15, N=30** if A's effect is too weak: latent-level reset
+   is more aggressive than KV refresh.
+3. **C at N=120** as a sanity ceiling: how much can pure-state-reset
+   buy us in the limit, before subjective discontinuity becomes
+   intolerable?
+4. **D** only if A and B leave residual ghosting on glasses-heavy takes
+   — needs a ref-motion path through the temporal cross-attn that's
+   not currently wired.
+
+Decision rule mirrors the A/B/C cut-strategy test in the observations
+doc: ship the smallest intervention that closes the measured gap on
+take 2.
 
 ## Open questions / unknowns
 

@@ -26,10 +26,10 @@ import torch
 # F is applied per-frame as R_eff = F R F^T inside compose_kd; F^T = F
 # (symmetric) so the form is also F R F.
 # See exp_output/arkit_bridge/calibration_v4/render_5_yaw_v{2,3}.verify.json.
-EULER_SIGNS = (+1.0, -1.0, -1.0)  # (yaw, pitch, roll)
+EULER_SIGNS = (+1.0, -1.0, +1.0)  # 2026-05-06: F=I, direct per-axis. Pitch flip matches teacher amp; roll preserved (OLD-correct); yaw matches actor.
 F_KP_REF = torch.tensor([[1.0, 0.0, 0.0],
-                          [0.0, -1.0, 0.0],
-                          [0.0, 0.0, 1.0]])
+                          [0.0, 1.0, 0.0],
+                          [0.0, 0.0, 1.0]])  # identity — drop F-conjugation. Calibration v3's diag(1,-1,1) was confounded by the rotation bug; with F=I we control each axis sign independently.
 
 
 def euler_to_rotmat(yaw: torch.Tensor, pitch: torch.Tensor,

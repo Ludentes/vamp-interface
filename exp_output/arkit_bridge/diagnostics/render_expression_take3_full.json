@@ -1,0 +1,51 @@
+{
+  "n_frames": 1604,
+  "lpips": {
+    "mean": 0.14223705232143402,
+    "std": 0.10049067437648773,
+    "min": 0.0434906892478466,
+    "max": 0.40042591094970703
+  },
+  "bnorm": {
+    "mean": 0.8480227589607239,
+    "std": 0.5041248202323914,
+    "min": 0.29960179328918457,
+    "max": 1.936982274055481
+  },
+  "pearson_lpips_vs_bnorm": -0.021192967891693115,
+  "pearson_lpips_vs_bnorm_expr": -0.0469975620508194,
+  "pearson_lpips_vs_bnorm_eye": 0.3283800184726715,
+  "pearson_lpips_vs_head_ypr": 0.37902575731277466,
+  "arcface": {
+    "anchor_self_cos": 1.0000001192092896,
+    "detection_rate": 1.0,
+    "cos_mean": 0.6660950183868408,
+    "cos_min": 0.2503708600997925,
+    "cos_max": 0.8843969702720642,
+    "slope_per_frame": -0.00022484044356270102
+  },
+  "mediapipe": {
+    "rendered_detection_rate": 1.0,
+    "driving_detection_rate": 0.9900249376558603,
+    "cos_bs_render_vs_driving_mediapipe": {
+      "n": 1588,
+      "mean": 0.5623071193695068,
+      "median": 0.5806326866149902
+    },
+    "cos_bs_render_vs_arkit_csv": {
+      "n": 1604,
+      "mean": 0.284285306930542,
+      "median": 0.2651854157447815
+    },
+    "ypr_l2_render_vs_csv_radians": {
+      "n": 1604,
+      "mean": 0.3453005254268646,
+      "median": 0.3169424533843994
+    },
+    "ypr_l2_driving_vs_csv_radians": {
+      "n": 1588,
+      "mean": 0.44940000772476196,
+      "median": 0.3875880241394043
+    }
+  }
+}

@@ -1,0 +1,66 @@
+=== student health summary ===
+ckpt: runs/student_v3_lam10/student_best.pt
+holdout: data/arkit_bridge_pairs/holdout_v3 (n=822)
+
+alignment cos(student, teacher) on holdout:
+  mean=0.9923  median=0.9950  p10=0.9856  min=0.8585
+
+output-cell R²:  ≥0.7 frac=1.000  ≥0.5 frac=1.000  median=0.889  min=0.724
+
+=== bottom-15 output cells by R² ===
+  cell[ 7, 3]  R²=+0.7235
+  cell[29, 6]  R²=+0.7259
+  cell[18,12]  R²=+0.7332
+  cell[18, 7]  R²=+0.7560
+  cell[15, 8]  R²=+0.7656
+  cell[18, 1]  R²=+0.7673
+  cell[ 7, 9]  R²=+0.7723
+  cell[ 7, 7]  R²=+0.7737
+  cell[17, 4]  R²=+0.7742
+  cell[ 1, 4]  R²=+0.7762
+  cell[30, 7]  R²=+0.7803
+  cell[14, 1]  R²=+0.7881
+  cell[10,13]  R²=+0.7889
+  cell[21,10]  R²=+0.7901
+  cell[16, 6]  R²=+0.7915
+
+=== bottom-15 input channels by sensitivity ===
+  ch51 tongueOut               sens=0.082  b_p95=0.003
+  ch57 rightEyeRoll            sens=0.484  b_p95=0.025
+  ch22 mouthRight              sens=0.687  b_p95=0.021
+  ch16 jawRight                sens=0.694  b_p95=0.017
+  ch54 leftEyeRoll             sens=0.840  b_p95=0.025
+  ch10 eyeLookOutRight         sens=2.039  b_p95=0.161
+  ch34 mouthShrugUpper         sens=2.409  b_p95=0.126
+  ch11 eyeLookUpRight          sens=2.882  b_p95=0.170
+  ch 4 eyeLookUpLeft           sens=2.912  b_p95=0.169
+  ch21 mouthLeft               sens=3.081  b_p95=0.071
+  ch33 mouthShrugLower         sens=3.304  b_p95=0.201
+  ch56 rightEyePitch           sens=3.405  b_p95=0.269
+  ch53 leftEyePitch            sens=3.488  b_p95=0.269
+  ch46 cheekPuff               sens=3.730  b_p95=0.128
+  ch18 mouthClose              sens=3.882  b_p95=0.238
+
+=== top-15 input channels by sensitivity ===
+  ch43 browInnerUp             sens=25.197  b_p95=0.831
+  ch17 jawOpen                 sens=14.834  b_p95=0.527
+  ch23 mouthSmileLeft          sens=13.892  b_p95=0.669
+  ch45 browOuterUpRight        sens=13.731  b_p95=0.754
+  ch38 mouthLowerDownRight     sens=13.449  b_p95=0.752
+  ch24 mouthSmileRight         sens=13.331  b_p95=0.648
+  ch 5 eyeSquintLeft           sens=12.651  b_p95=0.457
+  ch44 browOuterUpLeft         sens=11.918  b_p95=0.754
+  ch37 mouthLowerDownLeft      sens=11.348  b_p95=0.735
+  ch35 mouthPressLeft          sens=10.756  b_p95=0.104
+  ch48 cheekSquintRight        sens=9.380  b_p95=0.356
+  ch29 mouthStretchLeft        sens=9.234  b_p95=0.368
+  ch36 mouthPressRight         sens=9.024  b_p95=0.107
+  ch12 eyeSquintRight          sens=9.019  b_p95=0.481
+  ch30 mouthStretchRight       sens=8.992  b_p95=0.424
+
+=== brow channels ===
+  ch41 browDownLeft            sens=7.504  b_p95=0.708
+  ch42 browDownRight           sens=7.188  b_p95=0.708
+  ch43 browInnerUp             sens=25.197  b_p95=0.831
+  ch44 browOuterUpLeft         sens=11.918  b_p95=0.754
+  ch45 browOuterUpRight        sens=13.731  b_p95=0.754

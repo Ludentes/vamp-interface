@@ -25,55 +25,119 @@ Per-cell R² is **scale-tolerant** when student and teacher shrink
 proportionally; that's what masked this. R² ≥ 0.7 across 98 % of cells
 co-exists with 16 % tail attenuation.
 
-## Three changes for v2
+## Updated 2026-05-05 evening — magnitude-focused v2
 
-Ranked by expected effect / implementation cost:
+Full-take diagnostic across takes 2–8 confirmed two distinct problems
+the v1 loss is blind to:
 
-### 1. Variance-normalised MSE (cheapest, biggest expected lift)
+- **Output magnitude collapse.** Per-category amp_render/amp_driving:
+  jaw 0.01–0.17, mouth 0.03–0.10, cheek 0.02–0.20 across most takes.
+  Output `m_f` sits in a tight cluster around the per-cell mean.
+- **Input coverage gaps.** The 16 522-pair corpus is neutral-skewed —
+  most frames have jawOpen<0.05, cheek*≈0, mouthSmile<0.1. The student
+  rarely sees "this channel is active" examples and never learns to
+  emit the corresponding `m_f` displacement.
+
+Varnorm-MSE (option 1 below) equalises *gradient* across cells but does
+not directly penalise the deflated-mean solution. Tail-mining (old
+option 2) helps but only on the output side. We need terms that target
+magnitude and input coverage explicitly.
+
+### 1. Variance-normalised MSE (foundation)
 
 ```python
-# Compute per-cell teacher std once over the corpus or per-batch.
 sigma = teacher_std.clamp(min=1e-3)            # (32, 16)
-loss = ((student - teacher) / sigma).pow(2).mean()
+loss_varnorm = ((student - teacher) / sigma).pow(2).mean()
 ```
 
 Equalises every cell's loss contribution regardless of magnitude. Cells
 with small teacher variance (~0.05) currently dominate by sheer count
 (many neutral-cluster cells); normalising lets the high-variance
-expression cells (~0.18) actually drive gradients.
+expression cells (~0.18) actually drive gradients. Compute
+`teacher_std` once on the full train set; save next to the ckpt.
 
-Implementation: ~15 lines in `distill.py`. One pre-pass to compute
-`teacher_std` on the train set, save it next to the ckpt, use it as a
-fixed weight (or recompute per-batch with EMA — but a fixed value
-estimated once on the full corpus is fine and reproducible).
+### 2. Variance-matching auxiliary (direct fix for output magnitude)
 
-### 2. Tail-mining auxiliary term (medium cost, targets tail directly)
+```python
+# per-cell std over the batch — pushes student to *want* full variance
+loss_std = (student.std(0) - teacher.std(0)).pow(2).mean()
+```
+
+Why this is needed even with varnorm: varnorm penalises pointwise
+residuals scaled by σ, but a student predicting the per-cell mean has
+zero gradient pressure to spread out under a pointwise loss. The std-
+match term penalises any solution whose output variance is below the
+teacher's, regardless of point-by-point fit.
+
+Practical: needs batch ≥ 64 for a stable per-cell std estimate; we're
+already at 128 so fine. Start λ_std=1.0; tune so train-time `loss_std`
+is ~0.5× `loss_varnorm` at convergence.
+
+### 3. Tail-mining auxiliary (upweights rare *output* events)
 
 ```python
 z = (teacher - teacher_mean) / sigma
-tail = (z.abs() > 2.0).float()                 # (B, 32, 16) mask
+tail = (z.abs() > 2.0).float()
 loss_tail = ((student - teacher) ** 2 * tail).sum() / tail.sum().clamp(min=1)
-loss = loss_main + 0.5 * loss_tail
 ```
 
-Directly upweights residuals on |z|>2 cells. Coefficient 0.5 is a
-starting guess; tune so train-time `loss_tail` is ~1× to 2× `loss_main`
-at convergence.
+Same as before. Likely smaller marginal lift once #2 is in place but
+cheap to keep. λ_tail=0.5.
 
-Optionally combine with #1 by computing the loss inside variance-
-normalised space (gradients already balanced; tail term then
-emphasises rare *but high-magnitude* events specifically).
+### 4. Active-channel weighted sampling (input-side coverage)
 
-### 3. Huber / smooth-L1 instead of MSE (cheap, smaller effect)
+The cheapest fix for the 61-input coverage problem is dataset-side, not
+loss-side. Precompute per-frame the most-active normalised input
+channel:
 
 ```python
-loss = F.smooth_l1_loss(student, teacher, beta=0.1)
+# during pair extraction, alongside b_61 and m_f:
+b_p95 = np.percentile(np.abs(b_corpus), 95, axis=0)   # (61,)
+sample_weight = np.max(np.abs(b) / np.maximum(b_p95, 1e-3), axis=1)
 ```
 
-Less aggressive penalty on outliers than L2 — but in our case the
-*outliers* are the very samples we want to fit better, so this is
-**unlikely to help on its own**. Listed for completeness; would only
-combine sensibly with tail-mining (#2).
+Use as `WeightedRandomSampler` weights. Frames where any ARKit channel
+sits in its top decile get oversampled; the neutral-cluster majority is
+downweighted but still seen. Effective batch composition shifts from
+~80% near-neutral to ~50/50 active/neutral.
+
+Implementation: 5 lines in dataset construction + swap `DataLoader(...)`
+to use `WeightedRandomSampler`. Reproducible; no new hyperparameter
+beyond what's implicit in the percentile choice.
+
+### 5. Per-input-channel sensitivity audit (diagnostic, not loss)
+
+For each ARKit input dim i, measure how much `m_f` moves under a small
+perturbation along that axis, ratio'd against the teacher:
+
+```python
+delta = 0.5 * b_p95[i]
+ratio_i = (
+    (student(b + delta * e_i) - student(b)).norm(dim=(-2,-1)) /
+    (teacher(b + delta * e_i) - teacher(b)).norm(dim=(-2,-1)).clamp(min=1e-6)
+).mean()
+```
+
+Channels where ratio_i < 0.5 are inputs the student is "deaf" to —
+exactly the channels we expect to render flat in the output. Run on
+~200 holdout samples (~1 min). Reports a 61-element vector; gates v2
+acceptance per-channel rather than only per-output-cell.
+
+### 6. Combined v2 loss
+
+```python
+loss = loss_varnorm + λ_std * loss_std + λ_tail * loss_tail
+# defaults: λ_std=1.0, λ_tail=0.5
+```
+
+Plus dataset uses active-channel `WeightedRandomSampler`. Plus eval
+adds the per-input sensitivity audit alongside the existing per-cell
+attenuation diagnostic.
+
+### Not changing: Huber/smooth-L1
+
+Less aggressive on outliers than L2 — but in our case the *outliers*
+are the samples we want to fit better. Skipped.
 
 ## Other levers worth thinking about
 
@@ -94,22 +158,30 @@ combine sensibly with tail-mining (#2).
 
 ## Plan for the v2 pass
 
-1. Compute `teacher_std`, `teacher_mean` over train pairs once; save as
-   `runs/student_v1/teacher_stats.npz`. ~30 s.
-2. Add `--loss_mode {plain|varnorm|varnorm_tail}` to `distill.train()`.
-3. Train 30 K steps with `varnorm_tail` (same hyperparams as v1 — that
-   schedule was clearly fine; lr=5e-4, batch=128, eval every 2 K).
-4. Run the same `diagnose_mf_attenuation.py` on the new ckpt — gate:
-   tail_recovery median ≥ 0.95.
-5. Re-render the 3-take diagnostic set (2/3/8). Gate:
-   `r(LPIPS, bnorm_expr)` strictly positive on take 3, ArcFace cos on
-   take 2 ≥ 0.90.
-6. If both pass, drop the existing `student_best.pt` for v2 in renders
-   and proceed to long-take generation; if either fails, escalate to
-   the architectural alternatives (RBF / SVR diagnostic) listed in the
-   viability doc's Tier-1 escalation section.
+1. Compute `teacher_std`, `teacher_mean` over train pairs and `b_p95`
+   over input channels; save as `runs/student_v1/teacher_stats.npz`. ~30 s.
+2. Add `--loss_mode {plain|varnorm|varnorm_std_tail}` to `distill.train()`.
+   `varnorm_std_tail` = #1 + #2 + #3.
+3. Add `--sampler {uniform|active_channel}` and a `_compute_sample_weights`
+   helper using `b_p95`.
+4. Train 30 K steps with `--loss_mode varnorm_std_tail
+   --sampler active_channel` (same hyperparams as v1 — schedule fine;
+   lr=5e-4, batch=128, eval every 2 K).
+5. Diagnostics on the new ckpt:
+   - `diagnose_mf_attenuation.py` — gate: tail_recovery median ≥ 0.95.
+   - new `diagnose_input_sensitivity.py` — gate: per-channel ratio ≥ 0.7
+     on at least 45/52 ARKit blendshapes (allow 7 dead channels for
+     outliers like tongueOut and rare ARKit dims).
+6. Re-render takes 2/3/4/5/6/7/8 (full); gates:
+   - `channel_recovery_take{n}.json` median amp_vs_driving ≥ 0.5 in
+     mouth and jaw categories on at least 5/7 takes.
+   - `r(LPIPS, bnorm_expr)` strictly positive on take 3.
+   - ArcFace cos on take 2 ≥ 0.90.
+7. If gates pass, replace `student_best.pt` with the v2 ckpt and proceed.
+   If they fail, escalate to architectural alternatives (RBF / SVR
+   diagnostic) listed in the viability doc's Tier-1 escalation section.
 
-Estimated total wall time: ~10 min training + ~5 min eval/render
+Estimated total wall time: ~10 min training + ~10 min eval/render
 diagnostic. Cheap.
 
 ## What we explicitly are *not* changing

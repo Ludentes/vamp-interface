@@ -1,0 +1,581 @@
+{
+  "n_seeds": 200,
+  "delta_frac": 0.5,
+  "b_p95": [
+    0.3613397777080536,
+    0.4369846284389496,
+    0.2859608829021454,
+    0.23282602429389954,
+    0.17541545629501343,
+    0.4565531313419342,
+    0.6237843036651611,
+    0.35034626722335815,
+    0.43670234084129333,
+    0.35926923155784607,
+    0.15920069813728333,
+    0.1753644049167633,
+    0.4808105230331421,
+    0.6224707365036011,
+    0.16399185359477997,
+    0.15509788691997528,
+    0.016815314069390297,
+    0.5269268751144409,
+    0.23822727799415588,
+    0.3491491973400116,
+    0.27498412132263184,
+    0.07081516087055206,
+    0.022193118929862976,
+    0.6564857363700867,
+    0.6368898153305054,
+    0.2756228446960449,
+    0.23478510975837708,
+    0.15796217322349548,
+    0.17229731380939484,
+    0.3685908913612366,
+    0.424136221408844,
+    0.15717381238937378,
+    0.07501736283302307,
+    0.20087800920009613,
+    0.12490414828062057,
+    0.10348230600357056,
+    0.10722798854112625,
+    0.7323196530342102,
+    0.7512451410293579,
+    0.18232639133930206,
+    0.18664011359214783,
+    0.7091254591941833,
+    0.708615243434906,
+    0.8291866779327393,
+    0.7535272836685181,
+    0.7533918023109436,
+    0.12945415079593658,
+    0.3274635374546051,
+    0.3538758158683777,
+    0.30062565207481384,
+    0.3066171109676361,
+    0.002924953121691942,
+    0.2710784077644348,
+    0.2682724893093109,
+    0.02469221130013466,
+    0.26241299510002136,
+    0.26830554008483887,
+    0.024795735254883766
+  ],
+  "per_channel": [
+    {
+      "i": 0,
+      "name": "eyeBlinkLeft",
+      "delta": 0.1806698888540268,
+      "student_response_norm": 0.9700785875320435,
+      "student_response_norm_sigma_normalised": 5.246971607208252
+    },
+    {
+      "i": 1,
+      "name": "eyeLookDownLeft",
+      "delta": 0.2184923142194748,
+      "student_response_norm": 0.9748508930206299,
+      "student_response_norm_sigma_normalised": 5.181887626647949
+    },
+    {
+      "i": 2,
+      "name": "eyeLookInLeft",
+      "delta": 0.1429804414510727,
+      "student_response_norm": 2.4664852619171143,
+      "student_response_norm_sigma_normalised": 12.645648002624512
+    },
+    {
+      "i": 3,
+      "name": "eyeLookOutLeft",
+      "delta": 0.11641301214694977,
+      "student_response_norm": 2.023625373840332,
+      "student_response_norm_sigma_normalised": 10.432292938232422
+    },
+    {
+      "i": 4,
+      "name": "eyeLookUpLeft",
+      "delta": 0.08770772814750671,
+      "student_response_norm": 0.6057745218276978,
+      "student_response_norm_sigma_normalised": 3.271958351135254
+    },
+    {
+      "i": 5,
+      "name": "eyeSquintLeft",
+      "delta": 0.2282765656709671,
+      "student_response_norm": 2.183847427368164,
+      "student_response_norm_sigma_normalised": 11.815688133239746
+    },
+    {
+      "i": 6,
+      "name": "eyeWideLeft",
+      "delta": 0.31189215183258057,
+      "student_response_norm": 1.6627463102340698,
+      "student_response_norm_sigma_normalised": 8.886220932006836
+    },
+    {
+      "i": 7,
+      "name": "eyeBlinkRight",
+      "delta": 0.17517313361167908,
+      "student_response_norm": 1.0994030237197876,
+      "student_response_norm_sigma_normalised": 5.982587814331055
+    },
+    {
+      "i": 8,
+      "name": "eyeLookDownRight",
+      "delta": 0.21835117042064667,
+      "student_response_norm": 1.0337939262390137,
+      "student_response_norm_sigma_normalised": 5.463674545288086
+    },
+    {
+      "i": 9,
+      "name": "eyeLookInRight",
+      "delta": 0.17963461577892303,
+      "student_response_norm": 2.802938938140869,
+      "student_response_norm_sigma_normalised": 14.482568740844727
+    },
+    {
+      "i": 10,
+      "name": "eyeLookOutRight",
+      "delta": 0.07960034906864166,
+      "student_response_norm": 1.4478232860565186,
+      "student_response_norm_sigma_normalised": 7.553528308868408
+    },
+    {
+      "i": 11,
+      "name": "eyeLookUpRight",
+      "delta": 0.08768220245838165,
+      "student_response_norm": 0.542110025882721,
+      "student_response_norm_sigma_normalised": 2.9334325790405273
+    },
+    {
+      "i": 12,
+      "name": "eyeSquintRight",
+      "delta": 0.24040526151657104,
+      "student_response_norm": 1.719590663909912,
+      "student_response_norm_sigma_normalised": 9.148783683776855
+    },
+    {
+      "i": 13,
+      "name": "eyeWideRight",
+      "delta": 0.31123536825180054,
+      "student_response_norm": 1.542439579963684,
+      "student_response_norm_sigma_normalised": 8.25259017944336
+    },
+    {
+      "i": 14,
+      "name": "jawForward",
+      "delta": 0.08199592679738998,
+      "student_response_norm": 1.98274827003479,
+      "student_response_norm_sigma_normalised": 10.278564453125
+    },
+    {
+      "i": 15,
+      "name": "jawLeft",
+      "delta": 0.07754894345998764,
+      "student_response_norm": 1.5833945274353027,
+      "student_response_norm_sigma_normalised": 8.394311904907227
+    },
+    {
+      "i": 16,
+      "name": "jawRight",
+      "delta": 0.008407657034695148,
+      "student_response_norm": 0.16416582465171814,
+      "student_response_norm_sigma_normalised": 0.8688107132911682
+    },
+    {
+      "i": 17,
+      "name": "jawOpen",
+      "delta": 0.26346343755722046,
+      "student_response_norm": 2.5849056243896484,
+      "student_response_norm_sigma_normalised": 13.651747703552246
+    },
+    {
+      "i": 18,
+      "name": "mouthClose",
+      "delta": 0.11911363899707794,
+      "student_response_norm": 1.0072249174118042,
+      "student_response_norm_sigma_normalised": 5.419909477233887
+    },
+    {
+      "i": 19,
+      "name": "mouthFunnel",
+      "delta": 0.1745745986700058,
+      "student_response_norm": 1.7619186639785767,
+      "student_response_norm_sigma_normalised": 9.369791030883789
+    },
+    {
+      "i": 20,
+      "name": "mouthPucker",
+      "delta": 0.13749206066131592,
+      "student_response_norm": 2.1257150173187256,
+      "student_response_norm_sigma_normalised": 11.23238754272461
+    },
+    {
+      "i": 21,
+      "name": "mouthLeft",
+      "delta": 0.03540758043527603,
+      "student_response_norm": 0.44419243931770325,
+      "student_response_norm_sigma_normalised": 2.385788917541504
+    },
+    {
+      "i": 22,
+      "name": "mouthRight",
+      "delta": 0.011096559464931488,
+      "student_response_norm": 0.15064728260040283,
+      "student_response_norm_sigma_normalised": 0.8138607740402222
+    },
+    {
+      "i": 23,
+      "name": "mouthSmileLeft",
+      "delta": 0.32824286818504333,
+      "student_response_norm": 1.5864158868789673,
+      "student_response_norm_sigma_normalised": 8.602627754211426
+    },
+    {
+      "i": 24,
+      "name": "mouthSmileRight",
+      "delta": 0.3184449076652527,
+      "student_response_norm": 2.461508274078369,
+      "student_response_norm_sigma_normalised": 12.807574272155762
+    },
+    {
+      "i": 25,
+      "name": "mouthFrownLeft",
+      "delta": 0.13781142234802246,
+      "student_response_norm": 1.422346830368042,
+      "student_response_norm_sigma_normalised": 7.56515645980835
+    },
+    {
+      "i": 26,
+      "name": "mouthFrownRight",
+      "delta": 0.11739255487918854,
+      "student_response_norm": 1.1333889961242676,
+      "student_response_norm_sigma_normalised": 5.954318046569824
+    },
+    {
+      "i": 27,
+      "name": "mouthDimpleLeft",
+      "delta": 0.07898108661174774,
+      "student_response_norm": 1.140169620513916,
+      "student_response_norm_sigma_normalised": 5.938930511474609
+    },
+    {
+      "i": 28,
+      "name": "mouthDimpleRight",
+      "delta": 0.08614865690469742,
+      "student_response_norm": 1.3403005599975586,
+      "student_response_norm_sigma_normalised": 6.889155387878418
+    },
+    {
+      "i": 29,
+      "name": "mouthStretchLeft",
+      "delta": 0.1842954456806183,
+      "student_response_norm": 2.080422878265381,
+      "student_response_norm_sigma_normalised": 11.038308143615723
+    },
+    {
+      "i": 30,
+      "name": "mouthStretchRight",
+      "delta": 0.212068110704422,
+      "student_response_norm": 2.922969102859497,
+      "student_response_norm_sigma_normalised": 15.095909118652344
+    },
+    {
+      "i": 31,
+      "name": "mouthRollLower",
+      "delta": 0.07858690619468689,
+      "student_response_norm": 2.1702075004577637,
+      "student_response_norm_sigma_normalised": 11.026567459106445
+    },
+    {
+      "i": 32,
+      "name": "mouthRollUpper",
+      "delta": 0.037508681416511536,
+      "student_response_norm": 0.9317225813865662,
+      "student_response_norm_sigma_normalised": 4.871962070465088
+    },
+    {
+      "i": 33,
+      "name": "mouthShrugLower",
+      "delta": 0.10043900460004807,
+      "student_response_norm": 1.4393292665481567,
+      "student_response_norm_sigma_normalised": 7.609148979187012
+    },
+    {
+      "i": 34,
+      "name": "mouthShrugUpper",
+      "delta": 0.06245207414031029,
+      "student_response_norm": 1.2274527549743652,
+      "student_response_norm_sigma_normalised": 6.233133316040039
+    },
+    {
+      "i": 35,
+      "name": "mouthPressLeft",
+      "delta": 0.05174115300178528,
+      "student_response_norm": 1.8204810619354248,
+      "student_response_norm_sigma_normalised": 9.423553466796875
+    },
+    {
+      "i": 36,
+      "name": "mouthPressRight",
+      "delta": 0.053613994270563126,
+      "student_response_norm": 1.3733623027801514,
+      "student_response_norm_sigma_normalised": 7.066685199737549
+    },
+    {
+      "i": 37,
+      "name": "mouthLowerDownLeft",
+      "delta": 0.3661598265171051,
+      "student_response_norm": 3.378967523574829,
+      "student_response_norm_sigma_normalised": 17.613435745239258
+    },
+    {
+      "i": 38,
+      "name": "mouthLowerDownRight",
+      "delta": 0.37562257051467896,
+      "student_response_norm": 3.9919800758361816,
+      "student_response_norm_sigma_normalised": 20.4256591796875
+    },
+    {
+      "i": 39,
+      "name": "mouthUpperUpLeft",
+      "delta": 0.09116319566965103,
+      "student_response_norm": 0.6292850971221924,
+      "student_response_norm_sigma_normalised": 3.355203151702881
+    },
+    {
+      "i": 40,
+      "name": "mouthUpperUpRight",
+      "delta": 0.09332005679607391,
+      "student_response_norm": 0.7577170729637146,
+      "student_response_norm_sigma_normalised": 4.016905307769775
+    },
+    {
+      "i": 41,
+      "name": "browDownLeft",
+      "delta": 0.3545627295970917,
+      "student_response_norm": 1.6723196506500244,
+      "student_response_norm_sigma_normalised": 8.974267959594727
+    },
+    {
+      "i": 42,
+      "name": "browDownRight",
+      "delta": 0.354307621717453,
+      "student_response_norm": 1.7106295824050903,
+      "student_response_norm_sigma_normalised": 9.263520240783691
+    },
+    {
+      "i": 43,
+      "name": "browInnerUp",
+      "delta": 0.41459333896636963,
+      "student_response_norm": 5.344515800476074,
+      "student_response_norm_sigma_normalised": 28.467870712280273
+    },
+    {
+      "i": 44,
+      "name": "browOuterUpLeft",
+      "delta": 0.37676364183425903,
+      "student_response_norm": 3.4630486965179443,
+      "student_response_norm_sigma_normalised": 18.368026733398438
+    },
+    {
+      "i": 45,
+      "name": "browOuterUpRight",
+      "delta": 0.3766959011554718,
+      "student_response_norm": 2.6570513248443604,
+      "student_response_norm_sigma_normalised": 14.193181037902832
+    },
+    {
+      "i": 46,
+      "name": "cheekPuff",
+      "delta": 0.06472707539796829,
+      "student_response_norm": 0.8630460500717163,
+      "student_response_norm_sigma_normalised": 4.516188621520996
+    },
+    {
+      "i": 47,
+      "name": "cheekSquintLeft",
+      "delta": 0.16373176872730255,
+      "student_response_norm": 1.1723400354385376,
+      "student_response_norm_sigma_normalised": 6.184075832366943
+    },
+    {
+      "i": 48,
+      "name": "cheekSquintRight",
+      "delta": 0.17693790793418884,
+      "student_response_norm": 2.0220656394958496,
+      "student_response_norm_sigma_normalised": 10.763647079467773
+    },
+    {
+      "i": 49,
+      "name": "noseSneerLeft",
+      "delta": 0.15031282603740692,
+      "student_response_norm": 1.4279481172561646,
+      "student_response_norm_sigma_normalised": 7.433890342712402
+    },
+    {
+      "i": 50,
+      "name": "noseSneerRight",
+      "delta": 0.15330855548381805,
+      "student_response_norm": 1.7560036182403564,
+      "student_response_norm_sigma_normalised": 9.265557289123535
+    },
+    {
+      "i": 51,
+      "name": "tongueOut",
+      "delta": 0.001462476560845971,
+      "student_response_norm": 0.039162248373031616,
+      "student_response_norm_sigma_normalised": 0.20273429155349731
+    },
+    {
+      "i": 52,
+      "name": "leftEyeYaw",
+      "delta": 0.1355392038822174,
+      "student_response_norm": 3.3113696575164795,
+      "student_response_norm_sigma_normalised": 17.16089630126953
+    },
+    {
+      "i": 53,
+      "name": "leftEyePitch",
+      "delta": 0.13413624465465546,
+      "student_response_norm": 0.5604924559593201,
+      "student_response_norm_sigma_normalised": 2.992706298828125
+    },
+    {
+      "i": 54,
+      "name": "leftEyeRoll",
+      "delta": 0.01234610565006733,
+      "student_response_norm": 0.16376428306102753,
+      "student_response_norm_sigma_normalised": 0.8546603322029114
+    },
+    {
+      "i": 55,
+      "name": "rightEyeYaw",
+      "delta": 0.13120649755001068,
+      "student_response_norm": 3.0420126914978027,
+      "student_response_norm_sigma_normalised": 15.4971342086792
+    },
+    {
+      "i": 56,
+      "name": "rightEyePitch",
+      "delta": 0.13415277004241943,
+      "student_response_norm": 0.6012346148490906,
+      "student_response_norm_sigma_normalised": 3.2093164920806885
+    },
+    {
+      "i": 57,
+      "name": "rightEyeRoll",
+      "delta": 0.012397867627441883,
+      "student_response_norm": 0.3263879418373108,
+      "student_response_norm_sigma_normalised": 1.6708359718322754
+    }
+  ],
+  "stats": {
+    "median_response": 1.495131492614746,
+    "mean_response": 1.6348592042922974,
+    "frac_below_10pct_of_max": 0.10344827586206896,
+    "deafest_channels_top10": [
+      {
+        "i": 51,
+        "name": "tongueOut",
+        "response": 0.039162248373031616
+      },
+      {
+        "i": 22,
+        "name": "mouthRight",
+        "response": 0.15064728260040283
+      },
+      {
+        "i": 54,
+        "name": "leftEyeRoll",
+        "response": 0.16376428306102753
+      },
+      {
+        "i": 16,
+        "name": "jawRight",
+        "response": 0.16416582465171814
+      },
+      {
+        "i": 57,
+        "name": "rightEyeRoll",
+        "response": 0.3263879418373108
+      },
+      {
+        "i": 21,
+        "name": "mouthLeft",
+        "response": 0.44419243931770325
+      },
+      {
+        "i": 11,
+        "name": "eyeLookUpRight",
+        "response": 0.542110025882721
+      },
+      {
+        "i": 53,
+        "name": "leftEyePitch",
+        "response": 0.5604924559593201
+      },
+      {
+        "i": 56,
+        "name": "rightEyePitch",
+        "response": 0.6012346148490906
+      },
+      {
+        "i": 4,
+        "name": "eyeLookUpLeft",
+        "response": 0.6057745218276978
+      }
+    ],
+    "loudest_channels_top10": [
+      {
+        "i": 43,
+        "name": "browInnerUp",
+        "response": 5.344515800476074
+      },
+      {
+        "i": 38,
+        "name": "mouthLowerDownRight",
+        "response": 3.9919800758361816
+      },
+      {
+        "i": 44,
+        "name": "browOuterUpLeft",
+        "response": 3.4630486965179443
+      },
+      {
+        "i": 37,
+        "name": "mouthLowerDownLeft",
+        "response": 3.378967523574829
+      },
+      {
+        "i": 52,
+        "name": "leftEyeYaw",
+        "response": 3.3113696575164795
+      },
+      {
+        "i": 55,
+        "name": "rightEyeYaw",
+        "response": 3.0420126914978027
+      },
+      {
+        "i": 30,
+        "name": "mouthStretchRight",
+        "response": 2.922969102859497
+      },
+      {
+        "i": 9,
+        "name": "eyeLookInRight",
+        "response": 2.802938938140869
+      },
+      {
+        "i": 45,
+        "name": "browOuterUpRight",
+        "response": 2.6570513248443604
+      },
+      {
+        "i": 17,
+        "name": "jawOpen",
+        "response": 2.5849056243896484
+      }
+    ]
+  }
+}
