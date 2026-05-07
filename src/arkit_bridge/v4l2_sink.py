@@ -57,5 +57,13 @@ class V4L2Sink:
                     self._proc.stdin.close()
                 except BrokenPipeError:
                     pass
-            self._proc.wait(timeout=5)
-            self._proc = None
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+                try:
+                    self._proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    pass
+            finally:
+                self._proc = None

@@ -5,6 +5,14 @@ patched onto the pipe instance — concurrent calls into render_batch from
 multiple threads would corrupt the seam state. The streaming daemon should
 own one BatchDriver per worker.
 
+**Process-global side effect:** `render_batch` monkey-patches `torch.tensor`
+for the duration of the pipe call to swap PersonaLive's hardcoded 4-step
+DDIM schedule (`[999, 666, 333, 0]`) for our trailing schedule. The patch
+is restored in a `finally`. If any other thread in the same process calls
+`torch.tensor` with that exact list literal during the pipe call, it will
+be intercepted. We accept this for V1 because the daemon is single-threaded
+and no other code path in this project produces that literal.
+
 The pipe call signature mirrors `scripts/apply_bridge_to_personalive.py:385`
 exactly (positional args + a fixed set of keyword args). The PersonaLive
 pipeline `__call__` uses positional `tgt_images, ref_image, face_images,
@@ -19,6 +27,7 @@ schedule and multiples-of-4 batches.
 """
 from __future__ import annotations
 
+import gc
 import os
 import sys
 from pathlib import Path
@@ -201,21 +210,21 @@ class BatchDriver:
         assert T % 4 == 0 and T >= 4, f"T must be positive multiple of 4 (got {T})"
         assert ypr.shape == (T, 3), f"ypr shape {ypr.shape} != ({T}, 3)"
         assert b58.shape == (T, 58), f"b58 shape {b58.shape} != ({T}, 58)"
+        # padding_num=12 (= (4-1)*4). Below that, the tail-mirror code path
+        # below would need to wrap content cyclically; we have not validated
+        # output for those tiny batches. V1 daemon batches at 24; lift this
+        # when V2 cohort-stream is wired.
+        assert T >= 13, f"T must be >= 13 (padding_num+1) for V1 tail-mirror; got {T}"
 
         # The pipe extends tgt_images internally by padding_num reversed-tail
         # copies (pipeline_pose2vid.py:845), then asks the seam for indices
         # up to T + padding_num. Mirror that padding here so provider() never
         # returns an empty slice.
         padding_num = (4 - 1) * 4  # (temporal_adaptive_step - 1) * temporal_window_size
-        if T >= 2:
-            tail_b = b58[-padding_num - 1:-1][::-1] if padding_num + 1 <= T else b58[::-1]
-            tail_y = ypr[-padding_num - 1:-1][::-1] if padding_num + 1 <= T else ypr[::-1]
-            # ensure tail length == padding_num
-            tail_b = np.resize(tail_b, (padding_num, b58.shape[1]))
-            tail_y = np.resize(tail_y, (padding_num, ypr.shape[1]))
-        else:
-            tail_b = np.repeat(b58[-1:], padding_num, axis=0)
-            tail_y = np.repeat(ypr[-1:], padding_num, axis=0)
+        # T >= padding_num + 1 enforced above, so the slice is exactly
+        # padding_num rows — no resize/wrap needed.
+        tail_b = b58[-padding_num - 1:-1][::-1]
+        tail_y = ypr[-padding_num - 1:-1][::-1]
         b58_local = np.concatenate([b58, tail_b], axis=0)
         ypr_local = np.concatenate([ypr, tail_y], axis=0)
         N_total = b58_local.shape[0]
@@ -279,5 +288,9 @@ class BatchDriver:
         self._student = None
         self._ref_pil = None
         self._ref_face = None
+        # Force collection of pipe + sub-modules + closures before asking
+        # CUDA to release cached blocks. Without gc.collect() the freeing is
+        # deferred to whenever the cyclic collector next runs.
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
