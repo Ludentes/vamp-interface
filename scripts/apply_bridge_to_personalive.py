@@ -12,7 +12,6 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from types import MethodType
 
 import numpy as np
 import torch
@@ -25,10 +24,8 @@ PL = Path(os.path.expanduser("~/w/PersonaLive"))
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(PL))
 
-from arkit_bridge.closed_form_pose import (
-    EULER_SIGNS, euler_to_rotmat, compose_kd,
-)
 from arkit_bridge.llf_csv import load_llf_b61
+from arkit_bridge.seam_install import install_arkit_seams
 from arkit_bridge.student import MotEncoderStudent
 
 
@@ -80,132 +77,18 @@ def build_pipe(device, dtype):
     return pipe
 
 
-def install_arkit_seams(pipe, b_seq, ypr_seq, student, device, dtype, *,
-                        patch_pose=True, patch_motion=True, mf_log=None,
-                        euler_signs=None):
-    """Patch pipe.pose_encoder + pipe.motion_encoder to consume ARKit data.
-
-    b_seq: (T, 58) float32 cpu — chronological per driving frame
-    ypr_seq: (T, 3) float32 — head (yaw, pitch, roll) radians
-    student: trained MotEncoderStudent on device, dtype=float32
-
-    patch_pose: replace pose_encoder seams with closed-form ARKit path.
-    patch_motion: replace motion_encoder driving-side calls with student.
-    mf_log: dict with key 'records' (list) — if provided, every motion_encoder
-        forward call appends {'role': 'ref'|'driving', 'mf': ndarray} so we
-        can save teacher OR student m_f for analysis.
-    """
-    # State threaded through closures.
-    ref_kp_canonical = {"kp": None, "t": None, "scale": None}
-    chunk_cursor = {"i": 0}
-
-    real_pe_get_kp = pipe.pose_encoder.get_kp  # for ref pose-vector sampling
-
-    def cf_kd_for_indices(indices):
-        """Run closed-form compose_kd for a list of frame indices into b_seq."""
-        kp_ref = ref_kp_canonical["kp"]   # (1, 21, 3) on device
-        t_ref = ref_kp_canonical["t"]      # (1, 3)
-        s_ref = ref_kp_canonical["scale"]  # (1, 1)
-        sy, sp, sr = euler_signs if euler_signs is not None else EULER_SIGNS
-        ypr = ypr_seq[indices]  # (T, 3)
-        T = ypr.shape[0]
-        Rs = []
-        for k in range(T):
-            R = euler_to_rotmat(
-                torch.tensor(sy * ypr[k, 0].item()),
-                torch.tensor(sp * ypr[k, 1].item()),
-                torch.tensor(sr * ypr[k, 2].item()),
-            )
-            Rs.append(R)
-        R = torch.stack(Rs, dim=0).to(device=device, dtype=dtype)  # (T, 3, 3)
-        kp_ref_T = kp_ref.expand(T, -1, -1).to(device=device, dtype=dtype)
-        s_T = s_ref.expand(T, -1).to(device=device, dtype=dtype)
-        t_T = t_ref.expand(T, -1).to(device=device, dtype=dtype)
-        return compose_kd(kp_ref_T, R, s_T, t_T)  # (T, 21, 3)
-
-    def patched_interpolate_kps_online(self, ref, motion, num_interp, t_scale=0.5, s_scale=0):
-        # Compute the canonical reference once from the actual ref RGB.
-        kp1 = self.detector(ref.to(self.dtype))
-        ref_kp_canonical["kp"] = kp1["kp"].reshape(1, -1, 3).detach()
-        ref_kp_canonical["t"] = kp1["t"].detach()
-        ref_kp_canonical["scale"] = kp1["scale"].detach()
-
-        # Driving: motion has padding_num+1 frames; map to ARKit indices
-        # The first chunk receives padding_num+1 stand-in frames; we want
-        # the *last* of those to be "frame 0" of our ARKit sequence and
-        # the preceding (num_interp) to interpolate from ref pose to it.
-        # PersonaLive's interpolate_tensors returns num-1 elements (drops
-        # last), so total output is (num_interp-1) + motion.shape[0].
-        idxs = np.array([0] * (num_interp - 1) + list(range(motion.shape[0])))
-        kp_intrep = cf_kd_for_indices(idxs)  # (n, 21, 3)
-        # Real method also returns (kp_intrep, kp1, kp_frame1, kp_dri); the
-        # consumers only use kp_intrep (line 873), kp_ref/kp_frame1 (line
-        # 871 next iter via get_kps). Pass through real kp1/kp_frame1 dicts
-        # so subsequent get_kps still has expected pitch/yaw/roll keys.
-        kp_frame1 = self.detector(motion[:1].to(self.dtype))
-        chunk_cursor["i"] = motion.shape[0]
-        return kp_intrep, kp1, kp_frame1, None
-
-    def patched_get_kps(self, kp_ref, kp_frame1, motion, t_scale=0.5, s_scale=0):
-        start = chunk_cursor["i"]
-        n = motion.shape[0]
-        idxs = np.arange(start, start + n)
-        idxs = np.clip(idxs, 0, len(b_seq) - 1)
-        kp_d = cf_kd_for_indices(idxs)
-        chunk_cursor["i"] += n
-        return kp_d, None
-
-    if patch_pose:
-        pipe.pose_encoder.interpolate_kps_online = MethodType(
-            patched_interpolate_kps_online, pipe.pose_encoder
-        )
-        pipe.pose_encoder.get_kps = MethodType(
-            patched_get_kps, pipe.pose_encoder
-        )
-
-    # motion_encoder seam: dispatch ref vs driving by time-dim.
-    real_me_forward = pipe.motion_encoder.forward
-    me_cursor = {"i": 0}
-
-    def patched_me_forward(self, x):
-        # x shape: (B, C, T, H, W). T==1 -> reference path; T>=2 -> driving.
-        T = x.shape[2]
-        if T == 1:
-            mf = real_me_forward(x)
-            if mf_log is not None:
-                mf_log["records"].append({
-                    "role": "ref", "start": -1,
-                    "mf": mf.detach().cpu().float().numpy(),
-                })
-            return mf
-        if patch_motion:
-            # Driving: pull T b_expr from b_seq starting at me_cursor.
-            start = me_cursor["i"]
-            idxs = np.arange(start, start + T)
-            idxs = np.clip(idxs, 0, len(b_seq) - 1)
-            b = torch.from_numpy(b_seq[idxs].astype(np.float32)).to(device)
-            with torch.no_grad():
-                mf = student(b)  # (T, 1, 32, 16)
-            mf = mf.squeeze(1).unsqueeze(0)  # (1, T, 32, 16)
-            me_cursor["i"] += T
-            mf_out = mf.to(dtype=self.dtype)
-        else:
-            mf_out = real_me_forward(x)
-            start = me_cursor["i"]
-            me_cursor["i"] += T
-        if mf_log is not None:
-            mf_log["records"].append({
-                "role": "driving", "start": int(start),
-                "mf": mf_out.detach().cpu().float().numpy(),
-            })
-        return mf_out
-
-    pipe.motion_encoder.forward = MethodType(patched_me_forward, pipe.motion_encoder)
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reference", required=True, help="reference RGB image")
+    ap.add_argument("--reference_clip", default=None,
+                    help="Optional second reference image used ONLY for the "
+                         "CLIP-image global embed (the encoder_hidden_states "
+                         "cross-attended at every step). The spatial channel "
+                         "(reference_unet writer + init_latents) keeps using "
+                         "--reference. Decouples the two image-conditioning "
+                         "paths to test whether style transfer can ride the "
+                         "CLIP channel while RefNet anchors anatomy. "
+                         "(2026-05-06 decoupled-channel probe.)")
     ap.add_argument("--take_dir", required=True, help="LLF take dir for ARKit b_61 + RGB stand-ins")
     ap.add_argument("--ckpt", required=True, help="MotEncoderStudent .pt")
     ap.add_argument("--out_path", required=True, help="output mp4")
@@ -252,6 +135,14 @@ def main():
                     help="Which UNet(s) to merge the LoRA into. 'den' = "
                          "denoising_unet only (pass-1 hypothesis test). "
                          "'ref' = reference_unet only. 'both' = both.")
+    ap.add_argument("--num_inference_steps", type=int, default=4,
+                    help="Diffusion step count. PersonaLive ships at 4 (distilled). "
+                         "Higher counts give off-the-shelf SD1.5 LoRAs more budget "
+                         "to fire but cost FPS proportionally. Must be divisible "
+                         "by --temporal_adaptive_step.")
+    ap.add_argument("--temporal_adaptive_step", type=int, default=4,
+                    help="Must divide num_inference_steps. Default 4 matches "
+                         "PersonaLive ship config.")
     args = ap.parse_args()
     # Resolve to absolute *before* build_pipe chdir's into PersonaLive.
     args.reference = str(Path(args.reference).resolve())
@@ -260,6 +151,8 @@ def main():
     args.out_path = str(Path(args.out_path).resolve())
     if args.lora_path:
         args.lora_path = str(Path(args.lora_path).resolve())
+    if args.reference_clip:
+        args.reference_clip = str(Path(args.reference_clip).resolve())
 
     device = args.device
     dtype = torch.float16
@@ -308,6 +201,57 @@ def main():
                   f"@ alpha={args.lora_alpha}", flush=True)
             apply_kohya_lora_to_unet(unet, args.lora_path,
                                      alpha=args.lora_alpha, verbose=True)
+
+    if args.reference_clip:
+        # Decoupled-channel probe (2026-05-06). Compute image_prompt_embeds
+        # from a *different* reference, then short-circuit pipe.image_encoder
+        # to return those embeds regardless of input. The pipeline's spatial
+        # channel (ref_image_processor → VAE → reference_unet writer +
+        # init_latents) is unaffected and still uses --reference.
+        from PIL import Image as _PILImage
+        clip_ref = _PILImage.open(args.reference_clip).convert("RGB")
+        _proc = pipe.clip_image_processor.preprocess(
+            clip_ref.resize((224, 224)), return_tensors="pt"
+        ).pixel_values
+        with torch.no_grad():
+            _embeds = pipe.image_encoder(
+                _proc.to(device, dtype=pipe.image_encoder.dtype)
+            ).image_embeds.detach()
+
+        class _FixedClipEmbeds(torch.nn.Module):
+            """Drop-in replacement for pipe.image_encoder; ignores its input
+            and returns precomputed embeds. nn.Module so pipe.eval()/.to()
+            traversals don't choke. (Reviewer 2026-05-06.)"""
+            def __init__(self, embeds, dtype):
+                super().__init__()
+                self.register_buffer("_embeds", embeds)
+                self._cached_dtype = dtype
+                self.device = embeds.device
+            @property
+            def dtype(self):
+                return self._cached_dtype
+            def forward(self, _x):
+                class _Out:
+                    pass
+                out = _Out()
+                out.image_embeds = self._embeds
+                return out
+
+        _orig = pipe.image_encoder
+        _orig_dtype = _orig.dtype
+        pipe.image_encoder = _FixedClipEmbeds(_embeds, _orig_dtype)
+        # Diffusers keeps a separate handle in pipe.components — attribute
+        # reassignment alone leaves the original encoder GPU-resident and
+        # reachable via .components traversal. Evict explicitly.
+        try:
+            pipe.components.pop("image_encoder", None)
+        except Exception:
+            pass
+        del _orig
+        torch.cuda.empty_cache()
+        print(f"[decouple] CLIP-image channel ← {Path(args.reference_clip).name} "
+              f"(spatial channel still ← {Path(args.reference).name})",
+              flush=True)
 
     # Build RGB stand-in frames from the same MOV — pipe needs them for
     # cond_image_processor.preprocess (the seam is downstream of preprocessing
@@ -395,12 +339,58 @@ def main():
     L = (n // 4) * 4
     if L < 4:
         raise RuntimeError(f"need >=4 frames after //4 trim; got {L}")
+
+    # Hail-Mary monkey-patch (2026-05-06): override PersonaLive's hardcoded
+    # 4-step schedule [999, 666, 333, 0] + set_step_length(333) to vanilla
+    # N-step DDIM. The distilled UNet runs at off-anchor timesteps, but the
+    # underlying SD1.5 prior may surface cleanly enough that an N-step LoRA
+    # budget produces visible style transfer. Auto-engages on != 4 steps.
+    _restore_torch_tensor = None
+    if args.num_inference_steps != 4:
+        N = args.num_inference_steps
+        # Vanilla DDIM trailing schedule: linspace from 999 down to 999/N rounded.
+        # Matches scheduler.set_timesteps(N) output, so step_length=None gives
+        # consistent prev_timestep = t - 1000//N at every step.
+        step = 1000 // N
+        SCHEDULE = [999 - i * step for i in range(N)]
+        # Pre-configure the scheduler. We avoid set_timesteps() because it
+        # rebuilds alphas_cumprod-related tensors at fp32 and breaks the
+        # add_noise dtype contract with fp16 UNet weights. We only need
+        # num_inference_steps populated so the step_length=None fallback
+        # computes prev_timestep = t - 1000//N. Other state is unused here
+        # because the loop iterates over our injected `timesteps` tensor.
+        pipe.scheduler.num_inference_steps = N
+        pipe.scheduler.step_length = None
+        pipe.scheduler.set_step_length = lambda _x: None
+        # scheduler.step() reads alphas_cumprod directly without dtype casting;
+        # in the 4-step ship config jump=1 so the fp32 latents leaving step()
+        # get cast back to fp16 at the end of the outer iter. With jump>=2 the
+        # second inner iteration feeds fp32 into the fp16 UNet → conv_in dies.
+        # Cast alphas_cumprod to match the UNet dtype once.
+        pipe.scheduler.alphas_cumprod = pipe.scheduler.alphas_cumprod.to(dtype=dtype)
+        pipe.scheduler.final_alpha_cumprod = pipe.scheduler.final_alpha_cumprod.to(dtype=dtype)
+        # Patch torch.tensor to swap the hardcoded list. Strict pattern match —
+        # only the exact `[999, 666, 333, 0]` literal triggers replacement.
+        import torch as _t
+        _orig_tensor = _t.tensor
+        _SENTINEL = [999, 666, 333, 0]
+        def _patched_tensor(data, *a, **kw):
+            if isinstance(data, list) and data == _SENTINEL:
+                return _orig_tensor(SCHEDULE, *a, **kw)
+            return _orig_tensor(data, *a, **kw)
+        _t.tensor = _patched_tensor
+        _restore_torch_tensor = _orig_tensor
+        print(f"[hail-mary] N={N} schedule={SCHEDULE} step_length=None", flush=True)
+
     out = pipe(
         ori_pose_images[:L], ref_pil, dri_faces[:L], ref_face,
         512, 512, L,
-        num_inference_steps=4, guidance_scale=1.0, generator=gen,
-        temporal_window_size=4, temporal_adaptive_step=4,
+        num_inference_steps=args.num_inference_steps, guidance_scale=1.0, generator=gen,
+        temporal_window_size=4, temporal_adaptive_step=args.temporal_adaptive_step,
     ).videos
+
+    if _restore_torch_tensor is not None:
+        torch.tensor = _restore_torch_tensor
 
     from src.utils.util import save_videos_grid
     out_path = Path(args.out_path); out_path.parent.mkdir(parents=True, exist_ok=True)
