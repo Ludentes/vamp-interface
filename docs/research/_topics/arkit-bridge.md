@@ -37,6 +37,12 @@ encoder; pose is closed-form.
 - Streaming research notes: [`2026-05-06-rain-streaming-research.md`](../2026-05-06-rain-streaming-research.md)
   — PersonaLive *is* a RAIN+StreamDiffusion pipeline; cohort latency is
   intrinsic, V2 is mechanical state-hoist.
+- LLF UDP wire-format verification: [`2026-05-07-llf-udp-protocol-verification.md`](../2026-05-07-llf-udp-protocol-verification.md)
+  — `llf_udp.py` float decoding is correct (tail-slice 244 bytes); the
+  prefix layout doc and `subject` extraction are wrong (real prefix is
+  45 bytes: 4-byte LE version + 37-byte UUID, name length at offset 41).
+  Functional impact: `subject` is always "?". Float payload, port
+  11111, 52+9 ordering all confirmed against PyLiveLinkFace + UE forum.
 
 ### Current beliefs
 
