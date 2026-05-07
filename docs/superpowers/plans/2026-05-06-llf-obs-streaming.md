@@ -8,7 +8,9 @@
 
 **Tech Stack:** Python 3.12 (uv), PyTorch 2.11 + CUDA 12.x, PersonaLive (cloned at `~/w/PersonaLive/`), v4l2loopback kernel module, ffmpeg.
 
-**Latency profile:** V1 (this plan) is *batch-based* with ~1.5 s glass-to-OBS latency — one pipe call per 24-frame window of input. The spec's 150 ms target requires refactoring `Pose2VideoPipeline_Stream.__call__` into per-window `step()`; that's V2 and is **deferred** behind a working V1. V1 is a fully working OBS source, just lagged.
+**Latency profile:** V1 (Tasks 1-7) is *batch-based* with ~1.5 s glass-to-OBS latency — one pipe call per 24-frame window of input. **V2 (Tasks 8-11)** refactors `Pose2VideoPipeline_Stream.__call__` into a `step()`-shaped object that emits 4 RGB frames per call at ~200 ms/block (≈20 FPS continuous, ~400 ms first-frame). V1 is the OBS-visible MVP; V2 is the cohort-granularity streaming mode.
+
+**Why V2 is mechanical, not speculative** (per `docs/research/2026-05-06-rain-streaming-research.md`): PersonaLive *is* a RAIN+StreamDiffusion-derived pipeline. The cohort-streaming algorithm is already present inside `__call__` — the per-window loop body is exactly what we want as `step()`; we just need to hoist `motion_bank`, `noise_latents`, `motion_hidden_states`, `pose_feas`, `kps_ref`, `kps_frame1`, the scheduler index, and the reference-control writer/reader from local variables to instance state. **Sub-cohort latency (per-frame `step()`) is not in scope** — it would require retraining PersonaLive at `temporal_window_size=1`. The 4-frame cohort is the unit.
 
 **File structure:**
 
@@ -1206,4 +1208,99 @@ git commit -m "docs(topics): arkit-bridge — streaming daemon shipped V1"
 
 **Type consistency**: `LLFReceiver.pop_window` → `list[B61Packet]`; `B61Packet.b58` → 58 floats; `BatchDriver.render_batch(b58, ypr)` → `(T, 512, 512, 3) uint8`. Daemon uses `packets_to_arrays` to bridge. Names line up across tasks.
 
-**Deviation from spec**: Spec's "windowed real-time step" is V2; V1 is batched at the cost of ~1.5 s latency. Documented inline at the top of this plan and in the runbook. The reason is that PersonaLive's `Pose2VideoPipeline_Stream.__call__` is a single-shot loop over windows; making it `step()`-shaped requires extracting `motion_bank`/`noise_latents`/`motion_hidden_states`/`pose_feas` as instance state, and that's a 1-day refactor inside a CVPR submission codebase we want to keep diffable. V1 ships value first.
+**Deviation from spec**: Spec's "windowed real-time step" is V2 (Tasks 8-11); V1 (Tasks 1-7) is batched at the cost of ~1.5 s latency.
+
+---
+
+## V2 — cohort-streaming refactor
+
+V2 ships *after* V1 smoke test passes. V1 is the load-bearing mode for OBS; V2 is a strict latency improvement (~7-8× lower) at the same per-frame quality (math unchanged).
+
+### Task 8: Vendor `pipeline_pose2vid.py` into our tree
+
+We want our own copy that we can refactor without diverging from upstream PersonaLive.
+
+**Files:**
+- Create: `vendor/personalive/pipeline_pose2vid_streaming.py` (vendored from `~/w/PersonaLive/src/pipelines/pipeline_pose2vid.py`)
+- Modify: `src/arkit_bridge/streaming_driver.py` (V2 path imports the vendored class)
+
+- [ ] **Step 1**: copy `~/w/PersonaLive/src/pipelines/pipeline_pose2vid.py` to `vendor/personalive/pipeline_pose2vid_streaming.py` verbatim.
+- [ ] **Step 2**: at the top of the vendored file, add:
+  ```python
+  """Vendored from ~/w/PersonaLive/src/pipelines/pipeline_pose2vid.py @ <commit-hash>.
+
+  V2 streaming refactor: the original Pose2VideoPipeline_Stream.__call__
+  is split into prepare() + step() with cohort state hoisted to instance
+  fields. See docs/superpowers/plans/2026-05-06-llf-obs-streaming.md and
+  docs/research/2026-05-06-rain-streaming-research.md.
+  """
+  ```
+  Replace `<commit-hash>` with `git -C ~/w/PersonaLive rev-parse --short HEAD`.
+- [ ] **Step 3**: commit `git add vendor/personalive/ && git commit -m "vendor(personalive): copy pipeline_pose2vid for V2 streaming refactor"`.
+
+### Task 9: Hoist cohort state to instance fields
+
+**Files:**
+- Modify: `vendor/personalive/pipeline_pose2vid_streaming.py` — class `Pose2VideoPipeline_Stream`
+
+The original `__call__` declares these as locals inside the function body. We move them to `self.*` and split `__call__` into two methods. Identify the locals from the original implementation in `~/w/PersonaLive/src/pipelines/pipeline_pose2vid.py` (the relevant ones are the variables initialized before the `for i in range(windows + temporal_adaptive_step - 1):` loop and any state mutated *inside* that loop across iterations).
+
+- [ ] **Step 1**: Add a `prepare(self, ref_image, ref_face_image, width, height, num_inference_steps, guidance_scale, temporal_window_size=4, temporal_adaptive_step=4, temporal_kv_cache=True, generator=None, eta=0.0)` method. Body is everything in the original `__call__` from the start up to (but not including) the `for i in range(...)` cohort loop. Store on `self`: `self._motion_bank`, `self._noise_latents`, `self._init_timesteps`, `self._reference_control_writer`, `self._reference_control_reader`, `self._image_prompt_embeds`, `self._ref_image_latents`, `self._ref_cond_tensor`, `self._neg_motion_hidden_states`, `self._padding_num`, `self._timesteps`, `self._jump`, `self._extra_step_kwargs`, `self._guidance_scale`, `self._height`, `self._width`, `self._temporal_window_size`, `self._temporal_adaptive_step`, `self._device`. Also init `self._cohort_idx = 0`, `self._motion_hidden_states = None`, `self._pose_feas = None`, `self._kps_ref = None`, `self._kps_frame1 = None`, `self._mid_latents = None`.
+- [ ] **Step 2**: Add a `step(self, current_driving, current_face) -> torch.Tensor` method. Body is the body of one iteration of the original cohort loop (`for i in range(windows + temporal_adaptive_step - 1):`), with `i` replaced by `self._cohort_idx`, all locals replaced by `self._*`, and increment `self._cohort_idx` at the end. Returns the latent block emitted by this cohort step (the original code's per-iteration `final_videos.append(...)`-equivalent). Adapt the original `if i == 0` branch (which builds `kps_ref`/`kps_frame1`) to run on the first call only.
+- [ ] **Step 3**: Add a `decode(self, latents) -> torch.Tensor` method. Body is `decode_latents` already on the class, but called with the per-step latents block instead of accumulated `final_videos`. Returns `(1, 3, T, H, W)` float in [0, 1].
+- [ ] **Step 4**: Keep the original `__call__` working as `prepare()` + loop of `step()` + `decode(cat(...))` so existing offline callers (including our own `apply_bridge_to_personalive.py`) continue to work bit-equivalently.
+- [ ] **Step 5**: write `tests/arkit_bridge/test_streaming_pipe_v2.py`:
+  ```python
+  """V2 streaming pipe yields bit-equivalent output to original __call__."""
+  import os, pytest, torch, numpy as np
+  REF_IMG = "data/portraits/anchor_001.png"
+  STUDENT = "runs/student_v2_120k/student_best.pt"
+  PL = os.path.expanduser("~/w/PersonaLive/pretrained_weights/personalive/denoising_unet.pth")
+
+  @pytest.mark.skipif(not (os.path.exists(REF_IMG) and os.path.exists(STUDENT) and os.path.exists(PL)),
+                      reason="assets missing")
+  def test_v2_step_matches_v1_call():
+      from arkit_bridge.streaming_driver import BatchDriver
+      drv = BatchDriver(reference_path=REF_IMG, student_ckpt=STUDENT,
+                        device="cuda", dtype=torch.float16)
+      drv.start()
+      try:
+          b58 = np.zeros((24, 58), dtype=np.float32)
+          ypr = np.zeros((24, 3), dtype=np.float32); ypr[:,0] = np.linspace(0,0.4,24)
+          rgb_v1 = drv.render_batch(b58, ypr)
+          # V2: step through 6 cohorts of 4 frames each.
+          rgb_v2_blocks = []
+          drv.prepare_v2(b58, ypr)
+          for c in range(6):
+              rgb_v2_blocks.append(drv.step_v2(c * 4, 4))
+          rgb_v2 = np.concatenate(rgb_v2_blocks, axis=0)
+          # Allow tiny fp16 nondeterminism (CUDNN benchmark, async kernels).
+          diff = np.abs(rgb_v1.astype(np.int16) - rgb_v2.astype(np.int16))
+          assert diff.mean() < 2.0, f"V1/V2 mean diff {diff.mean():.2f} >= 2.0"
+      finally:
+          drv.stop()
+  ```
+- [ ] **Step 6**: run `uv run pytest tests/arkit_bridge/test_streaming_pipe_v2.py -v`. Expected: PASS (within fp16 tolerance).
+- [ ] **Step 7**: commit `git add vendor/personalive/ tests/ && git commit -m "feat(streaming): V2 prepare()+step()+decode() split with bit-equiv test"`.
+
+### Task 10: Wire V2 into the daemon
+
+**Files:**
+- Modify: `src/arkit_bridge/streaming_driver.py` — add `prepare_v2(b58, ypr)` and `step_v2(start, n) -> np.ndarray`
+- Modify: `scripts/streaming_bridge.py` — add `--mode {v1,v2}` flag
+
+- [ ] **Step 1**: in `BatchDriver`, add `prepare_v2(self, b58, ypr)` that installs seams with a `provider` whose closure holds the *current* b58/ypr (so each `step_v2` call shifts the cursor) and calls the vendored `pipe.prepare(...)`.
+- [ ] **Step 2**: add `step_v2(self, start, n=4) -> np.ndarray` that calls `self._pipe.step(...)` once with stand-in driving frames sliced from the reference, decodes, returns `(n, 512, 512, 3)` uint8.
+- [ ] **Step 3**: in `scripts/streaming_bridge.py`, add `--mode v2` branch that calls `prepare_v2` once per LLF window then loops `step_v2` for each 4-frame cohort, writing 4 RGB frames per call. The receiver's ring buffer continues to drain at LLF rate; daemon pulls 4 packets per step instead of 24.
+- [ ] **Step 4**: smoke test against the synthetic UDP sender from Task 5 with `--mode v2`. Measure end-to-end latency by adding a UDP timestamp to the sender packets and printing `ms_since_send` in the daemon's per-frame loop. Expected: ~200 ms/block at steady state, ~400-800 ms first-block.
+- [ ] **Step 5**: commit `git add src/ scripts/ && git commit -m "feat(streaming): V2 daemon mode — cohort step() per 4 frames"`.
+
+### Task 11: Document V2 latency profile
+
+**Files:**
+- Modify: `docs/research/2026-05-06-llf-obs-runbook.md` — add V2 measured-latency table
+- Modify: `docs/research/_topics/arkit-bridge.md`
+
+- [ ] **Step 1**: replace the runbook's "Latency" section with measured V1 + V2 numbers from the smoke tests (don't budget — measure with the timestamp-in-packet trick).
+- [ ] **Step 2**: in the topic index, mark V2 shipped with date and quote the measured steady-state cadence.
+- [ ] **Step 3**: commit `git add docs/ && git commit -m "docs(streaming): V2 measured latency + topic index update"`.
