@@ -113,6 +113,11 @@ PersonaLive RGB-OBS is product #1, ARKit-OBS parallel #2, LivePortrait OBS gated
 disqualifies FlashPortrait/DiT for Regime A on speed; clarifies LoRA/FluxSpace work is Regime B and
 not in competition with LivePortrait.
 
+### 8-step monkey-patch unlocks LoRA budget; off-the-shelf ceiling at Ghibli α=3 (2026-05-06)
+
+[`2026-05-06-personalive-8step-monkey-patch-lora-sweep.md`](../2026-05-06-personalive-8step-monkey-patch-lora-sweep.md)
+— PersonaLive's 4-step distilled inference is hardcoded in 6+ places (timesteps `[999,666,333,0]` + `set_step_length(333)` magic-number-coupled). Monkey-patched at runtime to vanilla 8-step DDIM (`alphas_cumprod` cast to fp16 to fix dtype leak in `scheduler.step()`); engages on `--num_inference_steps != 4`. With Ghibli LoRA both α=3 + decoupled anime CLIP, output visibly flips toward Ghibli ("kinda there, minor artifacts"). Demon Slayer at same config is 2.3× weaker by Δ AND more artifacty — magnitude does not track quality across LoRA trainings. **Off-the-shelf SD1.5 LoRA ceiling at 8-step monkey-patch ≈ Ghibli α=3 quality**; production-clean stylization needs custom LoRA training per the canonical answer below. Sibling: `2026-05-06-decoupled-clip-channel-falsified-cleanup-effect.md` characterizes the 4-step compound as a *photoreal cleanup knob* useful for vamp-interface's sus=0 anchor.
+
 ### Stylized refs require LoRA on PersonaLive (2026-05-06)
 
 [`2026-05-06-stylized-vtuber-requires-personalive-lora.md`](../2026-05-06-stylized-vtuber-requires-personalive-lora.md)
@@ -127,6 +132,23 @@ keypoint regressor on stylized data. **Vanilla LivePortrait benched at ~8.4 FPS 
 steady-state) on RTX 5090** — not realtime; FasterLivePortrait+TRT is the realtime path
 (~30 FPS on 3090, expect 40+ on 5090). Pre-conditions for LoRA training: lock standardized
 cropper + frame-0 baseline-subtraction control first.
+
+### Read-first (strategic)
+
+- [`docs/research/2026-05-06-vtuber-pipeline-priorities.md`](../2026-05-06-vtuber-pipeline-priorities.md)
+  — Regime A (realtime puppeteering) vs Regime B (static authoring),
+  four products, the LivePortrait-descendants survey ending in
+  *FasterLivePortrait+TRT is the realtime path*.
+- [`docs/research/2026-05-06-rendering-stack-replacement-options.md`](../2026-05-06-rendering-stack-replacement-options.md)
+  — speed/quality candidate survey: Hyper-SD, DMD2, FlashPortrait,
+  FasterLivePortrait, FLUX, Z-Image, discriminator-swap path for
+  stylized refs.
+
+### LLF → OBS pipeline (in progress)
+
+- Spec: [`docs/superpowers/specs/2026-05-06-llf-to-obs-pipeline-design.md`](../../superpowers/specs/2026-05-06-llf-to-obs-pipeline-design.md)
+- Plan: [`docs/superpowers/plans/2026-05-06-llf-obs-streaming.md`](../../superpowers/plans/2026-05-06-llf-obs-streaming.md)
+- Streaming research notes: [`2026-05-06-rain-streaming-research.md`](../2026-05-06-rain-streaming-research.md)
 
 ### Reading order
 

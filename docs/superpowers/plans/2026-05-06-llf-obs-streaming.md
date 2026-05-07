@@ -28,6 +28,194 @@
 
 ---
 
+### Task 0: ARKit-bridge acceptance gates (head-attenuation + latency)
+
+Per `docs/research/2026-05-06-vtuber-pipeline-priorities.md`, two gates
+must clear before OBS plumbing ships. Sign-agreement on yaw/pitch/roll
+is already done (FIXED2 collage). What's still open:
+
+**Files:**
+- Create: `scripts/diagnose_head_attenuation.py`
+- Create: `scripts/bench_bridge_latency.py`
+- Output: `exp_output/arkit_bridge/diagnostics/head_attenuation_2026-05-06.json`
+- Output: `exp_output/arkit_bridge/diagnostics/bridge_latency_5090.json`
+
+#### Task 0a: Head-attenuation-at-extremes diagnosis
+
+The 3-amp decomposition asks: at each frame, decompose head motion into
+(yaw_amp, pitch_amp, roll_amp). For each axis, compare bridge output
+amp vs teacher output amp at high-percentile (extremes). The OLD config
+crushed pitch to 13% of teacher amp — the diagnosis must confirm
+`student_v2_120k + EULER_SIGNS=(+1,-1,+1)` does not regress.
+
+- [ ] **Step 1**: enumerate the takes already rendered through both
+  bridge and teacher_full in `exp_output/arkit_bridge/render/`. Run
+  `cat exp_output/arkit_bridge/parquet/render_metrics.parquet | head`
+  via duckdb or pandas; group by `(take, variant)`; confirm rows for
+  `variant in ("teacher_full", "bridge")` exist on the same takes.
+
+- [ ] **Step 2**: write `scripts/diagnose_head_attenuation.py`:
+
+```python
+"""Per-axis head-amp ratio: bridge vs teacher.
+
+For each (take, axis) pair, compute the 95th-percentile of |angle|
+on teacher and on bridge; report ratio. Acceptance: ratio in [0.85, 1.15]
+on every axis. <0.85 = attenuation regression.
+"""
+from pathlib import Path
+import json
+import sys
+
+import numpy as np
+import pandas as pd
+
+PARQUET = Path("exp_output/arkit_bridge/parquet/render_metrics.parquet")
+OUT = Path("exp_output/arkit_bridge/diagnostics/head_attenuation_2026-05-06.json")
+
+
+def main():
+    df = pd.read_parquet(PARQUET)
+    rows = []
+    for take, sub in df.groupby("take"):
+        for axis in ("yaw", "pitch", "roll"):
+            t_col = f"mp_{axis}"
+            if t_col not in sub.columns:
+                continue
+            teacher = sub[sub.variant == "teacher_full"][t_col].abs()
+            bridge = sub[sub.variant == "bridge"][t_col].abs()
+            if len(teacher) == 0 or len(bridge) == 0:
+                continue
+            tp = float(np.percentile(teacher, 95))
+            bp = float(np.percentile(bridge, 95))
+            ratio = bp / tp if tp > 1e-6 else float("nan")
+            rows.append({"take": take, "axis": axis,
+                         "teacher_p95": tp, "bridge_p95": bp,
+                         "ratio": ratio})
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps({"rows": rows}, indent=2))
+    bad = [r for r in rows if not (0.85 <= r["ratio"] <= 1.15)]
+    for r in rows:
+        flag = "" if 0.85 <= r["ratio"] <= 1.15 else "  <-- REGRESSION"
+        print(f"  {r['take']:20s} {r['axis']:6s}  ratio={r['ratio']:.3f}{flag}")
+    if bad:
+        print(f"\nFAIL: {len(bad)}/{len(rows)} axis-take pairs out of [0.85, 1.15]")
+        sys.exit(1)
+    print(f"\nPASS: all {len(rows)} pairs within tolerance")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+- [ ] **Step 3**: run `uv run python scripts/diagnose_head_attenuation.py`.
+  Expected: PASS with all axis-take pairs in [0.85, 1.15]. If FAIL on
+  any pair, stop V1 work and root-cause before proceeding.
+
+- [ ] **Step 4**: commit the diagnostic + its output:
+
+```bash
+git add scripts/diagnose_head_attenuation.py exp_output/arkit_bridge/diagnostics/head_attenuation_2026-05-06.json
+git commit -m "diag(arkit-bridge): head-attenuation gate cleared on student_v2_120k"
+```
+
+#### Task 0b: Bridge inference latency micro-bench
+
+Bridge ≤ 2 ms/frame on 5090 (priorities-doc target was ≤5 ms/frame on
+4080; 5090 is ~30-40% faster on this kind of small-MLP workload, so
+≤2 ms is the rescaled goal — but anything under 5 ms still counts as
+"not the bottleneck").
+
+- [ ] **Step 1**: write `scripts/bench_bridge_latency.py`:
+
+```python
+"""Time MotEncoderStudent + closed_form_pose per frame on the GPU."""
+import json
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from arkit_bridge.student import MotEncoderStudent
+from arkit_bridge.closed_form_pose import euler_to_rotmat, compose_kd, EULER_SIGNS, F_KP_REF
+
+OUT = Path("exp_output/arkit_bridge/diagnostics/bridge_latency_5090.json")
+
+
+def main():
+    device = "cuda"
+    student = MotEncoderStudent().to(device).eval()
+    student.load_state_dict(torch.load("runs/student_v2_120k/student_best.pt", map_location=device))
+
+    N = 1000
+    b58 = torch.randn(1, 58, device=device)
+    yaw = torch.tensor(0.1, device=device)
+    pitch = torch.tensor(0.0, device=device)
+    roll = torch.tensor(0.0, device=device)
+    kp_ref = torch.randn(1, 21, 3, device=device)
+    s = torch.tensor([[1.0]], device=device)
+    t = torch.tensor([[0.0, 0.0, 0.0]], device=device)
+
+    # Warm
+    for _ in range(20):
+        with torch.no_grad():
+            _ = student(b58)
+            R = euler_to_rotmat(yaw, pitch, roll).unsqueeze(0)
+            _ = compose_kd(kp_ref, R, s, t)
+    torch.cuda.synchronize()
+
+    t0 = time.time()
+    for _ in range(N):
+        with torch.no_grad():
+            _ = student(b58)
+            R = euler_to_rotmat(yaw, pitch, roll).unsqueeze(0)
+            _ = compose_kd(kp_ref, R, s, t)
+    torch.cuda.synchronize()
+    dt = time.time() - t0
+    ms_per_frame = 1000.0 * dt / N
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps({
+        "device": torch.cuda.get_device_name(0),
+        "n_iters": N,
+        "ms_per_frame_student_plus_pose": ms_per_frame,
+        "gate_2ms": ms_per_frame <= 2.0,
+        "gate_5ms": ms_per_frame <= 5.0,
+    }, indent=2))
+    print(f"  {ms_per_frame:.3f} ms/frame on {torch.cuda.get_device_name(0)} (N={N})")
+    if ms_per_frame > 5.0:
+        print(f"  FAIL: > 5 ms/frame, bridge is the bottleneck")
+        sys.exit(1)
+    if ms_per_frame > 2.0:
+        print(f"  WARN: > 2 ms/frame (5090-rescaled target); not a hard fail")
+    else:
+        print(f"  PASS")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+- [ ] **Step 2**: run `uv run python scripts/bench_bridge_latency.py`.
+  Expected: ≤2 ms/frame ideal, ≤5 ms/frame acceptable.
+
+- [ ] **Step 3**: commit:
+
+```bash
+git add scripts/bench_bridge_latency.py exp_output/arkit_bridge/diagnostics/bridge_latency_5090.json
+git commit -m "diag(arkit-bridge): bridge latency micro-bench on 5090"
+```
+
+Both gates must show PASS before V1 ships. If 0a fails, the bridge needs
+work, not the daemon. If 0b fails, V1 still ships but the daemon's FPS
+log gets a "bridge_overhead_ms" field so we know how much budget the
+bridge is actually eating.
+
+---
+
 ### Task 1: Promote LLF decoder to importable module
 
 **Files:**
@@ -1304,3 +1492,60 @@ The original `__call__` declares these as locals inside the function body. We mo
 - [ ] **Step 1**: replace the runbook's "Latency" section with measured V1 + V2 numbers from the smoke tests (don't budget — measure with the timestamp-in-packet trick).
 - [ ] **Step 2**: in the topic index, mark V2 shipped with date and quote the measured steady-state cadence.
 - [ ] **Step 3**: commit `git add docs/ && git commit -m "docs(streaming): V2 measured latency + topic index update"`.
+
+---
+
+## Next-product roadmap — reuse the V1+V2 scaffolding
+
+V1 and V2 ship the **ARKit-driven PersonaLive vtuber**. Per
+`docs/research/2026-05-06-vtuber-pipeline-priorities.md` the next two
+Regime-A products are `RGB-driven PersonaLive vtuber` and
+`RGB-driven FasterLivePortrait vtuber`. These are *new drivers in the
+same scaffolding*, not new pipelines. The plan below is a sketch — it
+is not an executable TDD task list, it's the design intent for whoever
+picks up the next product.
+
+### Task 12 (next product): RGB-driven PersonaLive mode
+
+**Reuses**: `V4L2Sink`, daemon shell from Task 5, `BatchDriver` shape
+(swap b58/ypr provider for an RGB frame provider), pipe-build code from
+`streaming_driver.py`.
+
+**Adds**: `src/arkit_bridge/rgb_grabber.py` (cv2 webcam capture +
+mediapipe facemesh stabilized cropper, mirroring
+`apply_bridge_to_personalive.py:380-435`), `BatchDriver.render_batch_rgb()`
+that runs `--mode teacher_full` (no seam patching: real motion_encoder +
+real pose_encoder consume RGB frames). Daemon flag: `--driver rgb`.
+
+**Acceptance**: same FPS gate as V1 (≥18 FPS sustained on 5090). Can
+piggyback on V2 cohort streaming for low latency.
+
+### Task 13 (next product): FasterLivePortrait mode
+
+**Reuses**: `V4L2Sink`, daemon shell, `LLFReceiver` (ARKit b_61 →
+implicit-keypoint bridge would be a *fresh research problem*; for V1 of
+this product we use the RGB-driven path).
+
+**Adds**: clone `https://github.com/warmshao/FasterLivePortrait` to
+`vendor/`, build the TRT engines (one-time, ~30 min), wrap the engine
+runner as a `BatchDriver`-shaped object. Daemon flag: `--driver flp`.
+
+**Acceptance gates** (priorities-doc): ≥25 FPS at 512² on 4080 (≥30 FPS
+on 5090), stylized refs (zombie/orc/duck/demon set + photoreal cells)
+maintain identity over a 600-frame yaw stress test, photoreal refs
+match-or-beat PersonaLive teacher_full on the 3 curated cells.
+
+**Why this product matters**: Regime A backup if PersonaLive's
+FFHQ-collapse-on-stylized-refs problem doesn't get fixed via discriminator
+swap or per-style LoRA. FasterLivePortrait is warp-based GAN, has no
+FFHQ prior, and already supports anime in its retargeting recipes.
+
+### Task 14 (research, gated): ARKit → LivePortrait implicit-keypoint bridge
+
+Only after Task 13 ships and the LivePortrait sanity gate passes. The
+ARKit→implicit-keypoint distill is analogous to the
+ARKit→PersonaLive-motion-encoder distill we shipped, but the target
+surface (implicit keypoints) is different from PersonaLive's motion
+features. Treat as a fresh research project; reuse training corpus
+infrastructure from `data/arkit_bridge_pairs/`. Out of scope for this
+plan; tracked as a follow-up.

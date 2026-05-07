@@ -20,6 +20,23 @@ encoder; pose is closed-form.
 - [`2026-05-06-arkit-bridge-final-pose-config.md`](../2026-05-06-arkit-bridge-final-pose-config.md)
   — wrap-up, full lessons learned. **Start here on any new session
   touching ARKit-bridge.**
+- [`2026-05-06-vtuber-pipeline-priorities.md`](../2026-05-06-vtuber-pipeline-priorities.md)
+  — strategic framing: Regime A vs Regime B, four products, acceptance
+  gates per product. Read this before scoping any new work that
+  consumes the bridge.
+- [`2026-05-06-rendering-stack-replacement-options.md`](../2026-05-06-rendering-stack-replacement-options.md)
+  — backbone-swap survey (FLUX, Z-Image, FasterLivePortrait, Hyper-SD)
+  for when PersonaLive's photoreal/stylized tradeoffs become a blocker.
+
+### Streaming pipeline (LLF → OBS)
+
+- Spec: [`docs/superpowers/specs/2026-05-06-llf-to-obs-pipeline-design.md`](../../superpowers/specs/2026-05-06-llf-to-obs-pipeline-design.md)
+- Plan: [`docs/superpowers/plans/2026-05-06-llf-obs-streaming.md`](../../superpowers/plans/2026-05-06-llf-obs-streaming.md)
+  (Task 0 acceptance gates + V1 batch + V2 cohort-streaming + next-product
+  roadmap)
+- Streaming research notes: [`2026-05-06-rain-streaming-research.md`](../2026-05-06-rain-streaming-research.md)
+  — PersonaLive *is* a RAIN+StreamDiffusion pipeline; cohort latency is
+  intrinsic, V2 is mechanical state-hoist.
 
 ### Current beliefs
 

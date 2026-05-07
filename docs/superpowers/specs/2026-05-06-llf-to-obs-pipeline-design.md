@@ -11,6 +11,36 @@ b_61 over UDP to a Linux box with RTX 5090; the shipped ARKit bridge
 drives PersonaLive; the rendered 512×512 portrait frames are written to a
 v4l2loopback device that OBS picks up as a regular webcam.
 
+## Regime and product context
+
+This is a **Regime A** (realtime puppeteering) product per
+`docs/research/2026-05-06-vtuber-pipeline-priorities.md` — hard FPS
+budget, OBS as terminal sink, performer drives a portrait. Specifically
+it's the **ARKit-driven PersonaLive vtuber** product. The companion
+products that share this scaffolding:
+
+| Product | Driver | Backbone | Status |
+|---|---|---|---|
+| ARKit-driven PersonaLive vtuber | Live Link Face UDP | PersonaLive bridge mode | **this spec** |
+| RGB-driven PersonaLive vtuber | webcam + facemesh | PersonaLive teacher_full | next-product, reuses scaffolding |
+| RGB-driven FasterLivePortrait vtuber | webcam | FasterLivePortrait + TRT engines | next-product, reuses scaffolding (Regime A backup if PersonaLive stylized fails) |
+| Static-portrait slider authoring | slider params | Flux + LoRA / FluxSpace | Regime B, separate thread |
+
+**Scaffolding reuse**: the units here (`LLFReceiver`, `V4L2Sink`, daemon
+shell, `BatchDriver` interface) are designed so the next two Regime-A
+products are *new drivers in the same scaffolding*, not new pipelines.
+The receiver is swapped for an RGB-camera grabber; the driver is swapped
+for either a teacher_full pipeline build or a FasterLivePortrait engine
+runner; sink and daemon stay. See `docs/research/2026-05-06-rendering-stack-replacement-options.md`
+for the stack survey behind that triage.
+
+**Out of scope here**: stylized / non-human anchors. PersonaLive's
+Stage-2 StyleGAN2-FFHQ discriminator collapses non-human refs to generic
+FFHQ blonde inside the silhouette — that's a separate Regime-A failure
+mode (FasterLivePortrait branch will likely fix it; per-style LoRA or
+discriminator swap on PersonaLive is the alternative). This pipeline
+ships against photoreal anchors only.
+
 ## Constraints and ground state
 
 - **No iPhone camera RGB on the wire.** Bridge mode patches both
@@ -167,6 +197,36 @@ uncompressed fine; the broken decoder is receive-side only) and OBS has
 an NDI input plugin, but v4l2loopback is more universal and what the
 project's other Linux-vtuber-stack tools assume. NDI-out can be added
 later as a second sink without changing the streaming_pipe core.
+
+## Acceptance gates (priorities-doc requirements)
+
+Per `docs/research/2026-05-06-vtuber-pipeline-priorities.md`, the
+ARKit-PersonaLive bridge has explicit gates that must clear *before* OBS
+plumbing ships. Status as of 2026-05-06:
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Sign-agreement on yaw/pitch/roll vs ground-truth ARKit | ✅ done | axis-isolated FIXED2 collage; `_topics/arkit-bridge.md` |
+| Head-attenuation-at-extremes diagnosis from `render_metrics.parquet` | ❌ pending | Task 0a in plan |
+| Bridge inference latency micro-bench (target: ≤2 ms/frame on 5090, scaled from priorities-doc 5 ms/frame on 4080) | ❌ pending | Task 0b in plan |
+| End-to-end live: iPhone → ARKit → daemon → PersonaLive → OBS on a short take | ❌ pending | V1 itself (Task 5) |
+
+V1 cannot ship to OBS as a deliverable until the head-attenuation
+diagnosis confirms no attenuation regression and the latency bench
+confirms the bridge is not the bottleneck.
+
+## Acceptance criteria (output side)
+
+Per the priorities doc's RGB-PersonaLive OBS gate, scaled to 5090:
+
+- Sustained ≥18 FPS effective output rate at 512² (priorities-doc says
+  ≥15 FPS on 4080; 5090 is ~30% faster on this workload, so 18 FPS is
+  the rescaled gate).
+- Identity stable on photoreal refs over a 5-minute take (no drift,
+  no temporal flicker beyond background noise).
+- No observable rotation / crop bugs (the rotation-flag hazard is
+  resolved upstream by `cv2.CAP_PROP_ORIENTATION_AUTO=1` on training,
+  and is moot in bridge mode because RGB consumers are bypassed).
 
 ## Open questions and smoke tests
 
