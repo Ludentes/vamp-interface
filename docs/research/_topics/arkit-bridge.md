@@ -43,6 +43,14 @@ encoder; pose is closed-form.
   45 bytes: 4-byte LE version + 37-byte UUID, name length at offset 41).
   Functional impact: `subject` is always "?". Float payload, port
   11111, 52+9 ordering all confirmed against PyLiveLinkFace + UE forum.
+- **V1 daemon shipped 2026-05-07** (`scripts/streaming_bridge.py`,
+  commit `c9116ce`): LLF UDP → BatchDriver → v4l2/mp4 sink, batch-of-24,
+  measured 124 ms/frame at fp16 + 4-step DDIM on RTX 5090, glass-to-OBS
+  ~3.5 s. Operator runbook:
+  [`2026-05-06-llf-obs-runbook.md`](../2026-05-06-llf-obs-runbook.md).
+  Modules: `src/arkit_bridge/{llf_udp,seam_install,streaming_driver,v4l2_sink}.py`.
+  V2 cohort-stream refactor would cut latency to ~150 ms; deferred
+  behind a working V1.
 
 ### Current beliefs
 
