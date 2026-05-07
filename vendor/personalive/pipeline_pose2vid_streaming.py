@@ -761,7 +761,7 @@ class Pose2VideoPipeline_Stream(Pose2VideoPipeline):
         return video
 
     @torch.no_grad()
-    def __call__(
+    def prepare(
         self,
         tgt_images,
         ref_image,
@@ -776,12 +776,18 @@ class Pose2VideoPipeline_Stream(Pose2VideoPipeline):
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         output_type: Optional[str] = "tensor",
         return_dict: bool = True,
-        temporal_window_size = 4,
-        temporal_adaptive_step = 4,
+        temporal_window_size=4,
+        temporal_adaptive_step=4,
         temporal_kv_cache=True,
         init_latents=None,
         **kwargs,
     ):
+        """V2 split: pre-loop setup. Hoists cohort state to ``self._stream_*``.
+
+        After ``prepare()``, call ``step()`` exactly
+        ``windows + temporal_adaptive_step - 1`` times (where
+        ``windows = video_length // temporal_window_size``), then ``decode()``.
+        """
         assert num_inference_steps % temporal_adaptive_step == 0, "temporal_adaptive_step should be divisor of num_inference_steps"
         assert video_length % temporal_window_size == 0, "temporal_window_size should be divisor of video_length"
         # Default height and width to unet
@@ -861,118 +867,262 @@ class Pose2VideoPipeline_Stream(Pose2VideoPipeline):
         tgt_images.extend(tgt_images[-padding_num-1:-1][::-1])
         face_images.extend(face_images[-padding_num-1:-1][::-1])
 
-        with self.progress_bar(total=windows + temporal_adaptive_step - 1) as progress_bar:
+        # Run reference U-Net once and seed the reader.
+        self.reference_unet(
+            ref_image_latents,
+            torch.zeros((batch_size,), dtype=torch.float32, device=ref_image_latents.device),
+            encoder_hidden_states=image_prompt_embeds,
+            return_dict=False,
+        )
+        reference_control_reader.update(reference_control_writer)
+
+        # ---- Hoist read-only context to instance fields ----
+        self._stream_device = device
+        self._stream_timesteps = timesteps
+        self._stream_jump = jump
+        self._stream_windows = windows
+        self._stream_batch_size = batch_size
+        self._stream_image_prompt_embeds = image_prompt_embeds
+        self._stream_reference_control_writer = reference_control_writer
+        self._stream_reference_control_reader = reference_control_reader
+        self._stream_extra_step_kwargs = extra_step_kwargs
+        self._stream_ref_image_latents = ref_image_latents
+        self._stream_ref_cond_tensor = ref_cond_tensor
+        self._stream_neg_motion_hidden_states = neg_motion_hidden_states
+        self._stream_padding_num = padding_num
+        self._stream_temporal_window_size = temporal_window_size
+        self._stream_temporal_adaptive_step = temporal_adaptive_step
+        self._stream_tgt_images = tgt_images  # already padded in place
+        self._stream_face_images = face_images
+        self._stream_output_type = output_type
+        self._stream_return_dict = return_dict
+
+        # ---- Hoist cross-iteration mutable state ----
+        self._stream_motion_hidden_states = None  # populated on i == 0
+        self._stream_pose_feas = None  # populated on i == 0
+        self._stream_kps_ref = None
+        self._stream_kps_frame1 = None
+        self._stream_noise_latents = noise_latents
+        self._stream_motion_bank = motion_bank
+        self._stream_add_flag = add_flag
+        self._stream_final_videos = final_videos
+
+        # cohort index
+        self._cohort_idx = 0
+        self._stream_total_steps = windows + temporal_adaptive_step - 1
+
+    @torch.no_grad()
+    def step(self, current_driving=None, current_face=None):
+        """V2 split: one cohort iteration.
+
+        If ``current_driving`` / ``current_face`` are ``None``, the slice is
+        taken from ``self._stream_tgt_images`` / ``self._stream_face_images``
+        at offset ``self._cohort_idx * temporal_window_size`` (this preserves
+        bit-equivalence with the original ``__call__``). Live callers (Task 10)
+        pass the arrays explicitly.
+        """
+        i = self._cohort_idx
+        device = self._stream_device
+        timesteps = self._stream_timesteps
+        jump = self._stream_jump
+        batch_size = self._stream_batch_size
+        image_prompt_embeds = self._stream_image_prompt_embeds
+        reference_control_writer = self._stream_reference_control_writer
+        reference_control_reader = self._stream_reference_control_reader
+        extra_step_kwargs = self._stream_extra_step_kwargs
+        ref_image_latents = self._stream_ref_image_latents
+        ref_cond_tensor = self._stream_ref_cond_tensor
+        neg_motion_hidden_states = self._stream_neg_motion_hidden_states
+        padding_num = self._stream_padding_num
+        temporal_window_size = self._stream_temporal_window_size
+        temporal_adaptive_step = self._stream_temporal_adaptive_step
+
+        l = i * temporal_window_size
+        r = (i + 1) * temporal_window_size
+
+        if current_driving is None:
+            current_driving = self._stream_tgt_images[l:r]
+        if current_face is None:
+            current_face = self._stream_face_images[l:r]
+
+        tgt_cond_tensor = self.cond_image_processor.preprocess(
+            current_driving, height=256, width=256
+        ).to(device=device, dtype=self.pose_encoder.dtype)  # (1, c, h, w)
+        tgt_cond_tensor = tgt_cond_tensor / 2 + 0.5  # to [0, 1]
+
+        if i == 0:
+            mot_bbox_param, kps_ref, kps_frame1, _ = self.pose_encoder.interpolate_kps_online(
+                ref_cond_tensor, tgt_cond_tensor, num_interp=padding_num + 1
+            )
+            self._stream_kps_ref = kps_ref
+            self._stream_kps_frame1 = kps_frame1
+        else:
+            mot_bbox_param, _ = self.pose_encoder.get_kps(
+                self._stream_kps_ref, self._stream_kps_frame1, tgt_cond_tensor
+            )
+
+        keypoints = draw_keypoints(mot_bbox_param, device=device)
+        keypoints = rearrange(keypoints.unsqueeze(2), 'f c b h w -> b c f h w')
+        keypoints = keypoints.to(device=device, dtype=self.pose_guider.dtype)
+
+        pose_fea = self.pose_guider(keypoints)
+
+        face_cond_tensor = self.cond_image_processor.preprocess(
+            current_face, height=224, width=224
+        ).transpose(0, 1)
+        face_cond_tensor = face_cond_tensor.unsqueeze(0)  # (1, c, t, h, w)
+        face_cond_tensor = face_cond_tensor.to(
+            device=device, dtype=self.motion_encoder.dtype
+        )
+
+        motion_hidden_state = self.motion_encoder(face_cond_tensor)
+
+        if i == 0:
+            init_motion_hidden_states = self.interpolate_tensors(
+                neg_motion_hidden_states, motion_hidden_state[:, :1], num=padding_num + 1
+            )[:, :-1]
+            self._stream_motion_hidden_states = torch.cat(
+                [init_motion_hidden_states, motion_hidden_state], dim=1
+            )
+            self._stream_pose_feas = pose_fea
+        else:
+            self._stream_motion_hidden_states = torch.cat(
+                [self._stream_motion_hidden_states[:, temporal_window_size:], motion_hidden_state], dim=1
+            )
+            self._stream_pose_feas = torch.cat(
+                [self._stream_pose_feas[:, :, temporal_window_size:], pose_fea], dim=2
+            )
+
+        if l > temporal_adaptive_step * temporal_window_size * 2 and self._stream_motion_bank.shape[1] < 4:
+            self._stream_add_flag, self._stream_motion_bank = self.calculate_dis(
+                self._stream_motion_bank, motion_hidden_state, threshold=17.
+            )
+
+        latents = ref_image_latents.unsqueeze(2).repeat(1, 1, temporal_window_size, 1, 1)
+        noise = torch.randn_like(latents)
+        latents = self.scheduler.add_noise(latents, noise, timesteps[:1])
+
+        latents = torch.cat([self._stream_noise_latents, latents], dim=2)
+        latents_model_input = latents
+
+        for j in range(jump):
+            ut = reversed(timesteps[j::jump]).repeat_interleave(temporal_window_size, dim=0)
+            ut = torch.stack([ut] * batch_size).to(device)
+            ut = rearrange(ut, 'b f -> (b f)')
+
+            noise_pred = self.denoising_unet(
+                latents_model_input,
+                ut,
+                encoder_hidden_states=[
+                    image_prompt_embeds,
+                    self._stream_motion_hidden_states,
+                ],
+                pose_cond_fea=self._stream_pose_feas,
+                return_dict=False,
+            )[0]
+
+            clip_length = noise_pred.shape[2]
+            mid_noise_pred = rearrange(noise_pred, 'b c f h w -> (b f) c h w')
+            mid_latents = rearrange(latents_model_input, 'b c f h w -> (b f) c h w')
+            latents_model_input, pred_original_sample = self.scheduler.step(
+                mid_noise_pred, ut, mid_latents, **extra_step_kwargs, return_dict=False
+            )
+            latents_model_input = rearrange(latents_model_input, '(b f) c h w -> b c f h w', f=clip_length)
+            pred_original_sample = rearrange(pred_original_sample, '(b f) c h w -> b c f h w', f=clip_length)
+
+        self._stream_noise_latents = latents_model_input[:, :, temporal_window_size:].to(dtype=self.dtype)
+
+        if self._stream_add_flag:
+            reference_control_writer.clear()
             self.reference_unet(
-                ref_image_latents,
-                torch.zeros((batch_size,),dtype=torch.float32,device=ref_image_latents.device),
+                pred_original_sample[:, :, 0].to(self.reference_unet.dtype),
+                torch.zeros((batch_size,), dtype=torch.float32, device=ref_image_latents.device),
                 encoder_hidden_states=image_prompt_embeds,
                 return_dict=False,
             )
-            reference_control_reader.update(reference_control_writer)
-            for i in range(windows + temporal_adaptive_step - 1):
-                l = i * temporal_window_size
-                r = (i + 1) * temporal_window_size
+            reference_control_reader.update_hkf(reference_control_writer)
 
-                current_driving = tgt_images[l:r]
-                current_face = face_images[l:r]
+        if i > temporal_adaptive_step - 2:
+            video_pile = self.decode_latents(
+                pred_original_sample[:, :, :temporal_window_size].to(dtype=self.dtype)
+            )
+            self._stream_final_videos.append(video_pile)
 
-                tgt_cond_tensor = self.cond_image_processor.preprocess(
-                    current_driving, height=256, width=256
-                ).to(device=device, dtype=self.pose_encoder.dtype)  # (1, c, h, w)
-                tgt_cond_tensor = tgt_cond_tensor / 2 + 0.5 # to [0, 1]
+        self._cohort_idx += 1
 
-                if i == 0:
-                    mot_bbox_param, kps_ref, kps_frame1, _ = self.pose_encoder.interpolate_kps_online(ref_cond_tensor, tgt_cond_tensor, num_interp=padding_num+1)
-                else:
-                    mot_bbox_param, _ = self.pose_encoder.get_kps(kps_ref, kps_frame1, tgt_cond_tensor)
+    @torch.no_grad()
+    def decode(self):
+        """V2 split: post-loop teardown + grid concatenation.
 
-                keypoints = draw_keypoints(mot_bbox_param, device=device)
-                keypoints = rearrange(keypoints.unsqueeze(2), 'f c b h w -> b c f h w')
-                keypoints = keypoints.to(device=device, dtype=self.pose_guider.dtype)
+        Returns the same value as the original ``__call__``: a tensor (or
+        ``Pose2VideoPipelineOutput``) of decoded frames. Idempotent on the
+        accumulated ``_stream_final_videos``; releases the writer/reader
+        attention caches.
+        """
+        self._stream_reference_control_reader.clear()
+        self._stream_reference_control_writer.clear()
 
-                pose_fea = self.pose_guider(keypoints)
+        images = torch.cat(self._stream_final_videos, dim=2)
 
-                face_cond_tensor = self.cond_image_processor.preprocess(
-                    current_face, height=224, width=224
-                ).transpose(0, 1)
-                face_cond_tensor = face_cond_tensor.unsqueeze(0) # (1, c, t, h, w) 
-                face_cond_tensor = face_cond_tensor.to(
-                    device=device, dtype=self.motion_encoder.dtype
-                )
+        if self._stream_output_type != "tensor":
+            images = images.numpy()
 
-                motion_hidden_state = self.motion_encoder(face_cond_tensor)
+        if not self._stream_return_dict:
+            return images
 
-                if i == 0:
-                    init_motion_hidden_states = self.interpolate_tensors(neg_motion_hidden_states, motion_hidden_state[:,:1], num=padding_num+1)[:,:-1]
-                    motion_hidden_states = torch.cat([init_motion_hidden_states, motion_hidden_state], dim=1)
-                    pose_feas = pose_fea
+        return Pose2VideoPipelineOutput(videos=images)
 
-                else:
-                    motion_hidden_states = torch.cat([motion_hidden_states[:,temporal_window_size:], motion_hidden_state], dim=1)
-                    pose_feas = torch.cat([pose_feas[:,:,temporal_window_size:], pose_fea], dim=2)
-                
-                if l > temporal_adaptive_step * temporal_window_size * 2 and motion_bank.shape[1] < 4:
-                    add_flag, motion_bank = self.calculate_dis(motion_bank, motion_hidden_state, threshold=17.)
-                
-                latents = ref_image_latents.unsqueeze(2).repeat(1, 1, temporal_window_size, 1, 1)
-                noise = torch.randn_like(latents)
-                latents = self.scheduler.add_noise(latents, noise, timesteps[:1])
+    @torch.no_grad()
+    def __call__(
+        self,
+        tgt_images,
+        ref_image,
+        face_images,
+        ref_face_image,
+        width,
+        height,
+        video_length,
+        num_inference_steps,
+        guidance_scale,
+        eta: float = 0.0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "tensor",
+        return_dict: bool = True,
+        temporal_window_size=4,
+        temporal_adaptive_step=4,
+        temporal_kv_cache=True,
+        init_latents=None,
+        **kwargs,
+    ):
+        """Bit-equivalent backward-compat wrapper over prepare/step/decode.
 
-                latents = torch.cat([noise_latents, latents], dim=2)
-                latents_model_input = latents
-
-                for j in range(jump):
-                    ut = reversed(timesteps[j::jump]).repeat_interleave(temporal_window_size, dim=0)
-                    ut = torch.stack([ut] * batch_size).to(device)
-                    ut = rearrange(ut, 'b f -> (b f)')
-
-                    noise_pred = self.denoising_unet(
-                        latents_model_input,
-                        ut,
-                        encoder_hidden_states=[
-                            image_prompt_embeds,
-                            motion_hidden_states,
-                        ],
-                        pose_cond_fea=pose_feas,
-                        return_dict=False,
-                    )[0]
-
-                    
-                    clip_length = noise_pred.shape[2]
-                    mid_noise_pred = rearrange(noise_pred, 'b c f h w -> (b f) c h w')
-                    mid_latents = rearrange(latents_model_input, 'b c f h w -> (b f) c h w')
-                    latents_model_input, pred_original_sample = self.scheduler.step(
-                        mid_noise_pred, ut, mid_latents, **extra_step_kwargs, return_dict=False
-                    )
-                    latents_model_input = rearrange(latents_model_input, '(b f) c h w -> b c f h w', f=clip_length)
-                    pred_original_sample = rearrange(pred_original_sample, '(b f) c h w -> b c f h w', f=clip_length)
-
-                noise_latents = latents_model_input[:,:,temporal_window_size:].to(dtype=self.dtype)
-
-                if add_flag:
-                    reference_control_writer.clear()
-                    self.reference_unet(
-                        pred_original_sample[:,:,0].to(self.reference_unet.dtype),
-                        torch.zeros((batch_size,),dtype=torch.float32,device=ref_image_latents.device),
-                        encoder_hidden_states=image_prompt_embeds,
-                        return_dict=False,
-                    )
-                    reference_control_reader.update_hkf(reference_control_writer)
-                
-                if i > temporal_adaptive_step - 2:
-                    video_pile = self.decode_latents(pred_original_sample[:,:,:temporal_window_size].to(dtype=self.dtype))
-                    final_videos.append(video_pile)
+        Implementation: ``prepare(...)`` then loop ``step()`` exactly
+        ``windows + temporal_adaptive_step - 1`` times then ``decode()``.
+        Existing offline callers (``apply_bridge_to_personalive.py``) are
+        unaffected.
+        """
+        self.prepare(
+            tgt_images=tgt_images,
+            ref_image=ref_image,
+            face_images=face_images,
+            ref_face_image=ref_face_image,
+            width=width,
+            height=height,
+            video_length=video_length,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            eta=eta,
+            generator=generator,
+            output_type=output_type,
+            return_dict=return_dict,
+            temporal_window_size=temporal_window_size,
+            temporal_adaptive_step=temporal_adaptive_step,
+            temporal_kv_cache=temporal_kv_cache,
+            init_latents=init_latents,
+            **kwargs,
+        )
+        with self.progress_bar(total=self._stream_total_steps) as progress_bar:
+            for _ in range(self._stream_total_steps):
+                self.step()
                 progress_bar.update()
-
-            reference_control_reader.clear()
-            reference_control_writer.clear()
-
-            images = torch.cat(final_videos, dim=2)
-
-            if output_type != "tensor":
-                images = images.numpy()
-            
-            if not return_dict:
-                return images
-            
-            return Pose2VideoPipelineOutput(videos=images)
+        return self.decode()
