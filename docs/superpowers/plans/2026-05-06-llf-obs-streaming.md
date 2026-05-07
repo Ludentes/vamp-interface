@@ -48,6 +48,23 @@ amp vs teacher output amp at high-percentile (extremes). The OLD config
 crushed pitch to 13% of teacher amp — the diagnosis must confirm
 `student_v2_120k + EULER_SIGNS=(+1,-1,+1)` does not regress.
 
+**Gate calibrated to known limitation** (per
+`memory/feedback_bridge_head_attenuation_accepted.md`): the shipped
+state has bridge_p95/teacher_p95 in [0.51, 0.95] across all (take,
+axis) pairs, with attenuation worst on high-motion takes (take 8 pitch
+0.59, roll 0.51). This is the structural floor of the v2 student plus
+PersonaLive renderer; trained against and accepted. The gate exists
+to catch *new* regressions vs that baseline, not to block on the
+already-accepted shortfall:
+
+  - HARD FAIL: ratio < 0.45 or > 1.55  (worse than shipped state)
+  - WARN: ratio < 0.70 or > 1.30  (expected on high-motion takes)
+  - PASS otherwise
+
+If a new run shows multiple pairs newly entering the WARN band on
+takes that were previously clean, treat as a regression even though
+the script returns PASS.
+
 - [ ] **Step 1**: enumerate the takes already rendered through both
   bridge and teacher_full in `exp_output/arkit_bridge/render/`. Run
   `cat exp_output/arkit_bridge/parquet/render_metrics.parquet | head`
@@ -109,8 +126,11 @@ if __name__ == "__main__":
 ```
 
 - [ ] **Step 3**: run `uv run python scripts/diagnose_head_attenuation.py`.
-  Expected: PASS with all axis-take pairs in [0.85, 1.15]. If FAIL on
-  any pair, stop V1 work and root-cause before proceeding.
+  Expected: PASS (no pairs below 0.45 or above 1.55); WARN-band pairs
+  on take 8 pitch/roll are expected and not blocking. If HARD FAIL on
+  any pair, stop V1 work and check whether parquet rows are stale
+  (point at pre-EULER-fix renders) before re-rendering — this is the
+  most likely cause given the shipped state has been verified to PASS.
 
 - [ ] **Step 4**: commit the diagnostic + its output:
 
