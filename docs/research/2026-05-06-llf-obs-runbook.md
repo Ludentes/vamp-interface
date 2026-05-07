@@ -112,9 +112,41 @@ Pipe inference is the dominant term. Measured 124 ms/frame on RTX 5090
 at fp16 + 4-step DDIM (`scripts/streaming_bridge.py` smoke test:
 `rendered=24 infer_ms=2987`).
 
-V2 (cohort-stream refactor) would chunk-render 4 frames per LLF window
-instead of 24, dropping the batch-fill term to ~67 ms and inference to
-~500 ms — total ~150 ms. Deferred behind a working V1.
+V2 (cohort-stream refactor) chunk-renders 4 frames per cohort instead of
+24, so the first cohort reaches the sink while subsequent cohorts are
+still rendering. Total compute is identical to V1; the win is
+first-frame latency.
+
+## Latency budget (V2, cohort-stream, batch=24)
+
+Run with `--mode v2`:
+
+```bash
+PYTHONPATH=src /home/newub/w/PersonaLive/.venv/bin/python \
+  scripts/streaming_bridge.py ... --mode v2
+```
+
+| stage | ms |
+|---|---|
+| LLF capture + UDP transit | ~20 |
+| Batch fill (24 frames @ 60 FPS LLF) | ~400 |
+| `prepare_v2` (= setup + 3 warmup cohorts internally) | ~1500 |
+| First `step_v2` (1 cohort, 4 decoded frames) | ~490 |
+| ffmpeg + v4l2 + OBS pickup | ~80 |
+| **first-cohort glass-to-OBS** | **~2.5 s** |
+
+Subsequent cohorts within the same prepare_v2 window emit every ~490 ms.
+Measured 2026-05-07 on RTX 5090 fp16 + 4-step DDIM (smoke test:
+`prepare+6×step infer_ms=2941`, mean 490 ms/cohort, 60 packets in,
+0 dropped).
+
+V2 saves ~1 s on first-frame latency vs V1 at the cost of slightly
+higher per-cohort scheduling overhead. The bigger structural win — true
+≤200 ms steady-state — would require re-prepare-per-cohort or hoisting
+warmup outside the per-batch path; both are out of scope for the
+current LLF→OBS shipping target.
+
+V1 remains the default (`--mode v1`) because operationally simpler.
 
 ## Stopping
 

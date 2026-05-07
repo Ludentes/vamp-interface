@@ -49,8 +49,14 @@ encoder; pose is closed-form.
   ~3.5 s. Operator runbook:
   [`2026-05-06-llf-obs-runbook.md`](../2026-05-06-llf-obs-runbook.md).
   Modules: `src/arkit_bridge/{llf_udp,seam_install,streaming_driver,v4l2_sink}.py`.
-  V2 cohort-stream refactor would cut latency to ~150 ms; deferred
-  behind a working V1.
+- **V2 cohort-stream shipped 2026-05-07** (commits `b4952ec` + `319a564`):
+  vendored `Pose2VideoPipeline_Stream` split into `prepare()` + `step()` +
+  `decode()`; bit-exact (mean abs diff 0) vs upstream `__call__` per
+  `tests/arkit_bridge/test_streaming_pipe_v2.py`. Daemon `--mode v2`
+  emits 4-frame cohorts at ~490 ms each; first-cohort glass-to-OBS
+  ~2.5 s vs V1's ~3.5 s. Total compute unchanged — saving is in
+  first-frame latency only. Sub-200 ms steady-state would require
+  hoisting `prepare_v2` warmup outside the per-batch loop.
 
 ### Current beliefs
 
