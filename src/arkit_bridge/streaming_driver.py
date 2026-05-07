@@ -42,6 +42,8 @@ from arkit_bridge.seam_install import install_arkit_seams
 from arkit_bridge.student import MotEncoderStudent
 
 PL = Path(os.path.expanduser("~/w/PersonaLive"))
+ROOT = Path(__file__).resolve().parents[2]
+VENDOR_PL = ROOT / "vendor" / "personalive"
 
 
 def _build_pipe(device, dtype):
@@ -55,6 +57,8 @@ def _build_pipe(device, dtype):
     """
     if str(PL) not in sys.path:
         sys.path.insert(0, str(PL))
+    if str(VENDOR_PL) not in sys.path:
+        sys.path.insert(0, str(VENDOR_PL))
     cwd = os.getcwd()
     os.chdir(PL)
     try:
@@ -63,7 +67,12 @@ def _build_pipe(device, dtype):
         from src.scheduler.scheduler_ddim import DDIMScheduler  # noqa: WPS433
         from src.models.unet_2d_condition import UNet2DConditionModel  # noqa: WPS433
         from src.models.unet_3d import UNet3DConditionModel  # noqa: WPS433
-        from src.pipelines.pipeline_pose2vid import Pose2VideoPipeline_Stream  # noqa: WPS433
+        # Use the *vendored* Pose2VideoPipeline_Stream so prepare()/step()/
+        # decode() are available for V2 cohort streaming. V1 still calls
+        # __call__, which the vendored class implements as a wrapper around
+        # the new methods (bit-equivalent — verified by
+        # tests/arkit_bridge/test_streaming_pipe_v2.py).
+        from pipeline_pose2vid_streaming import Pose2VideoPipeline_Stream  # noqa: WPS433
         from src.models.motion_encoder.encoder import MotEncoder  # noqa: WPS433
         from src.liveportrait.motion_extractor import MotionExtractor  # noqa: WPS433
         from src.models.pose_guider import PoseGuider  # noqa: WPS433
@@ -281,6 +290,122 @@ class BatchDriver:
             torch.tensor = _orig  # type: ignore[assignment]
         video = out.videos  # (1, 3, T, H, W) float in [0, 1]
         arr = video[0].permute(1, 2, 3, 0).cpu().float().numpy()
+        return (arr * 255.0).clip(0, 255).astype(np.uint8)
+
+    def _prepare_for_call(self, b58: np.ndarray, ypr: np.ndarray):
+        """Common to V1 and V2: validate, tail-mirror pad, install seams,
+        build stand-in lists + RNG. Returns (T, stand_in_pose, stand_in_faces, gen)."""
+        assert self._pipe is not None, "BatchDriver.start() not called"
+        assert self._student is not None, "BatchDriver.start() not called"
+        assert self._ref_face is not None and self._ref_pil is not None
+        T = b58.shape[0]
+        assert T % 4 == 0 and T >= 4, f"T must be positive multiple of 4 (got {T})"
+        assert ypr.shape == (T, 3), f"ypr shape {ypr.shape} != ({T}, 3)"
+        assert b58.shape == (T, 58), f"b58 shape {b58.shape} != ({T}, 58)"
+        assert T >= 13, f"T must be >= 13 (padding_num+1) for tail-mirror; got {T}"
+
+        padding_num = (4 - 1) * 4
+        tail_b = b58[-padding_num - 1:-1][::-1]
+        tail_y = ypr[-padding_num - 1:-1][::-1]
+        b58_local = np.concatenate([b58, tail_b], axis=0)
+        ypr_local = np.concatenate([ypr, tail_y], axis=0)
+        N_total = b58_local.shape[0]
+
+        def provider(start, n):
+            s = max(0, min(start, N_total))
+            e = max(s, min(start + n, N_total))
+            return b58_local[s:e], ypr_local[s:e]
+
+        install_arkit_seams(
+            self._pipe, b_seq=None, ypr_seq=None,
+            student=self._student, device=self._device, dtype=self._dtype,
+            patch_pose=True, patch_motion=True, provider=provider,
+        )
+
+        stand_in_pose = [self._ref_face] * T
+        stand_in_faces = [self._ref_face] * T
+        gen = torch.Generator(device=self._device)
+        gen.manual_seed(self._seed)
+        return T, stand_in_pose, stand_in_faces, gen
+
+    def prepare_v2(self, b58: np.ndarray, ypr: np.ndarray) -> int:
+        """V2 cohort-stream prepare. Calls vendored ``pipe.prepare(...)`` and
+        runs the warmup steps internally so ``step_v2()`` always emits frames.
+
+        Returns the number of *productive* step_v2 calls the caller should
+        make (= ``windows = T // temporal_window_size``).
+        """
+        T, stand_in_pose, stand_in_faces, gen = self._prepare_for_call(b58, ypr)
+
+        _orig = torch.tensor
+        SENTINEL = [999, 666, 333, 0]
+        SCHEDULE = self._SCHEDULE
+
+        def _patched_tensor(data, *a, **kw):
+            if isinstance(data, list) and data == SENTINEL:
+                return _orig(SCHEDULE, *a, **kw)
+            return _orig(data, *a, **kw)
+
+        torch.tensor = _patched_tensor  # type: ignore[assignment]
+        try:
+            self._pipe.prepare(
+                stand_in_pose, self._ref_pil, stand_in_faces, self._ref_face,
+                512, 512, T,
+                num_inference_steps=self._num_inference_steps,
+                guidance_scale=self._guidance_scale,
+                generator=gen,
+                temporal_window_size=4,
+                temporal_adaptive_step=4,
+            )
+            # Warmup: temporal_adaptive_step - 1 = 3 cohort iters that
+            # don't emit decoded frames. Run them now so each step_v2()
+            # produces exactly 4 decoded frames.
+            for _ in range(4 - 1):
+                self._pipe.step()
+        finally:
+            torch.tensor = _orig  # type: ignore[assignment]
+
+        self._v2_windows = T // 4
+        self._v2_emitted = 0
+        # Track frames already decoded so step_v2 can index into the list.
+        self._v2_decode_cursor = len(self._pipe._stream_final_videos)
+        return self._v2_windows
+
+    def step_v2(self, n: int = 4) -> np.ndarray:
+        """V2 cohort step: one productive cohort -> (n, 512, 512, 3) uint8.
+
+        ``n`` must equal ``temporal_window_size`` (4); the kwarg exists to
+        make the streaming daemon's intent explicit.
+        """
+        assert n == 4, f"V2 step emits exactly 4 frames per cohort; got {n}"
+        assert self._pipe is not None
+        assert self._v2_emitted < self._v2_windows, (
+            f"V2 cohort drained ({self._v2_emitted}/{self._v2_windows}); "
+            "call prepare_v2 again before more steps"
+        )
+
+        _orig = torch.tensor
+        SENTINEL = [999, 666, 333, 0]
+        SCHEDULE = self._SCHEDULE
+
+        def _patched_tensor(data, *a, **kw):
+            if isinstance(data, list) and data == SENTINEL:
+                return _orig(SCHEDULE, *a, **kw)
+            return _orig(data, *a, **kw)
+
+        torch.tensor = _patched_tensor  # type: ignore[assignment]
+        try:
+            self._pipe.step()
+        finally:
+            torch.tensor = _orig  # type: ignore[assignment]
+
+        # The vendored step() appends a (1, 3, 4, 512, 512) tensor to
+        # _stream_final_videos when i > temporal_adaptive_step - 2. After
+        # warmup, every call appends one block.
+        block = self._pipe._stream_final_videos[self._v2_decode_cursor]
+        self._v2_decode_cursor += 1
+        self._v2_emitted += 1
+        arr = block[0].permute(1, 2, 3, 0).cpu().float().numpy()
         return (arr * 255.0).clip(0, 255).astype(np.uint8)
 
     def stop(self) -> None:

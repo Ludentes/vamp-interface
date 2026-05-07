@@ -69,6 +69,9 @@ def main():
     ap.add_argument("--fps", type=int, default=25)
     ap.add_argument("--torch_device", default="cuda")
     ap.add_argument("--num_inference_steps", type=int, default=4)
+    ap.add_argument("--mode", choices=["v1", "v2"], default="v1",
+                    help="v1: render full batch then sink; v2: cohort-stream "
+                         "(prepare per batch + step per 4 frames)")
     args = ap.parse_args()
 
     assert args.batch % 4 == 0 and args.batch >= 4
@@ -83,10 +86,12 @@ def main():
     )
     drv.start()
 
-    print("[2/4] pre-warming with zero-vector batch...", flush=True)
+    print(f"[2/4] pre-warming with zero-vector batch (mode={args.mode})...", flush=True)
     b58_warm = np.zeros((args.batch, 58), dtype=np.float32)
     ypr_warm = np.zeros((args.batch, 3), dtype=np.float32)
     t0 = time.time()
+    # Pre-warm always uses V1 path so we have a `last_good_rgb` anchor
+    # frame buffer for idle passthrough regardless of selected mode.
     last_good_rgb = drv.render_batch(b58_warm, ypr_warm)
     print(f"  pre-warm render={time.time() - t0:.1f}s", flush=True)
 
@@ -127,13 +132,35 @@ def main():
             b58, ypr = packets_to_arrays(pkts)
             b58, ypr = _pad_to_multiple_of_4(b58, ypr)
 
-            t0 = time.time()
-            rgb = drv.render_batch(b58, ypr)
-            infer_ms = (time.time() - t0) * 1000.0
-            last_good_rgb = rgb
-            for f in rgb:
-                sink.write(f)
-            rendered += len(rgb)
+            if args.mode == "v1":
+                t0 = time.time()
+                rgb = drv.render_batch(b58, ypr)
+                infer_ms = (time.time() - t0) * 1000.0
+                last_good_rgb = rgb
+                for f in rgb:
+                    sink.write(f)
+                rendered += len(rgb)
+            else:
+                # V2: prepare once per batch (warmup absorbed in prepare_v2),
+                # then drain windows×step_v2 each emitting 4 frames. The
+                # earliest cohort lands at sink ~1 step after prepare instead
+                # of waiting for all 24 frames.
+                t0 = time.time()
+                windows = drv.prepare_v2(b58, ypr)
+                prep_ms = (time.time() - t0) * 1000.0
+                rgb_blocks = []
+                step_ms_total = 0.0
+                for _ in range(windows):
+                    ts = time.time()
+                    block = drv.step_v2(n=4)
+                    step_ms_total += (time.time() - ts) * 1000.0
+                    rgb_blocks.append(block)
+                    for f in block:
+                        sink.write(f)
+                rgb = np.concatenate(rgb_blocks, axis=0)
+                infer_ms = prep_ms + step_ms_total
+                last_good_rgb = rgb
+                rendered += len(rgb)
 
             now = time.time()
             if now - last_log >= 5.0:
