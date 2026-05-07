@@ -1,0 +1,9 @@
+{
+  "device": "NVIDIA GeForce RTX 5090",
+  "ckpt": "runs/student_v2_120k/student_best.pt",
+  "n_iters": 1000,
+  "ms_per_frame_student_plus_pose": 0.25841549600045255,
+  "fps_equivalent": 3869.7369758284494,
+  "gate_2ms": true,
+  "gate_5ms": true
+}
