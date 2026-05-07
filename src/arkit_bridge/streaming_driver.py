@@ -292,6 +292,73 @@ class BatchDriver:
         arr = video[0].permute(1, 2, 3, 0).cpu().float().numpy()
         return (arr * 255.0).clip(0, 255).astype(np.uint8)
 
+    def render_batch_rgb(self, frames: list) -> np.ndarray:
+        """RGB-driven (teacher_full) batch render.
+
+        ``frames`` is a list of T 512x512 RGB PIL.Images, T a positive
+        multiple of 4. Bypasses ``install_arkit_seams`` entirely so the
+        pipe's real motion_encoder + pose_encoder consume the cropped
+        face frames directly — same path as ``--mode teacher_full`` in
+        ``scripts/apply_bridge_to_personalive.py``.
+
+        Returns (T, 512, 512, 3) uint8 RGB.
+
+        Important: callers must not mix bridge-mode and teacher_full mode
+        on the same BatchDriver instance within a session. If a bridge
+        render ran first, ``install_arkit_seams`` has already monkey-
+        patched ``self._pipe.motion_encoder.forward`` and
+        ``self._pipe.pose_encoder.forward``; restart the daemon with
+        ``--driver rgb`` to get a clean pipe. The driver flag is process-
+        wide for that reason.
+        """
+        from PIL import Image  # local: avoid hard dep at import time
+
+        assert self._pipe is not None, "BatchDriver.start() not called"
+        assert self._ref_face is not None and self._ref_pil is not None
+        T = len(frames)
+        assert T % 4 == 0 and T >= 4, f"T must be positive multiple of 4 (got {T})"
+        for i, f in enumerate(frames):
+            assert isinstance(f, Image.Image), f"frames[{i}] not a PIL.Image"
+            if f.size != (512, 512):
+                # Defensive: grabber should have already resized, but the
+                # pipe will silently mis-frame on wrong size. Cheap to fix.
+                frames[i] = f.resize((512, 512), Image.LANCZOS).convert("RGB")
+            elif f.mode != "RGB":
+                frames[i] = f.convert("RGB")
+
+        gen = torch.Generator(device=self._device)
+        gen.manual_seed(self._seed)
+
+        # Same N-step DDIM monkey-patch as render_batch. teacher_full also
+        # rides the hardcoded [999, 666, 333, 0] schedule path because the
+        # PersonaLive pipe is the one consuming the literal — independent
+        # of which seams are (not) installed.
+        _orig = torch.tensor
+        SENTINEL = [999, 666, 333, 0]
+        SCHEDULE = self._SCHEDULE
+
+        def _patched_tensor(data, *a, **kw):
+            if isinstance(data, list) and data == SENTINEL:
+                return _orig(SCHEDULE, *a, **kw)
+            return _orig(data, *a, **kw)
+
+        torch.tensor = _patched_tensor  # type: ignore[assignment]
+        try:
+            out = self._pipe(
+                frames, self._ref_pil, frames, self._ref_face,
+                512, 512, T,
+                num_inference_steps=self._num_inference_steps,
+                guidance_scale=self._guidance_scale,
+                generator=gen,
+                temporal_window_size=4,
+                temporal_adaptive_step=4,
+            )
+        finally:
+            torch.tensor = _orig  # type: ignore[assignment]
+        video = out.videos  # (1, 3, T, H, W) float in [0, 1]
+        arr = video[0].permute(1, 2, 3, 0).cpu().float().numpy()
+        return (arr * 255.0).clip(0, 255).astype(np.uint8)
+
     def _prepare_for_call(self, b58: np.ndarray, ypr: np.ndarray):
         """Common to V1 and V2: validate, tail-mirror pad, install seams,
         build stand-in lists + RNG. Returns (T, stand_in_pose, stand_in_faces, gen)."""

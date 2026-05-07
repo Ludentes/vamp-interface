@@ -87,6 +87,65 @@ python /tmp/llf_sender.py 21112 60   # script in tasks/04-task-5 commit msg
 Expected: daemon logs `rendered=24 fps=… infer_ms=~3000 rx_received=60
 rx_dropped=0`, mp4 file is non-empty 512×512 @ 25 FPS.
 
+## RGB-driven smoke test (webcam, no iPhone)
+
+The daemon also accepts a webcam frame source via `--driver rgb`, which
+runs PersonaLive in `teacher_full` mode (real motion_encoder + real
+pose_encoder consume RGB; bridge seams are NOT installed). Useful when
+an iPhone isn't available, or for direct stylization experiments where
+ARKit blendshapes aren't the input modality.
+
+```bash
+# 1. Verify a webcam exists.
+v4l2-ctl --list-devices    # note the cam_index (often 0)
+
+# 2. Launch daemon with --driver rgb. Use a SMALL batch — teacher_full
+# does ~1.4× more work than bridge mode, so live-conversation latency
+# is better with batch=8 than batch=24.
+PYTHONPATH=src /home/newub/w/PersonaLive/.venv/bin/python \
+  scripts/streaming_bridge.py \
+  --driver rgb --cam_index 0 \
+  --reference data/llf-phase2/asian_m__06_neutral.midframe.png \
+  --ckpt runs/student_v2_120k/student_best.pt \
+  --mp4_out /tmp/streaming_bridge_rgb.mp4 \
+  --batch 8 --fps 25
+
+# 3. Move your face in front of the camera. The daemon logs:
+#   rendered=8 fps=~5 infer_ms=~1500 cap=… drop=… det_fail=…
+# Stop with Ctrl-C. The mp4 will contain the rendered face animated
+# by your captured motion.
+```
+
+Performance reality (RTX 5090, fp16, 4-step DDIM, measured 2026-05-07):
+
+| batch | mean infer | FPS |
+|---|---|---|
+| 8 | 1.5 s | 5.2 |
+| 16 | 2.3 s | 7.1 |
+| 24 | 3.0 s | 8.1 |
+
+`teacher_full` is materially slower than `bridge` mode because the real
+PersonaLive `MotEncoder` is heavier than the distilled `MotEncoderStudent`
+that the bridge swaps in. **5–8 FPS is the current ceiling for the RGB
+driver** — the 18 FPS target from the plan is not achievable on this
+hardware in teacher_full mode without a separate distill of the RGB-side
+encoders, which is out of scope here.
+
+For live-conversation use, prefer the smaller `--batch 8` so the
+glass-to-OBS latency stays around 1.5 s instead of 3 s. The `RGBGrabber`
+ring drops oldest frames on overflow, so a slow consumer falls back to
+"most recent frames", not "stale frames".
+
+Notes:
+
+- `--driver rgb` is incompatible with `--mode v2` (V1 batch render only).
+- Camera missing -> `RuntimeError: cv2.VideoCapture(N) returned no frames`
+  at startup (during the `[4/4] starting RGB grabber` step). Fix the
+  cam_index and re-run.
+- `det_fail` count ticking up means MediaPipe FaceMesh failed to detect
+  a face on that frame; the EMA cropper falls back to the last known
+  bbox so output stays stable. Expected near 0 in normal lighting.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
