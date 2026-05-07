@@ -30,6 +30,8 @@ import socket
 import struct
 import time
 
+from arkit_bridge.llf_udp import decode_packet, N_FLOATS, TAIL_BYTES
+
 ARKIT_52 = [
     "eyeBlinkLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft",
     "eyeLookUpLeft", "eyeSquintLeft", "eyeWideLeft",
@@ -52,27 +54,6 @@ TAIL_NAMES = [
     "leftEyeYaw", "leftEyePitch", "leftEyeRoll",
     "rightEyeYaw", "rightEyePitch", "rightEyeRoll",
 ]
-
-N_FLOATS = 61
-TAIL_BYTES = N_FLOATS * 4
-
-
-def decode_packet(data: bytes):
-    """Return (subject, floats[61]) or (None, None) if too short / malformed."""
-    if len(data) < TAIL_BYTES + 8:
-        return None, None
-    floats = struct.unpack(">" + "f" * N_FLOATS, data[-TAIL_BYTES:])
-    # Subject name: skip 6-byte prefix, read 4-byte length, then ASCII.
-    try:
-        name_len = struct.unpack(">I", data[6:10])[0]
-        if 0 < name_len < 64 and 10 + name_len <= len(data):
-            subject = data[10:10 + name_len].decode("ascii", errors="replace")
-        else:
-            subject = "?"
-    except Exception:
-        subject = "?"
-    return subject, floats
-
 
 def main():
     ap = argparse.ArgumentParser()
