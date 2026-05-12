@@ -190,6 +190,7 @@ def main() -> int:
     ap.add_argument("--manifest",   type=Path, default=Path("data/importer/manifest.parquet"))
     ap.add_argument("--styles", default="photoreal,chibi,furry,chibi_furry")
     ap.add_argument("--seeds-per-style", type=int, default=3)
+    ap.add_argument("--max-jobs", type=int, default=0, help="Stop after N successful new jobs; 0 = no limit (default).")
     ap.add_argument("--seed-base", type=int, default=20260512)
     ap.add_argument("--comfy-input-dir", type=Path, default=None,
                     help="If ComfyUI runs on this machine, copy identity+canny PNGs into ComfyUI/input/ here.")
@@ -273,6 +274,10 @@ def main() -> int:
                 }
                 append_manifest_row(args.manifest, row)
                 done += 1
+                if args.max_jobs and done >= args.max_jobs:
+                    print(f"[run] hit --max-jobs={args.max_jobs}; stopping early")
+                    return 0
+
                 if done % 5 == 0:
                     rate = done / max(1e-6, time.time() - t0) * 60
                     print(f"  [ok] {identity} {style} seed={seed} ({duration:.1f}s) — "

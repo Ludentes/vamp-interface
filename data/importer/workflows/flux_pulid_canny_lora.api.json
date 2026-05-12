@@ -1,23 +1,22 @@
 {
-  "_comment": "ComfyUI API-format workflow template for Flux + PuLID + Canny ControlNet + stacked LoRAs. Placeholders prefixed with $$ are substituted by scripts/importer_run.py at queue time. Adjust node class names if your custom-node versions differ (PuLID-Flux: balazik/ComfyUI-PuLID-Flux; Flux ControlNet: InstantX or XLabs).",
   "1": {
     "class_type": "UNETLoader",
     "inputs": {
-      "unet_name": "flux1-dev.safetensors",
-      "weight_dtype": "fp8_e4m3fn"
+      "unet_name": "FLUX1\\flux1-krea-dev_fp8_scaled.safetensors",
+      "weight_dtype": "default"
     }
   },
   "2": {
     "class_type": "DualCLIPLoader",
     "inputs": {
-      "clip_name1": "t5xxl_fp16.safetensors",
+      "clip_name1": "t5\\t5xxl_fp8_e4m3fn.safetensors",
       "clip_name2": "clip_l.safetensors",
       "type": "flux"
     }
   },
   "3": {
     "class_type": "VAELoader",
-    "inputs": {"vae_name": "ae.safetensors"}
+    "inputs": {"vae_name": "FLUX1\\ae.safetensors"}
   },
   "4": {
     "class_type": "PulidFluxModelLoader",
@@ -54,7 +53,7 @@
   },
   "10": {
     "class_type": "ControlNetLoader",
-    "inputs": {"control_net_name": "flux-canny-controlnet-v3.safetensors"}
+    "inputs": {"control_net_name": "FLUX.1-dev-Controlnet-Canny\\diffusion_pytorch_model.safetensors"}
   },
   "11": {
     "class_type": "CLIPTextEncode",
@@ -77,6 +76,7 @@
       "negative": ["12", 0],
       "control_net": ["10", 0],
       "image": ["9", 0],
+      "vae": ["3", 0],
       "strength": "$$CN_STRENGTH",
       "start_percent": 0.0,
       "end_percent": 0.7
@@ -116,7 +116,6 @@
     }
   },
   "20": {
-    "_comment": "First LoRA slot. Bypass by setting strength to 0.",
     "class_type": "LoraLoaderModelOnly",
     "inputs": {
       "model": ["21", 0],
@@ -125,7 +124,6 @@
     }
   },
   "21": {
-    "_comment": "Second LoRA slot. Bypass by setting strength to 0.",
     "class_type": "LoraLoaderModelOnly",
     "inputs": {
       "model": ["1", 0],
