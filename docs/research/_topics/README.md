@@ -21,6 +21,7 @@ superseded.
 | [neural-deformation-control](neural-deformation-control.md) | LivePortrait-lineage warp-based blendshape control as complement to LoRA sliders | live, active |
 | [personalive-acceleration](personalive-acceleration.md) | PersonaLive inference acceleration: SDPA → torch.compile → torch_tensorrt, 3-probe gate, +77% from torch_tensorrt fixes | live, active |
 | [arkit-bridge](arkit-bridge.md) | ARKit Live Link → PersonaLive implicit-keypoint head + closed-form pose. Student v2_120k, EULER_SIGNS=(+1,-1,+1), F=I | shipped 2026-05-06 |
+| [liveportrait-stylized](liveportrait-stylized.md) | LP-fast renderer tolerant of stylized anchors. G-LoRA on SPADE γ/β via FFHQ-family W-pair; Flux→StyleGAN2 importer bridge unlocks unbounded style-pack supply | live, active |
 | [archived-threads](archived-threads.md) | Superseded dated docs with reasons — *read to decide what NOT to mine for current truth* | archive |
 
 ### Maintenance rule
