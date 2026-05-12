@@ -2,6 +2,13 @@ output/
 data/*.json
 data/*.npy
 
+# Importer corpus — regeneratable from FFHQ + reverse_index; Civitai-LoRA outputs not redistributable
+data/importer/identities/*.png
+data/importer/cn_canny/*.png
+data/importer/refs/
+data/importer/transfer/
+data/importer/manifest.parquet
+
 # Heavy model artifacts — too large for git
 models/flux_sliders/*/slider_*.safetensors
 models/flux_sliders/*/training_state_*.pt
@@ -127,3 +134,6 @@ data/arkit_distill_videos/
 data/arkit_distill_pairs/
 exp_output/arkit_distill/*/student_*.pt
 data/arkit_bridge_pairs/
+
+# Rorschach (separate project, separate repo TBD)
+/rorschach/
