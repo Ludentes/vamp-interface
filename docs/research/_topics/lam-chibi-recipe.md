@@ -1,0 +1,48 @@
+# LAM chibi recipe — topic index
+
+Living interpretation of the "human → chibi 3DGS" thread on top of LAM-20K.
+
+## Current belief
+
+LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vertex splat-scale ratio) renders a coherent chibi avatar at FLAME-rate from any LAM-compatible anchor PNG. ARKit-52 driving stays compatible because the basis is swapped at FLAME init, not after upsample. Splat density follows mesh stretch via `chibi_scale_ratio.npy` so blink closes and eyes read proportionally.
+
+## Asset surface
+
+| Variable | Asset | Purpose | Emitted by |
+|---|---|---|---|
+| `LAM_CHIBI_ARKIT_BS` | `chibi_arkit_bs.npy` | Swap ARKit-52 basis at FLAME init | `chibi_make_assets.py` |
+| `LAM_EDIT_XYZ_OBJ` | `chibi_textured_mesh.obj` | Override canonical xyz before LBS | `chibi_make_assets.py` |
+| `LAM_CHIBI_SCALE_RATIO` | `chibi_scale_ratio.npy` | Per-vertex Gaussian splat-scale compensation | `chibi_make_assets.py` |
+| `LAM_CHIBI_SCALE_BOOST` | — | Uniform splat-scale knob (sanity / fallback) | none |
+
+## Load-bearing dated docs
+
+- [`2026-05-12-flame-for-stylized-anchors.md`](../2026-05-12-flame-for-stylized-anchors.md) — LAM bake-off verdict: 4/4 human + 2/2 stylized humanoid (orc, demon) anchors pass at ~310 fps on RTX 5090. Anime + non-human out of FLAME morphology. Anchor for the chibi thread.
+- [`2026-05-13-lam-arkit-spike-resolved.md`](../2026-05-13-lam-arkit-spike-resolved.md) — Released LAM-20K Python checkpoint accepts ARKit-52 with a two-line patch. Gaussian net is identity-only; expression never touches a trained weight. Live LAM avatar from iPhone = ~1 day plumbing.
+- [`2026-05-13-arkit-flame-mapping-extracted.md`](../2026-05-13-arkit-flame-mapping-extracted.md) — `flame_arkit_bs.npy` (52, 5023, 3) lives at `model_zoo/human_parametric_models/flame_assets/flame_arkit_bs.npy`. Used by both Python runtime and offline GLB-bake path.
+- [`2026-05-14-chibi-splat-scale-fix.md`](../2026-05-14-chibi-splat-scale-fix.md) — **Most recent.** Falsification ladder + v1 boost + v2 per-vertex ratio. Closes the iris-through-lid artifact at chibi_strength=2.0.
+
+## Retired hypotheses
+
+- "Pin eyeball verts to original FLAME positions" — caused ghost second pair of eyes.
+- "Rescale blink/squint/eye-region basis rows to match chibi geometry" — falsified across four variants. The basis was never the problem.
+- "Some lid vertices were forgotten during transformation" — architecturally no; verified at f599.
+- "Lower chibi_strength is the production fix" — unnecessary now that splat scales follow mesh stretch. s=2.0 is shippable.
+
+## Open knobs (not currently exercised)
+
+- **Anime-style oversized eyes.** Multiply `chibi_scale_ratio` only on `eyeball ∪ eye_region` verts by an additional `eye_boost`. Current proportional sizing reads as chibi-correct enough.
+- **Anisotropic splat-scale (v3).** Replace the scalar ratio with a 2×2 tangent-plane covariance ratio if directional streaks appear at higher chibi strengths. Not currently needed.
+- **LBS-joint mismatch.** `eyes_pose` joint transforms in `flame_arkit.py:790-801` are computed from the canonical FLAME template, not the chibi mesh. Plausible secondary cause of subtle eye-pose artifacts at high chibi strength; not investigated since v2 closed the primary artifact.
+
+## Scripts
+
+- `scripts/chibi_anchor_render.sh` — end-to-end: baseline LAM bake → SH→display-RGB rebake → chibi asset gen → chibi LAM render → side-by-side.
+- `scripts/chibi_render_with_assets.sh` — fast path when chibi assets already exist for an anchor.
+- `scripts/chibi_eye_diag.sh` — single-frame f599 harness for rapid blink-artifact iteration.
+- `scripts/chibi_make_assets.py` — emits the three asset files from a (template, arkit_bs, baked-display-mesh) triple.
+
+## Sibling threads
+
+- [`liveportrait-stylized.md`](liveportrait-stylized.md) — stylized rendering via LP+SPADE rather than LAM. Different product shape (2D warp vs 3DGS).
+- [`arkit-bridge.md`](arkit-bridge.md) — the ARKit→PersonaLive bridge; supplies the motion side. LAM consumes the same ARKit-52 stream.
