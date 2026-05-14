@@ -20,7 +20,8 @@ LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vert
 - [`2026-05-12-flame-for-stylized-anchors.md`](../2026-05-12-flame-for-stylized-anchors.md) — LAM bake-off verdict: 4/4 human + 2/2 stylized humanoid (orc, demon) anchors pass at ~310 fps on RTX 5090. Anime + non-human out of FLAME morphology. Anchor for the chibi thread.
 - [`2026-05-13-lam-arkit-spike-resolved.md`](../2026-05-13-lam-arkit-spike-resolved.md) — Released LAM-20K Python checkpoint accepts ARKit-52 with a two-line patch. Gaussian net is identity-only; expression never touches a trained weight. Live LAM avatar from iPhone = ~1 day plumbing.
 - [`2026-05-13-arkit-flame-mapping-extracted.md`](../2026-05-13-arkit-flame-mapping-extracted.md) — `flame_arkit_bs.npy` (52, 5023, 3) lives at `model_zoo/human_parametric_models/flame_assets/flame_arkit_bs.npy`. Used by both Python runtime and offline GLB-bake path.
-- [`2026-05-14-chibi-splat-scale-fix.md`](../2026-05-14-chibi-splat-scale-fix.md) — **Most recent.** Falsification ladder + v1 boost + v2 per-vertex ratio. Closes the iris-through-lid artifact at chibi_strength=2.0.
+- [`2026-05-14-chibi-splat-scale-fix.md`](../2026-05-14-chibi-splat-scale-fix.md) — Falsification ladder + v1 boost + v2 per-vertex ratio. Closes the iris-through-lid artifact at chibi_strength=2.0.
+- [`2026-05-14-neural-renderer-override-pattern.md`](../2026-05-14-neural-renderer-override-pattern.md) — **Most recent.** Methodology note distilled from the splat-scale fix: the override-audit checklist, closed-form pull-backs over trained corrections, when the scalar edge-ratio model breaks (anisotropic / large-stretch cases).
 
 ## Retired hypotheses
 
