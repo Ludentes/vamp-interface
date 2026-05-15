@@ -21,6 +21,11 @@ import torch.nn as nn
 # sits on the actual feature — chibi_knots[i] then directly controls feature i.
 REALISTIC_KNOTS = (0.0, 0.39, 0.48, 0.60, 0.78, 1.0)
 
+# Below the chin (u>1) the radial scale tapers back to identity over this
+# band (in head-height units), so neck/shoulders are not reshaped. The
+# vertical remap is identity-continued there independently.
+BELOW_CHIN_TAPER = 0.15
+
 
 def _interp(x: torch.Tensor, xp: torch.Tensor, fp: torch.Tensor) -> torch.Tensor:
     """Differentiable 1-D linear interpolation (torch has no torch.interp)."""
@@ -69,12 +74,21 @@ class ChibiField(nn.Module):
         return cum / cum[-1]
 
     def remap(self, u: torch.Tensor) -> torch.Tensor:
-        """Map realistic u -> chibi u via the piecewise-linear monotone remap."""
-        return _interp(u, self.realistic_knots, self.chibi_knots())
+        """Map realistic u -> chibi u via the piecewise-linear monotone remap.
+
+        Identity below the chin (u>1): the remap is the head deformation, so
+        neck/shoulder verts keep their height (no pancake collapse). Continuous
+        at u=1 since the remap pins the chin knot to 1; a mild slope kink
+        there is accepted (cf. the legacy field's hard anchor freeze)."""
+        uc = _interp(u, self.realistic_knots, self.chibi_knots())
+        return torch.where(u <= 1.0, uc, u)
 
     def u_of(self, verts: torch.Tensor) -> torch.Tensor:
+        """Normalized head fraction. Clamped at the crown (u>=0); NOT clamped
+        at the chin — u>1 is the neck/shoulders, kept so the field can leave
+        them as identity rather than collapsing them to u=1."""
         span = (self.y_crown - self.y_chin).clamp_min(1e-6)
-        return ((self.y_crown - verts[:, 1]) / span).clamp(0.0, 1.0)
+        return ((self.y_crown - verts[:, 1]) / span).clamp_min(0.0)
 
     def _region_scale_vecs(self) -> dict:
         """Per-region diagonal scale vector (sx,sy,sz)."""
@@ -106,7 +120,15 @@ class ChibiField(nn.Module):
         u = self.u_of(verts)
         u_chibi = self.remap(u)
         new_y = self.y_crown - u_chibi * (self.y_crown - self.y_chin)
-        r = torch.exp(_interp(u, self.realistic_knots, self.radial_log))
+        # clamp_max(1): below the chin use the chin-knot radial scale (no
+        # extrapolation), then taper it out via m below.
+        r = torch.exp(_interp(u.clamp_max(1.0), self.realistic_knots,
+                              self.radial_log))
+        # Below the chin, taper the radial scale back to 1 over a short band
+        # (the remap is already identity-continued there) so neck/shoulders
+        # are not reshaped — and no hard radial crease at the jaw line.
+        m = (1.0 - (u - 1.0) / BELOW_CHIN_TAPER).clamp(0.0, 1.0)
+        r = 1.0 + m * (r - 1.0)
         new_x = verts[:, 0] * r
         new_z = self.z_center + (verts[:, 2] - self.z_center) * r
         out = torch.stack([new_x, new_y, new_z], dim=1)

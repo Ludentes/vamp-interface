@@ -24,6 +24,19 @@ def test_identity_field_leaves_verts_unchanged():
     assert torch.allclose(out, v, atol=1e-5)
 
 
+def test_below_chin_verts_pass_through_unchanged():
+    """Verts below the chin (neck/shoulders, u>1) must be identity — the
+    field is a head deformation. Regression for the neck-pancake bug, where
+    u.clamp(0,1) collapsed every below-chin vert onto the chin plane."""
+    f = _field()  # y_crown=1, y_chin=0
+    with torch.no_grad():
+        f.remap_incr.copy_(torch.randn(5) * 0.3)
+        f.radial_log.copy_(torch.randn(6) * 0.3)
+    # all y well below y_chin=0 (clear of the taper band)
+    v = torch.tensor([[0.3, -0.2, 0.4], [-0.5, -0.8, -0.1], [0.1, -1.5, 0.2]])
+    assert torch.allclose(f(v), v, atol=1e-5)
+
+
 def test_remap_is_monotone_for_random_params():
     f = _field()
     with torch.no_grad():
