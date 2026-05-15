@@ -45,10 +45,18 @@ SY_KNOTS = np.array([1.00, 0.55, 1.30, 1.30, 1.20], dtype=np.float64)  # local y
 SR_KNOTS = np.array([1.00, 0.75, 1.15, 1.30, 1.30], dtype=np.float64)  # radial xz-scale
 
 
-def blend(strength: float) -> tuple[np.ndarray, np.ndarray]:
-    """Lerp knots from identity (strength=0) toward the chibi profile (strength=1)."""
-    sy = 1.0 + strength * (SY_KNOTS - 1.0)
-    sr = 1.0 + strength * (SR_KNOTS - 1.0)
+def blend(vertical_strength: float, radial_strength: float) -> tuple[np.ndarray, np.ndarray]:
+    """Lerp knots from identity (strength=0) toward the chibi profile (strength=1).
+
+    Decoupled: SY (vertical stretch per height) and SR (radial scale per height)
+    each have their own scalar. Calling with equal values reproduces the legacy
+    single-knob behaviour. Increasing only ``radial_strength`` accentuates the
+    temple-cinch + skull-bulge profile without further compressing the lower
+    face vertically (which at vertical_strength > ~1.3 collapses the chin and
+    hides the hourglass read).
+    """
+    sy = 1.0 + vertical_strength * (SY_KNOTS - 1.0)
+    sr = 1.0 + radial_strength * (SR_KNOTS - 1.0)
     return sy, sr
 
 
@@ -284,7 +292,19 @@ def main() -> None:
     ap.add_argument("--y_anchor_frac_baked", type=float, default=0.50,
                     help="baked mesh includes shoulders; default 0.50 keeps neck+shoulders fixed")
     ap.add_argument("--chibi_strength", type=float, default=1.0,
-                    help="0 = identity, 1 = full chibi knots, can overshoot to 1.5 for dramatic")
+                    help="Single-knob shortcut: sets both --vertical_strength and "
+                         "--radial_strength to this value. 0 = identity, 1 = full chibi "
+                         "knots, overshoot to 1.5+ for dramatic. Use the decoupled knobs "
+                         "below to shape the profile (e.g. high radial + low vertical for "
+                         "the temple-cinch / hourglass aesthetic).")
+    ap.add_argument("--vertical_strength", type=float, default=None,
+                    help="Override --chibi_strength on SY (vertical stretch per height) only. "
+                         "Above ~1.3 the lower face collapses vertically and hides the "
+                         "radial-cinch profile.")
+    ap.add_argument("--radial_strength", type=float, default=None,
+                    help="Override --chibi_strength on SR (radial scale per height) only. "
+                         "Drives the temple cinch (SR=0.75 at t=0.30) and skull bulge "
+                         "(SR=1.30 at t≥0.75). Increase to accentuate hourglass profile.")
     ap.add_argument("--blink_boost", type=float, default=1.0,
                     help="Manual multiplier on eyeBlinkL/R (ch8/9) and eyeSquintL/R (ch18/19, "
                          "half-strength) basis rows. Default 1.0 = no boost. "
@@ -316,6 +336,21 @@ def main() -> None:
                          "(un-radial-scaled) magnitude. Diagnostic for the hypothesis "
                          "that s_r amplification of the lid's forward-curl is what "
                          "makes the lid sail past the chibi-pushed-forward iris.")
+    ap.add_argument("--eye_region_scale_boost", type=float, default=1.0,
+                    help="Multiplicative boost applied to chibi_scale_ratio on FLAME "
+                         "'eye_region' verts (lifted to 20018). Addresses the iris-through-lid "
+                         "residual: the bare edge-length ratio at the lid (1.3–1.7) tiles a "
+                         "smooth surface but under-covers for occluding the high-contrast iris "
+                         "behind it. Uniform LAM_CHIBI_SCALE_BOOST=1.5 closes blink completely "
+                         "(at the cost of global blur); this knob localizes that magnitude to "
+                         "the lid only. Try 1.3–1.5 at chibi_strength=2.0. 1.0 = no boost.")
+    ap.add_argument("--eye_region_scale_cap", type=float, default=0.0,
+                    help="If > 0, cap chibi_scale_ratio at this value on FLAME 'eye_region' "
+                         "lifted to 20018 (lid-skin verts surrounding the eyes). Mitigates "
+                         "the doubled-lash artifact: at s=2.0 the median ratio (~1.36) makes "
+                         "both upper-lash and lower-lash rim splats large enough to render "
+                         "as two visible bands when the eye closes, instead of merging into "
+                         "one seam. 0 = no cap (default).")
     ap.add_argument("--flame_masks", type=str,
                     default="/home/newub/w/LAM/model_zoo/human_parametric_models/flame_assets/flame/FLAME_masks.pkl",
                     help="Path to FLAME_masks.pkl. Required when preserve_eyeballs=1.")
@@ -324,9 +359,11 @@ def main() -> None:
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    sy_knots, sr_knots = blend(args.chibi_strength)
+    vert_s = args.vertical_strength if args.vertical_strength is not None else args.chibi_strength
+    rad_s  = args.radial_strength   if args.radial_strength   is not None else args.chibi_strength
+    sy_knots, sr_knots = blend(vert_s, rad_s)
     blink_boost = args.blink_boost
-    print(f"chibi strength={args.chibi_strength}: sy={sy_knots.round(3)}  sr={sr_knots.round(3)}")
+    print(f"chibi strength: vertical={vert_s} radial={rad_s}  sy={sy_knots.round(3)}  sr={sr_knots.round(3)}")
 
     # Load FLAME mask indices for any preserved regions.
     eyeball_idx = None
@@ -459,6 +496,33 @@ def main() -> None:
         # or exploding splats.
         bad = ~np.isfinite(scale_ratio) | (el_orig <= 1e-6)
         scale_ratio[bad] = 1.0
+        # Eye-region modifications: boost (root-cause lever for iris-through-lid) and/or cap
+        # (lash-doubling mitigation, fights root cause — use only if iris is already closed).
+        eye_region_20018 = None
+        if args.eye_region_scale_boost != 1.0 or args.eye_region_scale_cap > 0:
+            import pickle
+            masks = pickle.load(open(args.flame_masks, "rb"), encoding="latin1")
+            eye_region_5023 = np.asarray(masks["eye_region"], dtype=np.int64)
+            tpl_faces_cap = parse_obj_faces(tpl_lines)
+            eye_region_20018, _ = lift_mask_to_subdivided(
+                tpl_verts[:, :3], tpl_faces_cap, eye_region_5023,
+            )
+        if args.eye_region_scale_boost != 1.0:
+            boost = float(args.eye_region_scale_boost)
+            pre_med = float(np.median(scale_ratio[eye_region_20018]))
+            scale_ratio[eye_region_20018] = scale_ratio[eye_region_20018] * boost
+            post_med = float(np.median(scale_ratio[eye_region_20018]))
+            print(f"  eye_region_scale_boost={boost}: {eye_region_20018.size} verts, "
+                  f"median ratio {pre_med:.3f} → {post_med:.3f}")
+        if args.eye_region_scale_cap > 0:
+            cap_val = float(args.eye_region_scale_cap)
+            pre_max = float(scale_ratio[eye_region_20018].max())
+            n_clipped = int((scale_ratio[eye_region_20018] > cap_val).sum())
+            scale_ratio[eye_region_20018] = np.minimum(
+                scale_ratio[eye_region_20018], cap_val
+            )
+            print(f"  eye_region_scale_cap={cap_val}: clipped {n_clipped} of "
+                  f"{eye_region_20018.size} eye_region verts (pre-cap max={pre_max:.3f})")
         np.save(outdir / "chibi_scale_ratio.npy", scale_ratio)
         print(
             f"  wrote {outdir / 'chibi_scale_ratio.npy'} "
