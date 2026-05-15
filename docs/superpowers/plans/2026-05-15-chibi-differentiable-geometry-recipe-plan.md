@@ -927,18 +927,36 @@ def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
     basis (replaces diag(s_r,s_y,s_r)). Including the region transforms is
     load-bearing: the enlarged-eye blink must be pushed through the eye
     Jacobian or the lid cannot close the chibi eye.
-    The xyz columns (cols 0:3) are deformed; any rgb columns 3:6 pass through.
+
+    The fitted params (remap, radial, region scales) are frame-independent;
+    the field is re-framed to THIS mesh's own crown/chin so the u-axis (head
+    fraction) is computed in the mesh's own frame. Works for both the 5023
+    template and the 20018 baked mesh — the baked mesh's first 5023 verts are
+    the original FLAME verts (subdivision appends midpoints), so landmark 8
+    (chin) and the 5023-indexed FLAME masks are valid on both. The baked mesh
+    lives in a totally different coordinate frame (y in [-0.21,0.16] vs the
+    template's [1.31,1.63]) — re-framing is not optional.
+
+    Runs in float64: jacrev is exact but the searchsorted/interp/exp path
+    would carry ~1e-5 relative error into every blendshape row at float32.
     """
     import torch
     from chibi.fit import load_field_params
-    from chibi.landmarks import region_falloff_weights
+    from chibi.landmarks import region_falloff_weights, landmark_positions
 
-    field = load_field_params(field_params)
-    xyz = torch.as_tensor(verts[:, :3], dtype=torch.float32)
+    assert verts.shape[0] in (5023, 20018), (
+        f"deform_with_field expects the 5023 FLAME template or the 20018 "
+        f"baked mesh; got {verts.shape[0]} verts")
+    field = load_field_params(field_params).double()
+    xyz = torch.as_tensor(verts[:, :3], dtype=torch.float64)
+    with torch.no_grad():
+        field.y_crown.copy_(xyz[:, 1].max())
+        field.y_chin.copy_(landmark_positions(xyz[:5023])[8, 1])
+        field.z_center.copy_(xyz[:, 2].mean())
     rw = region_falloff_weights(xyz, masks_path)
     with torch.no_grad():
-        deformed = field(xyz, region_weights=rw).double().numpy()
-    jac = field.local_jacobian(xyz, region_weights=rw).detach().double().numpy()
+        deformed = field(xyz, region_weights=rw).numpy()
+    jac = field.local_jacobian(xyz, region_weights=rw).detach().numpy()
     return deformed, jac
 ```
 

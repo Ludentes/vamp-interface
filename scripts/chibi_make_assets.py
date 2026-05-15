@@ -45,6 +45,65 @@ SY_KNOTS = np.array([1.00, 0.55, 1.30, 1.30, 1.20], dtype=np.float64)  # local y
 SR_KNOTS = np.array([1.00, 0.75, 1.15, 1.30, 1.30], dtype=np.float64)  # radial xz-scale
 
 
+# --- Fitted-field path (--field_params) ------------------------------------
+# Optional alternative to the hand-tuned T/SY/SR knots above: a ChibiField
+# fitted by chibi.fit to the painter quarter-grid. Put the src/ package on the
+# path so this script (run from the lam conda env) can import it.
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+
+def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
+                      ) -> tuple[np.ndarray, np.ndarray]:
+    """Deform verts with a fitted ChibiField. Returns (new_verts, jacobian).
+
+    new_verts: (N,3) float64. jacobian: (N,3,3) float64 — the full-field
+    Jacobian (remap + radial + region transforms), used to rescale the ARKit
+    basis (replaces diag(s_r,s_y,s_r)). Including the region transforms is
+    load-bearing: the enlarged-eye blink must be pushed through the eye
+    Jacobian or the lid cannot close the chibi eye.
+
+    The fitted params (remap, radial, region scales) are frame-independent;
+    the field is re-framed to THIS mesh's own crown/chin so the u-axis (head
+    fraction) is computed in the mesh's own frame. Works for both the 5023
+    template and the 20018 baked mesh — the baked mesh's first 5023 verts are
+    the original FLAME verts (subdivision appends midpoints), so landmark 8
+    (chin) and the 5023-indexed FLAME masks are valid on both.
+
+    Runs in float64: jacrev is exact but the searchsorted/interp/exp path
+    would carry ~1e-5 relative error into every blendshape row at float32.
+    """
+    import torch
+    from chibi.fit import load_field_params
+    from chibi.landmarks import region_falloff_weights, landmark_positions
+
+    assert verts.shape[0] in (5023, 20018), (
+        f"deform_with_field expects the 5023 FLAME template or the 20018 "
+        f"baked mesh; got {verts.shape[0]} verts")
+    field = load_field_params(field_params).double()
+    xyz = torch.as_tensor(verts[:, :3], dtype=torch.float64)
+    with torch.no_grad():
+        field.y_crown.copy_(xyz[:, 1].max())
+        field.y_chin.copy_(landmark_positions(xyz[:5023])[8, 1])
+        field.z_center.copy_(xyz[:, 2].mean())
+    rw = region_falloff_weights(xyz, masks_path)
+    with torch.no_grad():
+        deformed = field(xyz, region_weights=rw).numpy()
+    jac = field.local_jacobian(xyz, region_weights=rw).detach().numpy()
+    return deformed, jac
+
+
+def rescale_arkit_bs_jacobian(arkit_bs: np.ndarray, jac: np.ndarray) -> np.ndarray:
+    """Rescale each blendshape delta by the field's per-vertex Jacobian.
+
+    arkit_bs: (52,5023,3). jac: (5023,3,3). For vert v the deformed delta is
+    J_v @ delta_v — the exact linearization of the field, replacing the
+    hand-derived diagonal scale. Returns (52,5023,3) float64.
+    """
+    bs = arkit_bs.astype(np.float64)
+    return np.einsum("vij,bvj->bvi", jac, bs)
+
+
 def blend(vertical_strength: float, radial_strength: float) -> tuple[np.ndarray, np.ndarray]:
     """Lerp knots from identity (strength=0) toward the chibi profile (strength=1).
 
@@ -305,6 +364,11 @@ def main() -> None:
                     help="Override --chibi_strength on SR (radial scale per height) only. "
                          "Drives the temple cinch (SR=0.75 at t=0.30) and skull bulge "
                          "(SR=1.30 at t≥0.75). Increase to accentuate hourglass profile.")
+    ap.add_argument("--field_params", type=str, default=None,
+                    help="Path to a chibi_field_params.json fitted by "
+                         "chibi.fit. When given, deformation + basis rescaling "
+                         "use the fitted ChibiField instead of the hand-tuned "
+                         "T/SY/SR knots. The legacy knob path is the default.")
     ap.add_argument("--blink_boost", type=float, default=1.0,
                     help="Manual multiplier on eyeBlinkL/R (ch8/9) and eyeSquintL/R (ch18/19, "
                          "half-strength) basis rows. Default 1.0 = no boost. "
@@ -384,7 +448,15 @@ def main() -> None:
     assert tpl_verts.shape[0] == 5023, f"expected 5023 verts in template, got {tpl_verts.shape[0]}"
     y_a, y_t = auto_anchor_top(tpl_verts[:, :3], args.y_anchor_frac_template)
     print(f"template: y in [{tpl_verts[:,1].min():.4f},{tpl_verts[:,1].max():.4f}]  anchor={y_a:.4f}  top={y_t:.4f}")
-    tpl_new, t_pv = deform_verts(tpl_verts[:, :3], y_a, y_t, sy_knots, sr_knots)
+    if args.field_params:
+        # Fitted-field path: ChibiField deformation + its exact Jacobian
+        # (the Jacobian rescales the ARKit basis below, replacing the hand
+        # diag()). t_pv stays unset — only the legacy rescaler consumes it.
+        tpl_new, tpl_jac = deform_with_field(
+            tpl_verts[:, :3], args.flame_masks, args.field_params)
+        print("  field path: deformed 5023 template via fitted ChibiField")
+    else:
+        tpl_new, t_pv = deform_verts(tpl_verts[:, :3], y_a, y_t, sy_knots, sr_knots)
     # Pin eyeball verts to their original positions BEFORE writing. This stops
     # the chibi radial expansion from projecting the eyeball sphere forward in z.
     if eyeball_idx is not None:
@@ -395,8 +467,12 @@ def main() -> None:
     arkit = np.load(args.arkit_bs)
     assert arkit.shape == (52, 5023, 3), f"expected (52,5023,3), got {arkit.shape}"
     z_id_rows = [8, 9, 18, 19] if args.blink_z_identity else None
-    arkit_new = rescale_arkit_bs(arkit, t_pv, sy_knots, sr_knots,
-                                 z_identity_rows=z_id_rows)
+    if args.field_params:
+        arkit_new = rescale_arkit_bs_jacobian(arkit, tpl_jac)
+        print("  field path: rescaled ARKit basis by the full-field Jacobian")
+    else:
+        arkit_new = rescale_arkit_bs(arkit, t_pv, sy_knots, sr_knots,
+                                     z_identity_rows=z_id_rows)
     if z_id_rows:
         print(f"  blink_z_identity: kept z component of rows {z_id_rows} at original magnitude")
     if args.blink_rows_identity:
@@ -439,7 +515,12 @@ def main() -> None:
     print(f"baked: shape={baked_verts.shape}  y in [{baked_verts[:,1].min():.4f},{baked_verts[:,1].max():.4f}]")
     y_a_b, y_t_b = auto_anchor_top(baked_verts[:, :3], args.y_anchor_frac_baked)
     print(f"  baked anchor={y_a_b:.4f}  top={y_t_b:.4f}")
-    baked_xyz_new, _ = deform_verts(baked_verts[:, :3], y_a_b, y_t_b, sy_knots, sr_knots)
+    if args.field_params:
+        baked_xyz_new, _ = deform_with_field(
+            baked_verts[:, :3], args.flame_masks, args.field_params)
+        print("  field path: deformed 20018 baked mesh via fitted ChibiField")
+    else:
+        baked_xyz_new, _ = deform_verts(baked_verts[:, :3], y_a_b, y_t_b, sy_knots, sr_knots)
     # Pin baked-mesh eye verts. The baked mesh is 20018 = 5023 original FLAME
     # verts + ~15000 edge-midpoint verts appended by pytorch3d.SubdivideMeshes
     # (same op LAM runs in upsample_mesh_cpu). The FLAME eye masks live in
