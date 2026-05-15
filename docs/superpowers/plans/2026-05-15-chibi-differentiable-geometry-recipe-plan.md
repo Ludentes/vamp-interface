@@ -498,6 +498,31 @@ def landmark_lines(verts: torch.Tensor) -> dict:
     y_chin = lm[8, 1]
     return {name: _u(lm[idx, 1], y_crown, y_chin).mean()
             for name, idx in GROUPS.items()}
+
+
+# Nose landmarks for the z-depth extent: bridge..tip, indices 27-35.
+_NOSE_LMK = list(range(27, 36))
+
+
+def feature_extents(verts: torch.Tensor) -> dict:
+    """Differentiable feature sizes from landmark verts. All are raw extents
+    in mesh units; fit.py turns them into fractions / multipliers.
+
+    eye_y   — eye-landmark y-extent (vertical eye opening)
+    nose_z  — nose-landmark z-extent (how far the nose projects)
+    mouth_y — mouth-landmark y-extent (vertical mouth opening)
+    head_y  — crown-to-chin span, the normalizer for eye_y
+    """
+    lm = landmark_positions(verts)
+    eye = lm[GROUPS["eye"]]
+    nose = lm[_NOSE_LMK]
+    mouth = lm[GROUPS["mouth"]]
+    return {
+        "eye_y": eye[:, 1].max() - eye[:, 1].min(),
+        "nose_z": nose[:, 2].max() - nose[:, 2].min(),
+        "mouth_y": mouth[:, 1].max() - mouth[:, 1].min(),
+        "head_y": verts[:, 1].max() - lm[8, 1],
+    }
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -625,9 +650,12 @@ def test_loss_is_lower_after_fit():
     v = _template_verts()
     field = ChibiField(y_crown=float(v[:,1].max()), y_chin=0.0, z_center=0.0)
     rw = region_falloff_weights(v, MASKS)
-    before = chibi_loss(field, v, rw)["total"].item()
+    # Compare the LANDMARK component: 'total' at identity carries zero smooth
+    # and reg, so total-vs-total compares a reg-free point to a reg-bearing
+    # one. The landmark term is the proportion fit the optimizer is for.
+    before = chibi_loss(field, v, rw)["landmark"].item()
     fitted = fit_chibi_field(v, MASKS, n_steps=120, lr=0.05, verbose=False)
-    after = chibi_loss(fitted, v, rw)["total"].item()
+    after = chibi_loss(fitted, v, rw)["landmark"].item()
     assert after < before * 0.5
 
 
@@ -635,8 +663,9 @@ def test_fit_lands_eye_and_mouth_near_quarter_grid():
     v = _template_verts()
     fitted = fit_chibi_field(v, MASKS, n_steps=300, lr=0.05, verbose=False)
     rw = region_falloff_weights(v, MASKS)
-    deformed = fitted(v, region_weights=rw)
-    lines = landmark_lines(deformed)
+    with torch.no_grad():
+        deformed = fitted(v, region_weights=rw)
+        lines = landmark_lines(deformed)
     assert abs(float(lines["eye"]) - 0.50) < 0.03
     assert abs(float(lines["mouth"]) - 0.75) < 0.03
 ```
@@ -663,9 +692,9 @@ import numpy as np
 import torch
 
 from chibi.field import ChibiField
-from chibi.landmarks import (landmark_lines, landmark_positions,
+from chibi.landmarks import (landmark_lines, landmark_positions, feature_extents,
                              region_falloff_weights, _template_faces,
-                             QUARTER_GRID_TARGETS, GROUPS)
+                             QUARTER_GRID_TARGETS)
 
 
 def _mesh_laplacian_penalty(disp: torch.Tensor, faces: torch.Tensor) -> torch.Tensor:
@@ -693,14 +722,16 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
     tgt = QUARTER_GRID_TARGETS["lines"]
     l_lm = sum((lines[k] - tgt[k]) ** 2 for k in tgt)
 
-    # feature-size targets
-    lm = landmark_positions(deformed)
-    y_crown = deformed[:, 1].max()
-    y_chin = lm[8, 1]
-    span = (y_crown - y_chin).clamp_min(1e-6)
-    eye_y = lm[GROUPS["eye"], 1]
-    eye_h = (eye_y.max() - eye_y.min()) / span
+    # feature-size targets: eye as a fraction of head height; nose-depth and
+    # mouth-height as multipliers of their original (undeformed) extent.
+    ext0 = feature_extents(verts)
+    ext1 = feature_extents(deformed)
+    eye_h = ext1["eye_y"] / ext1["head_y"].clamp_min(1e-6)
+    nose_mul = ext1["nose_z"] / ext0["nose_z"].clamp_min(1e-6)
+    mouth_mul = ext1["mouth_y"] / ext0["mouth_y"].clamp_min(1e-6)
     l_lm = l_lm + (eye_h - QUARTER_GRID_TARGETS["eye_height_u"]) ** 2
+    l_lm = l_lm + (nose_mul - QUARTER_GRID_TARGETS["nose_depth_mul"]) ** 2
+    l_lm = l_lm + (mouth_mul - QUARTER_GRID_TARGETS["mouth_height_mul"]) ** 2
 
     l_smooth = _mesh_laplacian_penalty(deformed - verts, faces)
     l_reg = (field.remap_incr ** 2).mean() + sum(

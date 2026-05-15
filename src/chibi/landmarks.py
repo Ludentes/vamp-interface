@@ -80,6 +80,31 @@ def landmark_lines(verts: torch.Tensor) -> dict:
             for name, idx in GROUPS.items()}
 
 
+# Nose landmarks for the z-depth extent: bridge..tip, indices 27-35.
+_NOSE_LMK = list(range(27, 36))
+
+
+def feature_extents(verts: torch.Tensor) -> dict:
+    """Differentiable feature sizes from landmark verts. All are raw extents
+    in mesh units; fit.py turns them into fractions / multipliers.
+
+    eye_y   — eye-landmark y-extent (vertical eye opening)
+    nose_z  — nose-landmark z-extent (how far the nose projects)
+    mouth_y — mouth-landmark y-extent (vertical mouth opening)
+    head_y  — crown-to-chin span, the normalizer for eye_y
+    """
+    lm = landmark_positions(verts)
+    eye = lm[GROUPS["eye"]]
+    nose = lm[_NOSE_LMK]
+    mouth = lm[GROUPS["mouth"]]
+    return {
+        "eye_y": eye[:, 1].max() - eye[:, 1].min(),
+        "nose_z": nose[:, 2].max() - nose[:, 2].min(),
+        "mouth_y": mouth[:, 1].max() - mouth[:, 1].min(),
+        "head_y": verts[:, 1].max() - lm[8, 1],
+    }
+
+
 # FLAME_masks region names that compose each chibi feature region.
 REGION_MASKS = {
     "eye": ["eye_region", "left_eyeball", "right_eyeball"],
