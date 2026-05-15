@@ -49,6 +49,32 @@ encoder; pose is closed-form.
   ~3.5 s. Operator runbook:
   [`2026-05-06-llf-obs-runbook.md`](../2026-05-06-llf-obs-runbook.md).
   Modules: `src/arkit_bridge/{llf_udp,seam_install,streaming_driver,v4l2_sink}.py`.
+- **🚢 LivePortrait streaming pivot 2026-05-07**:
+  [`2026-05-07-liveportrait-streaming-baseline.md`](../2026-05-07-liveportrait-streaming-baseline.md)
+  — webcam → FasterLivePortrait (TRT) → v4l2 → OBS. **Glass-to-OBS
+  ≈80–150 ms** (vs PersonaLive's ~5 s). 17–22 ms/frame TRT, no batching,
+  no bridge. Pushkin painting anchor passes — same anchor PersonaLive
+  collapsed on 2026-05-06. Daemon: `scripts/streaming_bridge_lp.py`.
+  Resolves the stylized-anchor leg of the 2026-05-06 pivot decision.
+  **Shippable recipe:** `--crop_driver --pasteback --smooth_motion
+  --scale_clamp 0.0` — first kills jitter (One-Euro on driver
+  pitch/yaw/roll/t/exp/scale), second kills head pumping (pin
+  scale_d to frame-0). Tighter-than-3% clamp band needed; full pin
+  was the answer. Both shipped as monkey-patches on
+  `MotionExtractor.predict` after `prepare_source`. **Still on
+  next-session todo:** frame-0 calibration (3-sec neutral-hold),
+  axis-aligned source crop (kill polygon-tilt), reflect-pad anchors
+  (kill black borders at wide src_scale), long-clip drift watch.
+- **First-session pacing & sampling lessons 2026-05-07**:
+  [`2026-05-07-llf-streaming-pacing-and-sampling.md`](../2026-05-07-llf-streaming-pacing-and-sampling.md)
+  — `PacedSinkWriter` + prebuffer + stateless evenly-spaced LLF sampler.
+  Replaces "most recent N packets" (which was 7.5× slow-mo with motion
+  silently dropped) and the cursor-tracking sampler (which caused
+  catastrophic 6 s mid-stream resets). Working settings:
+  `--mode v2 --batch 24 --fps 8 --sample_span_s 3.0 --writer_prebuffer 24`.
+  iPhone via USB-tether (Personal Hotspot Ethernet) for jitter-free LLF.
+  Three diagnostic scripts now part of the toolkit:
+  `v4l2_test_feeder.py`, `v4l2_burst_feeder.py`, `v4l2_llf_feeder.py`.
 - **V2 cohort-stream shipped 2026-05-07** (commits `b4952ec` + `319a564`):
   vendored `Pose2VideoPipeline_Stream` split into `prepare()` + `step()` +
   `decode()`; bit-exact (mean abs diff 0) vs upstream `__call__` per
