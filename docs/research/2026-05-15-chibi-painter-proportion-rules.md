@@ -44,46 +44,57 @@ Tutorials describe simplification as "reduce information while leaving key featu
 
 The consistent diagnosis: chibi looks uncanny when it is "too realistic for the exaggerated proportions" — realistic rendering/shading or realistic micro-anatomy mixed with chibi proportions creates discord [6][7]. Two practical implications for us: (a) the skin-flattening step is not optional polish — leaving photoreal skin texture on chibi geometry is *the* documented uncanny trigger; (b) proportions that copy a literal human infant (tiny chin, features crammed very low, eyes close together) also misfire — the user's point 7 is independently corroborated by the "semi-realistic chibi with realistic build feels unsettling" reports.
 
-## Vertical Division Model — the chibi "thirds"
+## Vertical Division Model — thirds → quarters
 
-This is the formulation the user asked for: where the horizontal feature lines sit, expressed as fractions of the **vertical face axis** (crown of the head silhouette `y=0` → bottom of chin `y=1`). It lets us state chibi as a *remapping* of the realistic line positions, which is exactly a per-vertex vertical displacement field.
+This is the formulation the user asked for: where the horizontal feature lines sit, expressed as fractions of the **vertical face axis** (crown of the head silhouette `y=0` → bottom of chin `y=1`). It lets us state chibi as a *remapping* of the realistic line positions, which is exactly a per-vertex vertical displacement field. The artist gave the core rule directly: **a standard head is read in thirds, a chibi head in quarters.**
 
-**Realistic adult (Loomis).** The classic rule divides the face hairline→chin into **three equal thirds**: hairline→brow, brow→nose-base, nose-base→chin [9][10]. Eyes sit on the head's vertical **midline** in adults [11]. Extending the axis up to the crown:
+**Realistic adult — thirds.** The classic Loomis rule divides the head crown→chin into **three equal thirds** [9][10], and the artist's brief states the same boundaries:
+
+- First third: **crown → brows** (the whole forehead)
+- Second third: **brows → nose tip**
+- Third third: **nose tip → chin**
+
+Eyes sit just below the brow line, near the head's vertical **midline** in adults [11].
 
 | Line | Realistic adult `y` |
 |---|---|
 | Crown | 0.00 |
-| Hairline | ~0.12 |
-| Brow | ~0.40 (top of middle third) |
-| Eye centre | ~0.50 (head midline) |
-| Nose base | ~0.67 (bottom of middle third) |
-| Mouth (lip line) | ~0.78 |
+| Brow | ~0.33 (1st/2nd third boundary) |
+| Eye centre | ~0.42 |
+| Nose tip | ~0.67 (2nd/3rd third boundary) |
+| Mouth (lip line) | ~0.80 |
 | Chin | 1.00 |
 
-**Infant.** Diagnostic age marker: brows — not eyes — fall on the midline, so the **eyes sit below the midline**, and the cranium/forehead is enlarged [12]. Eyes touch the bottom line of the *top quarter* of the brow-down face. Copying this literally is the documented creepy trigger (rule 7).
+**Infant.** Diagnostic age marker: brows — not eyes — fall on the midline, so the **eyes sit below the midline**, and the cranium/forehead is enlarged [12]. Copying this literally is the documented creepy trigger (rule 7).
 
-**Chibi (synthesis).** Tutorials place the eye band starting at the **middle of the head** and extending down **1/4 of the face** (≈ 2/8 divisions), with eyebrows 1/8 above the eye tops, and the mouth in the band between eye-bottom and chin [4][3]. Eyes are **1/4 to 1/2 of the face height** [3]. Combined with the artist brief (eyes at ~½ the face; nose→mouth ≈ ½ of mouth→chin; eyes+nose+mouth fit within 1/3–1/2 of the face), the chibi line model is:
+**Chibi — quarters.** The artist's rule: divide the head crown→chin into **four equal quarters** and place features *on the quarter lines*:
+
+- **Eyes on the 2/4 line** (`y = 0.50`) — the head midline
+- **Mouth on the 3/4 line** (`y = 0.75`)
+
+Nose sits between eyes and mouth; with the artist-brief ratio (nose→mouth ≈ ½ of mouth→chin) and mouth→chin = `0.25`, the nose lands at `y ≈ 0.625`. Eyes are ~1/4 of the head tall, so the eye span is ≈ `0.375 → 0.625` centred on the 2/4 line.
 
 | Line | Chibi `y` | Move vs realistic |
 |---|---|---|
 | Crown | 0.00 | — |
-| (no hairline break — large rounded forehead) | — | forehead expands |
-| Eye **top** | ~0.44 | down |
-| Eye **centre** | ~0.58 | down ~0.08 (below midline) |
-| Eye **bottom** | ~0.72 | down |
-| Nose (button) | ~0.72 | down + collapsed to dot |
-| Mouth (strip) | ~0.81 | up toward nose |
+| Eye **top** | ~0.375 | — |
+| Eye **centre** | **0.50** (2/4 line) | down ~0.08 from brow-adjacent realistic eye |
+| Eye **bottom** / nose top | ~0.625 | — |
+| Nose (button) | ~0.625 | up + collapsed to dot |
+| Mouth (strip) | **0.75** (3/4 line) | up toward nose |
 | Chin | 1.00 | — |
 
-The defining chibi move is **not** three equal thirds — it is three *unequal* bands:
+The defining chibi move: **thirds become quarters**, and the three feature bands become — counting in quarters — **2 : 1 : 1**.
 
 | Band | Realistic | Chibi | Meaning |
 |---|---|---|---|
-| Crown → eye-top | ~0.40 | **~0.44** | big empty rounded forehead |
-| Eye-top → mouth | ~0.38 | **~0.37** | the dense feature cluster — huge eyes + button nose + strip mouth crammed together |
-| Mouth → chin | ~0.22 | **~0.19** | smooth empty chin sweep |
+| Crown → eye-top | ~0.40 (most of 1st third) | **~0.375** (≈ top 1.5 quarters) | big empty rounded forehead |
+| Eye-top → mouth | ~0.38 | **~0.375** (eyes quarter + nose quarter) | dense feature cluster — huge eyes + button nose + strip mouth |
+| Mouth → chin | ~0.20 | **0.25** (bottom quarter) | smooth empty chin sweep |
 
-Within the lower face the artist-brief ratio holds: nose `0.72` → mouth `0.81` = `0.09`; mouth `0.81` → chin `1.00` = `0.19` → **≈ 1 : 2** ✓. The eye centre lands at ~0.58 of the head ≈ **0.5 of the *face* zone** (face zone ≈ 0.15→1.0), reconciling "eyes at half the face" with "eyes below the head midline" — they are the same statement measured against different references.
+The lower-face artist-brief ratio holds: nose `0.625` → mouth `0.75` = `0.125`; mouth `0.75` → chin `1.00` = `0.25` → **exactly 1 : 2** ✓. The eye centre on the 2/4 line is the head midline — so "eyes at half the face" is literal in the quarter grid, no reference-frame juggling needed.
+
+Note this supersedes the earlier synthesis draft (which had eyes at `0.58`, mouth at `0.81`): the artist's quarter grid is a direct instruction and is cleaner — eyes and mouth land exactly on quarter lines, and the 1:2 nose-mouth-chin ratio is exact rather than approximate.
 
 These numbers are a **starting target**, not a canon — the literature gives the *structure* (which lines move which way) but not exact fractions; tune the `y` values against the reference image. The whole model is a 1-D vertical remap `y_chibi = f(y_realistic)` plus the per-feature scale rules below, and `f` is piecewise-linear and differentiable.
 
