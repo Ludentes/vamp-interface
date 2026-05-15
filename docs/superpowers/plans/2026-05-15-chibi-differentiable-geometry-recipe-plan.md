@@ -107,8 +107,11 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-# Realistic u-positions of the 6 remap knots: crown, brow, eye, nose, mouth, chin.
-REALISTIC_KNOTS = (0.0, 0.33, 0.42, 0.67, 0.80, 1.0)
+# Realistic u-positions of the 6 remap knots: crown, brow, eye, nose, mouth,
+# chin. MEASURED from the FLAME template's own landmark embedding (mean group
+# u via chibi.landmarks.landmark_lines on head_template_mesh.obj), so each knot
+# sits on the actual feature — chibi_knots[i] then directly controls feature i.
+REALISTIC_KNOTS = (0.0, 0.39, 0.48, 0.60, 0.78, 1.0)
 
 
 def _interp(x: torch.Tensor, xp: torch.Tensor, fp: torch.Tensor) -> torch.Tensor:

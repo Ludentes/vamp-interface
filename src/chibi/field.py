@@ -14,8 +14,11 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-# Realistic u-positions of the 6 remap knots: crown, brow, eye, nose, mouth, chin.
-REALISTIC_KNOTS = (0.0, 0.33, 0.42, 0.67, 0.80, 1.0)
+# Realistic u-positions of the 6 remap knots: crown, brow, eye, nose, mouth,
+# chin. MEASURED from the FLAME template's own landmark embedding (mean group
+# u via chibi.landmarks.landmark_lines on head_template_mesh.obj), so each knot
+# sits on the actual feature — chibi_knots[i] then directly controls feature i.
+REALISTIC_KNOTS = (0.0, 0.39, 0.48, 0.60, 0.78, 1.0)
 
 
 def _interp(x: torch.Tensor, xp: torch.Tensor, fp: torch.Tensor) -> torch.Tensor:
@@ -29,6 +32,12 @@ def _interp(x: torch.Tensor, xp: torch.Tensor, fp: torch.Tensor) -> torch.Tensor
 
 
 class ChibiField(nn.Module):
+    # registered buffers — annotated so type-checkers see them as tensors.
+    y_crown: torch.Tensor
+    y_chin: torch.Tensor
+    z_center: torch.Tensor
+    realistic_knots: torch.Tensor
+
     def __init__(self, y_crown: float, y_chin: float, z_center: float):
         super().__init__()
         self.register_buffer("y_crown", torch.tensor(float(y_crown)))
@@ -127,9 +136,9 @@ class ChibiField(nn.Module):
         names = list(region_weights.keys())
         w_stack = torch.stack([region_weights[n] for n in names], dim=1)  # (N,R)
 
-        def single(v, wi):                   # v:(3,) wi:(R,)
+        def single_region(v, wi):            # v:(3,) wi:(R,)
             g = self.forward(v[None, :])[0]
             for j, name in enumerate(names):
                 g = g + wi[j] * (g - centroids[name]) * (scales[name] - 1.0)
             return g
-        return torch.vmap(torch.func.jacrev(single))(verts, w_stack)
+        return torch.vmap(torch.func.jacrev(single_region))(verts, w_stack)
