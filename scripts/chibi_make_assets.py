@@ -54,14 +54,16 @@ _sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 
 def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
-                      ) -> tuple[np.ndarray, np.ndarray]:
-    """Deform verts with a fitted ChibiField. Returns (new_verts, jacobian).
+                      ) -> tuple[np.ndarray, "object", "object", dict]:
+    """Deform verts with a fitted ChibiField.
 
-    new_verts: (N,3) float64. jacobian: (N,3,3) float64 — the full-field
-    Jacobian (remap + radial + region transforms), used to rescale the ARKit
-    basis (replaces diag(s_r,s_y,s_r)). Including the region transforms is
-    load-bearing: the enlarged-eye blink must be pushed through the eye
-    Jacobian or the lid cannot close the chibi eye.
+    Returns (new_verts, field, xyz, rw):
+      new_verts : (N,3) float64 — the deformed positions.
+      field     : the ChibiField, re-framed to THIS mesh's crown/chin.
+      xyz       : (N,3) float64 torch tensor of the input verts (the frame the
+                  field + region weights were built in — needed for the secant
+                  basis rescale, which evaluates Phi(xyz + b_k)).
+      rw        : region falloff weights dict.
 
     The fitted params (remap, radial, region scales) are frame-independent;
     the field is re-framed to THIS mesh's own crown/chin so the u-axis (head
@@ -70,8 +72,8 @@ def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
     the original FLAME verts (subdivision appends midpoints), so landmark 8
     (chin) and the 5023-indexed FLAME masks are valid on both.
 
-    Runs in float64: jacrev is exact but the searchsorted/interp/exp path
-    would carry ~1e-5 relative error into every blendshape row at float32.
+    Runs in float64: the searchsorted/interp/exp path would carry ~1e-5
+    relative error into every blendshape row at float32.
     """
     import torch
     from chibi.fit import load_field_params
@@ -89,19 +91,23 @@ def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
     rw = region_falloff_weights(xyz, masks_path)
     with torch.no_grad():
         deformed = field(xyz, region_weights=rw).numpy()
-    jac = field.local_jacobian(xyz, region_weights=rw).detach().numpy()
-    return deformed, jac
+    return deformed, field, xyz, rw
 
 
-def rescale_arkit_bs_jacobian(arkit_bs: np.ndarray, jac: np.ndarray) -> np.ndarray:
-    """Rescale each blendshape delta by the field's per-vertex Jacobian.
+def rescale_arkit_bs_secant(arkit_bs: np.ndarray, field, xyz, rw) -> np.ndarray:
+    """Rescale the ARKit basis by the field's SECANT (chord), not its Jacobian.
 
-    arkit_bs: (52,5023,3). jac: (5023,3,3). For vert v the deformed delta is
-    J_v @ delta_v — the exact linearization of the field, replacing the
-    hand-derived diagonal scale. Returns (52,5023,3) float64.
+    For channel k: b'_k = Phi(xyz + b_k) - Phi(xyz). The Jacobian (tangent at
+    rest) is exact only for infinitesimal motion; ARKit channels are finite-
+    amplitude (jawOpen moves the lip centimetres), where the tangent is ~80%
+    wrong — the radial-scale height coupling kicks the delta sideways. The
+    secant is exact at unit amplitude and within ~10% across [0,1], and it
+    captures the eye region transform's enlarged lid travel automatically
+    (Phi includes it). Returns (52,5023,3) float64.
     """
-    bs = arkit_bs.astype(np.float64)
-    return np.einsum("vij,bvj->bvi", jac, bs)
+    import torch
+    basis = torch.as_tensor(arkit_bs, dtype=torch.float64)
+    return field.secant_basis(xyz, basis, rw).detach().numpy()
 
 
 def blend(vertical_strength: float, radial_strength: float) -> tuple[np.ndarray, np.ndarray]:
@@ -449,10 +455,10 @@ def main() -> None:
     y_a, y_t = auto_anchor_top(tpl_verts[:, :3], args.y_anchor_frac_template)
     print(f"template: y in [{tpl_verts[:,1].min():.4f},{tpl_verts[:,1].max():.4f}]  anchor={y_a:.4f}  top={y_t:.4f}")
     if args.field_params:
-        # Fitted-field path: ChibiField deformation + its exact Jacobian
-        # (the Jacobian rescales the ARKit basis below, replacing the hand
-        # diag()). t_pv stays unset — only the legacy rescaler consumes it.
-        tpl_new, tpl_jac = deform_with_field(
+        # Fitted-field path: ChibiField deformation. The field + frame are
+        # carried forward so the ARKit basis is rescaled by the field's
+        # secant below. t_pv stays unset — only the legacy rescaler uses it.
+        tpl_new, tpl_field, tpl_xyz, tpl_rw = deform_with_field(
             tpl_verts[:, :3], args.flame_masks, args.field_params)
         print("  field path: deformed 5023 template via fitted ChibiField")
     else:
@@ -468,8 +474,8 @@ def main() -> None:
     assert arkit.shape == (52, 5023, 3), f"expected (52,5023,3), got {arkit.shape}"
     z_id_rows = [8, 9, 18, 19] if args.blink_z_identity else None
     if args.field_params:
-        arkit_new = rescale_arkit_bs_jacobian(arkit, tpl_jac)
-        print("  field path: rescaled ARKit basis by the full-field Jacobian")
+        arkit_new = rescale_arkit_bs_secant(arkit, tpl_field, tpl_xyz, tpl_rw)
+        print("  field path: rescaled ARKit basis by the field secant (chord)")
     else:
         arkit_new = rescale_arkit_bs(arkit, t_pv, sy_knots, sr_knots,
                                      z_identity_rows=z_id_rows)
@@ -516,7 +522,7 @@ def main() -> None:
     y_a_b, y_t_b = auto_anchor_top(baked_verts[:, :3], args.y_anchor_frac_baked)
     print(f"  baked anchor={y_a_b:.4f}  top={y_t_b:.4f}")
     if args.field_params:
-        baked_xyz_new, _ = deform_with_field(
+        baked_xyz_new, _, _, _ = deform_with_field(
             baked_verts[:, :3], args.flame_masks, args.field_params)
         print("  field path: deformed 20018 baked mesh via fitted ChibiField")
     else:

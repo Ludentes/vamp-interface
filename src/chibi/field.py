@@ -11,6 +11,7 @@ to [0,1]. u=0 crown, u=1 chin. The field is the composition of:
   3. per-feature region similarity transforms  (eye/nose/mouth)
 """
 from __future__ import annotations
+from typing import Literal, overload
 import torch
 import torch.nn as nn
 
@@ -86,6 +87,13 @@ class ChibiField(nn.Module):
             "mouth": torch.cat([torch.ones(1), my, torch.ones(1)]),
         }
 
+    @overload
+    def forward(self, verts: torch.Tensor, region_weights: dict | None = ...,
+                return_centroids: Literal[False] = ...) -> torch.Tensor: ...
+    @overload
+    def forward(self, verts: torch.Tensor, region_weights: dict | None,
+                return_centroids: Literal[True]) -> tuple[torch.Tensor, dict]: ...
+
     def forward(self, verts: torch.Tensor, region_weights: dict | None = None,
                 return_centroids: bool = False):
         """Apply remap + radial scale, then blended region transforms.
@@ -113,11 +121,48 @@ class ChibiField(nn.Module):
                 out = out + w[:, None] * delta
         return (out, centroids) if return_centroids else out
 
+    def secant_basis(self, verts: torch.Tensor, basis: torch.Tensor,
+                     region_weights: dict | None = None) -> torch.Tensor:
+        """Rescale a finite-amplitude animation basis by the field's secant
+        (chord), not its Jacobian. For each channel k:
+
+            b'_k = Phi(verts + b_k) - Phi(verts)
+
+        The Jacobian (`local_jacobian`) is the tangent *at rest* — exact only
+        for infinitesimal motion. ARKit channels are finite-amplitude (jawOpen
+        moves the lip centimetres), where the tangent is ~80% wrong: the
+        radial-scale height coupling kicks the delta sideways from the first
+        infinitesimal step. The secant is exact at unit amplitude and within
+        ~10% across [0,1] — and needs no autograd. It also captures the eye
+        region transform's enlarged lid travel automatically (Phi includes it),
+        so it subsumes what `local_jacobian` was carrying for the iris leak.
+
+        `region_weights` (region membership) is held fixed across the chord:
+        a vertex's region membership is an identity, not a function of its
+        momentary pose. Region *centroids* are not pinned — each `forward`
+        recomputes them from its own positions, so the chord is exact w.r.t.
+        the field as defined; the centroid drift is the same O(1/M) coupling
+        `local_jacobian` chooses to detach.
+
+        basis: (K,N,3). Returns (K,N,3), same dtype as `basis`.
+        """
+        base = self.forward(verts, region_weights=region_weights)
+        out = torch.empty_like(basis)
+        for k in range(basis.shape[0]):
+            out[k] = self.forward(verts + basis[k],
+                                  region_weights=region_weights) - base
+        return out
+
     def local_jacobian(self, verts: torch.Tensor,
                        region_weights: dict | None = None) -> torch.Tensor:
         """Per-vertex 3x3 Jacobian of the COMPLETE field — remap + radial +
-        the per-feature region transforms — via autograd. This is the exact
-        pushforward that rescales the ARKit basis: bs_chibi[v] = J[v] @ bs[v].
+        the per-feature region transforms — via autograd. The tangent of the
+        field *at rest*.
+
+        NOTE: no longer on the ARKit-basis path. The tangent is ~80% wrong on
+        finite-amplitude mouth channels (the radial-scale height coupling
+        shears the delta); `secant_basis` replaces it. Retained as a
+        diagnostic / the comparison baseline its tests check against.
 
         Including the region transforms is load-bearing: the eye region
         enlarges the eye ~2x, so the blink/squint basis rows must be pushed
