@@ -109,3 +109,45 @@ def load_field_params(path: str) -> ChibiField:
         field.s_nose_z_log.copy_(torch.tensor(d["s_nose_z_log"]))
         field.s_mouth_y_log.copy_(torch.tensor(d["s_mouth_y_log"]))
     return field
+
+
+def _load_obj_verts(path: str) -> torch.Tensor:
+    verts = []
+    for L in Path(path).read_text().splitlines():
+        if L.startswith("v "):
+            p = L.split()
+            verts.append([float(p[1]), float(p[2]), float(p[3])])
+    return torch.tensor(verts, dtype=torch.float32)
+
+
+if __name__ == "__main__":
+    import argparse
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ap = argparse.ArgumentParser(description="Fit a ChibiField to the quarter-grid.")
+    ap.add_argument("--template", required=True, help="5023-vert FLAME template .obj")
+    ap.add_argument("--masks", required=True, help="FLAME_masks.pkl")
+    ap.add_argument("--outdir", required=True)
+    ap.add_argument("--n_steps", type=int, default=300)
+    ap.add_argument("--lr", type=float, default=0.05)
+    args = ap.parse_args()
+
+    out = Path(args.outdir)
+    out.mkdir(parents=True, exist_ok=True)
+    verts = _load_obj_verts(args.template)
+    field = fit_chibi_field(verts, args.masks, n_steps=args.n_steps, lr=args.lr)
+    save_field_params(field, str(out / "chibi_field_params.json"))
+
+    plt.figure()
+    plt.plot(field._loss_history)
+    plt.xlabel("step"); plt.ylabel("total loss"); plt.yscale("log")
+    plt.title("ChibiField fit")
+    plt.savefig(out / "loss_curve.png", dpi=110, bbox_inches="tight")
+
+    rw = region_falloff_weights(verts, args.masks)
+    lines = landmark_lines(field(verts, region_weights=rw))
+    print("fitted landmark lines:",
+          {k: round(float(v), 4) for k, v in lines.items()})
+    print(f"wrote {out/'chibi_field_params.json'} and {out/'loss_curve.png'}")
