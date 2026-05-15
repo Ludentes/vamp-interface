@@ -214,6 +214,38 @@ def test_local_jacobian_matches_finite_difference():
             dv = v.clone(); dv[k, j] += eps
             num = (f(dv)[k] - f(v)[k]) / eps
             assert torch.allclose(J[k, :, j], num, atol=1e-3)
+
+
+def test_local_jacobian_includes_region_transforms():
+    f = _field()
+    with torch.no_grad():
+        f.s_eye_log.copy_(torch.log(torch.tensor(1.8)))
+    n = 120
+    v = torch.rand(n, 3)
+    w = torch.zeros(n); w[:30] = 1.0
+    rw = {"eye": w}
+    J_full = f.local_jacobian(v, region_weights=rw)   # (n,3,3)
+    J_glob = f.local_jacobian(v)
+    # Outside the region the two agree; inside they differ (region scaling
+    # is now in the Jacobian, so the eye-enlarge shows up in J).
+    assert torch.allclose(J_full[60:], J_glob[60:], atol=1e-5)
+    assert not torch.allclose(J_full[:30], J_glob[:30], atol=1e-3)
+    # FD-check the region-inclusive Jacobian against the same fixed-centroid
+    # function jacrev differentiates: global field then eye transform about a
+    # detached centroid.
+    _, cen = f.forward(v, rw, return_centroids=True)
+    cen = cen["eye"].detach()
+    s = torch.exp(f.s_eye_log.detach())               # (1,) -> isotropic eye
+    eps = 1e-4
+    for k in (5, 10):                                 # two in-region verts
+        for j in range(3):
+            dv = v.clone(); dv[k, j] += eps
+            g0 = f.forward(v[k:k+1])[0]
+            g1 = f.forward(dv[k:k+1])[0]
+            g0 = g0 + w[k] * (g0 - cen) * (s - 1.0)
+            g1 = g1 + w[k] * (g1 - cen) * (s - 1.0)
+            num = (g1 - g0) / eps
+            assert torch.allclose(J_full[k, :, j], num, atol=1e-3)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -247,12 +279,14 @@ Replace the `forward` signature/body to accept `region_weights` and apply region
             "mouth": torch.cat([torch.ones(1), my, torch.ones(1)]),
         }
 
-    def forward(self, verts: torch.Tensor, region_weights: dict | None = None
-                ) -> torch.Tensor:
+    def forward(self, verts: torch.Tensor, region_weights: dict | None = None,
+                return_centroids: bool = False):
         """Apply remap + radial scale, then blended region transforms.
 
         region_weights: {region_name: (N,) tensor in [0,1]} smooth falloff
         masks. region_name in {"eye","nose","mouth"}. None -> global field only.
+        return_centroids: also return {name: (3,) centroid} actually used, so
+        local_jacobian can replay the region transforms with fixed centroids.
         """
         u = self.u_of(verts)
         u_chibi = self.remap(u)
@@ -261,29 +295,52 @@ Replace the `forward` signature/body to accept `region_weights` and apply region
         new_x = verts[:, 0] * r
         new_z = self.z_center + (verts[:, 2] - self.z_center) * r
         out = torch.stack([new_x, new_y, new_z], dim=1)
+        centroids = {}
         if region_weights:
             scales = self._region_scale_vecs()
             for name, w in region_weights.items():
                 wsum = w.sum().clamp_min(1e-6)
                 centroid = (out * w[:, None]).sum(0) / wsum
+                centroids[name] = centroid
                 delta = (out - centroid) * (scales[name] - 1.0)
                 out = out + w[:, None] * delta
-        return out
+        return (out, centroids) if return_centroids else out
 
-    def local_jacobian(self, verts: torch.Tensor) -> torch.Tensor:
-        """Per-vertex 3x3 Jacobian of the GLOBAL field (remap + radial), via
-        autograd. Region transforms are excluded — the blendshape basis is
-        rescaled by the global field's Jacobian; region transforms act on
-        canonical positions only. Returns (N,3,3)."""
-        def single(v):                       # v: (3,)
-            return self.forward(v[None, :])[0]
-        return torch.vmap(torch.func.jacrev(single))(verts)
+    def local_jacobian(self, verts: torch.Tensor,
+                       region_weights: dict | None = None) -> torch.Tensor:
+        """Per-vertex 3x3 Jacobian of the COMPLETE field — remap + radial +
+        the per-feature region transforms — via autograd. This is the exact
+        pushforward that rescales the ARKit basis: bs_chibi[v] = J[v] @ bs[v].
+
+        Including the region transforms is load-bearing: the eye region
+        enlarges the eye ~2x, so the blink/squint basis rows must be pushed
+        through the eye Jacobian or the lid cannot close the enlarged eye
+        (the iris-through-lid leak, rebuilt by geometry). Region centroids are
+        held fixed (detached) so each vertex's J is its local linear map; the
+        residual centroid coupling is O(1/M) per region and negligible.
+        Returns (N,3,3)."""
+        if not region_weights:
+            def single(v):                   # v: (3,)
+                return self.forward(v[None, :])[0]
+            return torch.vmap(torch.func.jacrev(single))(verts)
+        _, centroids = self.forward(verts, region_weights, return_centroids=True)
+        centroids = {k: c.detach() for k, c in centroids.items()}
+        scales = {k: s.detach() for k, s in self._region_scale_vecs().items()}
+        names = list(region_weights.keys())
+        w_stack = torch.stack([region_weights[n] for n in names], dim=1)  # (N,R)
+
+        def single(v, wi):                   # v:(3,) wi:(R,)
+            g = self.forward(v[None, :])[0]
+            for j, name in enumerate(names):
+                g = g + wi[j] * (g - centroids[name]) * (scales[name] - 1.0)
+            return g
+        return torch.vmap(torch.func.jacrev(single))(verts, w_stack)
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `cd $VAMP && uv run pytest tests/test_chibi_field.py -v`
-Expected: 5 passed.
+Expected: 6 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -811,8 +868,11 @@ def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
                       ) -> tuple[np.ndarray, np.ndarray]:
     """Deform verts with a fitted ChibiField. Returns (new_verts, jacobian).
 
-    new_verts: (N,3) float64. jacobian: (N,3,3) float64 — the GLOBAL field
-    Jacobian, used to rescale the ARKit basis (replaces diag(s_r,s_y,s_r)).
+    new_verts: (N,3) float64. jacobian: (N,3,3) float64 — the full-field
+    Jacobian (remap + radial + region transforms), used to rescale the ARKit
+    basis (replaces diag(s_r,s_y,s_r)). Including the region transforms is
+    load-bearing: the enlarged-eye blink must be pushed through the eye
+    Jacobian or the lid cannot close the chibi eye.
     The xyz columns (cols 0:3) are deformed; any rgb columns 3:6 pass through.
     """
     import torch
@@ -824,9 +884,11 @@ def deform_with_field(verts: np.ndarray, masks_path: str, field_params: str
     rw = region_falloff_weights(xyz, masks_path)
     with torch.no_grad():
         deformed = field(xyz, region_weights=rw).double().numpy()
-    jac = field.local_jacobian(xyz).detach().double().numpy()
+    jac = field.local_jacobian(xyz, region_weights=rw).detach().double().numpy()
     return deformed, jac
 ```
+
+**Note on the 20018 baked mesh:** `deform_with_field` calls `region_falloff_weights`, which addresses the FLAME masks (5023-indexed) into the passed vert array. This is exact for the 5023 template. For the 20018 baked mesh it is correct **only if LAM's mesh subdivision preserves the original vertex indices** in the first 5023 slots (then `masks[n]` still points at eye/nose/lip verts and the distance-based falloff covers the new subdivision verts). Loop/midpoint subdivision usually does preserve original indices — verify this in Step 6 by checking the deformed baked `.obj` eye region visually matches the deformed template. If it does not, lift the region weights from 5023→20018 by the same `u`-fraction + nearest-template-vert mapping the script already uses for the field, rather than re-indexing the masks directly.
 
 - [ ] **Step 3: Add a Jacobian-based basis rescaler**
 
