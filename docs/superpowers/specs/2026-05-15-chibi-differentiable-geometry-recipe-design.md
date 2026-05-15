@@ -32,7 +32,7 @@ From the research doc, expressed on the vertical head axis `u ∈ [0,1]` (`u=0` 
 | Mouth (lip line) | ~0.80 | **0.75** (3/4 line) |
 | Chin | 1.00 | 1.00 |
 
-Plus per-feature size rules: eyes ≈ ¼ head tall (enlarge), nose collapsed to a button (shrink width, collapse depth/bridge), mouth compressed to a strip (shrink height). These are the differentiable rules 1–7 + 8a; they are all expressible as **vertex-position targets**, so the fit needs neither a face detector nor the renderer.
+Plus per-feature size rules, all expressed as **multipliers of the realistic (undeformed) extent** so every target is reachable on the same scale: eye-lid aperture ~2× (enlarge), nose z-depth → 0.45 (collapse to a button), mouth height → 0.55 (compress to a strip). The painter "eyes ≈ ¼ head" rule refers to the whole eye *graphic*, not the lid aperture FLAME landmarks trace — so it is recast here as an aperture multiplier rather than a head-fraction. These are the differentiable rules 1–7 + 8a; they are all expressible as **vertex-position targets**, so the fit needs neither a face detector nor the renderer.
 
 ## Approaches Considered
 
@@ -84,7 +84,7 @@ Loss (`total = L_landmark + λ_smooth·L_smooth + λ_reg·L_reg`):
 - **`L_smooth`** — mesh-Laplacian of the displacement field `(v_chibi − v_real)`; keeps region transforms blending smoothly into the global field.
 - **`L_reg`** — minimal-deformation guardrail: L2 of region scales toward 1.0 and remap knots toward identity. This is the identity guard — with a structured 13-param field, "do the least deformation that hits the targets" is sufficient; no perceptual identity metric is needed.
 
-Adam, ~300 steps, CPU (the field is tiny; no GPU, no renderer). Defaults: `lr=0.05`, `λ_smooth=1.0`, `λ_reg=0.05`. Saves fitted parameters to `chibi_field_params.json` and a `loss_curve.png`.
+Adam, ~300 steps, CPU (the field is tiny; no GPU, no renderer). Defaults: `lr=0.05`, `λ_smooth=1.0`, `λ_reg=0.005`. `λ_reg` is low because every feature line and size now carries a reachable target — reg only picks the minimal-norm solution among the underdetermined DOFs (the 5th remap increment, the untargeted radial knots), it is not trading off against the targets. Saves fitted parameters to `chibi_field_params.json` and a `loss_curve.png`.
 
 ### `scripts/chibi_make_assets.py` — extended to consume fitted params
 

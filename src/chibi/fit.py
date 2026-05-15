@@ -31,7 +31,7 @@ def _mesh_laplacian_penalty(disp: torch.Tensor, faces: torch.Tensor) -> torch.Te
 
 def chibi_loss(field: ChibiField, verts: torch.Tensor,
                region_weights: dict, faces: torch.Tensor | None = None,
-               lam_smooth: float = 1.0, lam_reg: float = 0.05) -> dict:
+               lam_smooth: float = 1.0, lam_reg: float = 0.005) -> dict:
     """Return {'total','landmark','smooth','reg'} loss tensors."""
     if faces is None:
         faces = torch.as_tensor(_template_faces(), dtype=torch.long)
@@ -40,14 +40,14 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
     tgt = QUARTER_GRID_TARGETS["lines"]
     l_lm = sum((lines[k] - tgt[k]) ** 2 for k in tgt)
 
-    # feature-size targets: eye as a fraction of head height; nose-depth and
-    # mouth-height as multipliers of their original (undeformed) extent.
+    # feature-size targets: all three are multipliers of the original
+    # (undeformed) extent, so every term is reachable on the same scale.
     ext0 = feature_extents(verts)
     ext1 = feature_extents(deformed)
-    eye_h = ext1["eye_y"] / ext1["head_y"].clamp_min(1e-6)
+    eye_mul = ext1["eye_y"] / ext0["eye_y"].clamp_min(1e-6)
     nose_mul = ext1["nose_z"] / ext0["nose_z"].clamp_min(1e-6)
     mouth_mul = ext1["mouth_y"] / ext0["mouth_y"].clamp_min(1e-6)
-    l_lm = l_lm + (eye_h - QUARTER_GRID_TARGETS["eye_height_u"]) ** 2
+    l_lm = l_lm + (eye_mul - QUARTER_GRID_TARGETS["eye_size_mul"]) ** 2
     l_lm = l_lm + (nose_mul - QUARTER_GRID_TARGETS["nose_depth_mul"]) ** 2
     l_lm = l_lm + (mouth_mul - QUARTER_GRID_TARGETS["mouth_height_mul"]) ** 2
 
@@ -62,6 +62,7 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
 
 def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
                     n_steps: int = 300, lr: float = 0.05,
+                    lam_smooth: float = 1.0, lam_reg: float = 0.005,
                     verbose: bool = True) -> ChibiField:
     field = ChibiField(y_crown=float(verts[:, 1].max()),
                        y_chin=float(landmark_positions(verts)[8, 1]),
@@ -72,7 +73,8 @@ def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
     history = []
     for step in range(n_steps):
         opt.zero_grad()
-        loss = chibi_loss(field, verts, rw, faces)
+        loss = chibi_loss(field, verts, rw, faces,
+                          lam_smooth=lam_smooth, lam_reg=lam_reg)
         loss["total"].backward()
         opt.step()
         history.append(loss["total"].item())

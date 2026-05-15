@@ -445,10 +445,13 @@ GROUPS = {"brow": list(range(17, 27)), "eye": list(range(36, 48)),
           "nose": [30], "mouth": list(range(48, 68)), "chin": [8]}
 
 # Chibi quarter-grid targets (research doc 2026-05-15-chibi-painter-proportion-rules).
+# All four feature lines carry a target so the remap is fully constrained;
+# all three feature sizes are multipliers of the realistic (undeformed)
+# extent, so every term is reachable and no target distorts the others.
 QUARTER_GRID_TARGETS = {
-    "lines": {"eye": 0.50, "nose": 0.625, "mouth": 0.75},
-    # feature size targets, as fractions / multipliers (see fit.py for use):
-    "eye_height_u": 0.25,   # eye bbox height ~ 1/4 head
+    "lines": {"brow": 0.42, "eye": 0.50, "nose": 0.625, "mouth": 0.75},
+    # feature size targets, multipliers of the original (undeformed) extent:
+    "eye_size_mul": 2.0,    # enlarge the eye-lid aperture ~2x (the chibi eye)
     "nose_depth_mul": 0.45, # collapse nose z-depth to 45% of original
     "mouth_height_mul": 0.55,  # compress mouth height to a strip
 }
@@ -633,7 +636,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 import torch
 from chibi.fit import fit_chibi_field, chibi_loss
 from chibi.field import ChibiField
-from chibi.landmarks import landmark_lines, region_falloff_weights, FLAME_TEMPLATE
+from chibi.landmarks import (landmark_lines, feature_extents,
+                             region_falloff_weights, FLAME_TEMPLATE)
 
 MASKS = "/home/newub/w/LAM/model_zoo/human_parametric_models/flame_assets/flame/FLAME_masks.pkl"
 
@@ -666,8 +670,15 @@ def test_fit_lands_eye_and_mouth_near_quarter_grid():
     with torch.no_grad():
         deformed = fitted(v, region_weights=rw)
         lines = landmark_lines(deformed)
+        e0, e1 = feature_extents(v), feature_extents(deformed)
+    # feature lines land near the quarter grid
     assert abs(float(lines["eye"]) - 0.50) < 0.03
     assert abs(float(lines["mouth"]) - 0.75) < 0.03
+    # and the chibi size deformations actually happen: eye enlarges, nose
+    # collapses, mouth compresses (the point of the recipe).
+    assert float(e1["eye_y"] / e0["eye_y"]) > 1.7
+    assert float(e1["nose_z"] / e0["nose_z"]) < 0.6
+    assert float(e1["mouth_y"] / e0["mouth_y"]) < 0.7
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -713,7 +724,7 @@ def _mesh_laplacian_penalty(disp: torch.Tensor, faces: torch.Tensor) -> torch.Te
 
 def chibi_loss(field: ChibiField, verts: torch.Tensor,
                region_weights: dict, faces: torch.Tensor | None = None,
-               lam_smooth: float = 1.0, lam_reg: float = 0.05) -> dict:
+               lam_smooth: float = 1.0, lam_reg: float = 0.005) -> dict:
     """Return {'total','landmark','smooth','reg'} loss tensors."""
     if faces is None:
         faces = torch.as_tensor(_template_faces(), dtype=torch.long)
@@ -722,14 +733,14 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
     tgt = QUARTER_GRID_TARGETS["lines"]
     l_lm = sum((lines[k] - tgt[k]) ** 2 for k in tgt)
 
-    # feature-size targets: eye as a fraction of head height; nose-depth and
-    # mouth-height as multipliers of their original (undeformed) extent.
+    # feature-size targets: all three are multipliers of the original
+    # (undeformed) extent, so every term is reachable on the same scale.
     ext0 = feature_extents(verts)
     ext1 = feature_extents(deformed)
-    eye_h = ext1["eye_y"] / ext1["head_y"].clamp_min(1e-6)
+    eye_mul = ext1["eye_y"] / ext0["eye_y"].clamp_min(1e-6)
     nose_mul = ext1["nose_z"] / ext0["nose_z"].clamp_min(1e-6)
     mouth_mul = ext1["mouth_y"] / ext0["mouth_y"].clamp_min(1e-6)
-    l_lm = l_lm + (eye_h - QUARTER_GRID_TARGETS["eye_height_u"]) ** 2
+    l_lm = l_lm + (eye_mul - QUARTER_GRID_TARGETS["eye_size_mul"]) ** 2
     l_lm = l_lm + (nose_mul - QUARTER_GRID_TARGETS["nose_depth_mul"]) ** 2
     l_lm = l_lm + (mouth_mul - QUARTER_GRID_TARGETS["mouth_height_mul"]) ** 2
 
@@ -744,6 +755,7 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
 
 def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
                     n_steps: int = 300, lr: float = 0.05,
+                    lam_smooth: float = 1.0, lam_reg: float = 0.005,
                     verbose: bool = True) -> ChibiField:
     field = ChibiField(y_crown=float(verts[:, 1].max()),
                        y_chin=float(landmark_positions(verts)[8, 1]),
@@ -754,7 +766,8 @@ def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
     history = []
     for step in range(n_steps):
         opt.zero_grad()
-        loss = chibi_loss(field, verts, rw, faces)
+        loss = chibi_loss(field, verts, rw, faces,
+                          lam_smooth=lam_smooth, lam_reg=lam_reg)
         loss["total"].backward()
         opt.step()
         history.append(loss["total"].item())

@@ -25,10 +25,13 @@ GROUPS = {"brow": list(range(17, 27)), "eye": list(range(36, 48)),
           "nose": [30], "mouth": list(range(48, 68)), "chin": [8]}
 
 # Chibi quarter-grid targets (research doc 2026-05-15-chibi-painter-proportion-rules).
+# All four feature lines carry a target so the remap is fully constrained;
+# all three feature sizes are multipliers of the realistic (undeformed)
+# extent, so every term is reachable and no target distorts the others.
 QUARTER_GRID_TARGETS = {
-    "lines": {"eye": 0.50, "nose": 0.625, "mouth": 0.75},
-    # feature size targets, as fractions / multipliers (see fit.py for use):
-    "eye_height_u": 0.25,   # eye bbox height ~ 1/4 head
+    "lines": {"brow": 0.42, "eye": 0.50, "nose": 0.625, "mouth": 0.75},
+    # feature size targets, multipliers of the original (undeformed) extent:
+    "eye_size_mul": 2.0,    # enlarge the eye-lid aperture ~2x (the chibi eye)
     "nose_depth_mul": 0.45, # collapse nose z-depth to 45% of original
     "mouth_height_mul": 0.55,  # compress mouth height to a strip
 }
