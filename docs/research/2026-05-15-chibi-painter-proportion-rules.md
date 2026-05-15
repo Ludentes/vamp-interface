@@ -44,6 +44,49 @@ Tutorials describe simplification as "reduce information while leaving key featu
 
 The consistent diagnosis: chibi looks uncanny when it is "too realistic for the exaggerated proportions" — realistic rendering/shading or realistic micro-anatomy mixed with chibi proportions creates discord [6][7]. Two practical implications for us: (a) the skin-flattening step is not optional polish — leaving photoreal skin texture on chibi geometry is *the* documented uncanny trigger; (b) proportions that copy a literal human infant (tiny chin, features crammed very low, eyes close together) also misfire — the user's point 7 is independently corroborated by the "semi-realistic chibi with realistic build feels unsettling" reports.
 
+## Vertical Division Model — the chibi "thirds"
+
+This is the formulation the user asked for: where the horizontal feature lines sit, expressed as fractions of the **vertical face axis** (crown of the head silhouette `y=0` → bottom of chin `y=1`). It lets us state chibi as a *remapping* of the realistic line positions, which is exactly a per-vertex vertical displacement field.
+
+**Realistic adult (Loomis).** The classic rule divides the face hairline→chin into **three equal thirds**: hairline→brow, brow→nose-base, nose-base→chin [9][10]. Eyes sit on the head's vertical **midline** in adults [11]. Extending the axis up to the crown:
+
+| Line | Realistic adult `y` |
+|---|---|
+| Crown | 0.00 |
+| Hairline | ~0.12 |
+| Brow | ~0.40 (top of middle third) |
+| Eye centre | ~0.50 (head midline) |
+| Nose base | ~0.67 (bottom of middle third) |
+| Mouth (lip line) | ~0.78 |
+| Chin | 1.00 |
+
+**Infant.** Diagnostic age marker: brows — not eyes — fall on the midline, so the **eyes sit below the midline**, and the cranium/forehead is enlarged [12]. Eyes touch the bottom line of the *top quarter* of the brow-down face. Copying this literally is the documented creepy trigger (rule 7).
+
+**Chibi (synthesis).** Tutorials place the eye band starting at the **middle of the head** and extending down **1/4 of the face** (≈ 2/8 divisions), with eyebrows 1/8 above the eye tops, and the mouth in the band between eye-bottom and chin [4][3]. Eyes are **1/4 to 1/2 of the face height** [3]. Combined with the artist brief (eyes at ~½ the face; nose→mouth ≈ ½ of mouth→chin; eyes+nose+mouth fit within 1/3–1/2 of the face), the chibi line model is:
+
+| Line | Chibi `y` | Move vs realistic |
+|---|---|---|
+| Crown | 0.00 | — |
+| (no hairline break — large rounded forehead) | — | forehead expands |
+| Eye **top** | ~0.44 | down |
+| Eye **centre** | ~0.58 | down ~0.08 (below midline) |
+| Eye **bottom** | ~0.72 | down |
+| Nose (button) | ~0.72 | down + collapsed to dot |
+| Mouth (strip) | ~0.81 | up toward nose |
+| Chin | 1.00 | — |
+
+The defining chibi move is **not** three equal thirds — it is three *unequal* bands:
+
+| Band | Realistic | Chibi | Meaning |
+|---|---|---|---|
+| Crown → eye-top | ~0.40 | **~0.44** | big empty rounded forehead |
+| Eye-top → mouth | ~0.38 | **~0.37** | the dense feature cluster — huge eyes + button nose + strip mouth crammed together |
+| Mouth → chin | ~0.22 | **~0.19** | smooth empty chin sweep |
+
+Within the lower face the artist-brief ratio holds: nose `0.72` → mouth `0.81` = `0.09`; mouth `0.81` → chin `1.00` = `0.19` → **≈ 1 : 2** ✓. The eye centre lands at ~0.58 of the head ≈ **0.5 of the *face* zone** (face zone ≈ 0.15→1.0), reconciling "eyes at half the face" with "eyes below the head midline" — they are the same statement measured against different references.
+
+These numbers are a **starting target**, not a canon — the literature gives the *structure* (which lines move which way) but not exact fractions; tune the `y` values against the reference image. The whole model is a 1-D vertical remap `y_chibi = f(y_realistic)` plus the per-feature scale rules below, and `f` is piecewise-linear and differentiable.
+
 ## Rule Set → Deformation Recipe Mapping
 
 | # | Painter rule | Mesh operation | Differentiable? |
@@ -75,3 +118,7 @@ The consistent diagnosis: chibi looks uncanny when it is "too realistic for the 
 [6] "Chibi (style)" — Wikipedia. https://en.wikipedia.org/wiki/Chibi_(style) (Retrieved 2026-05-15)
 [7] "Super-Deformed" — TV Tropes. https://tvtropes.org/pmwiki/pmwiki.php/Main/SuperDeformed (Retrieved 2026-05-15)
 [8] "Illustrating Chibi-Character Faces" — MediBang Paint. https://medibangpaint.com/en/use/2021/10/how-to-draw-a-chibi-characters-face/ (Retrieved 2026-05-15, via search snippet — page returned 403 on direct fetch)
+[9] "Loomis Method: Draw a Head From Any Angle" — Fine Art Tutorials. https://finearttutorials.com/guide/loomis-method/ (Retrieved 2026-05-15, via search aggregation)
+[10] "How to Draw a Face — Facial Proportions" — The Virtual Instructor. https://thevirtualinstructor.com/facialproportions.html (Retrieved 2026-05-15, via search aggregation)
+[11] "Drawing Stylized Chibi Characters: Proportions and Expressions" — YouTalent Educational Blog. https://blog.youtalent.com/drawing-stylized-chibi-characters-proportions-expressions/ (Retrieved 2026-05-15)
+[12] "Basic Facial Proportions: Infant to Adult" — Drawspace; "Understanding Children's Proportions" — O'Reilly / *Drawing: Faces & Features*. https://lessons.drawspace.com/lessons/1508/basic-facial-proportions-infant-to-adult (Retrieved 2026-05-15, via search aggregation)
