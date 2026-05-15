@@ -106,7 +106,6 @@ to [0,1]. u=0 crown, u=1 chin. The field is the composition of:
 from __future__ import annotations
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 # Realistic u-positions of the 6 remap knots: crown, brow, eye, nose, mouth, chin.
 REALISTIC_KNOTS = (0.0, 0.33, 0.42, 0.67, 0.80, 1.0)
@@ -129,14 +128,22 @@ class ChibiField(nn.Module):
         self.register_buffer("y_chin", torch.tensor(float(y_chin)))
         self.register_buffer("z_center", torch.tensor(float(z_center)))
         self.register_buffer("realistic_knots", torch.tensor(REALISTIC_KNOTS))
-        # 5 increments between the 6 knots; softplus -> positive; normalized to 1.
+        # 5 log-multipliers on the realistic knot spacings; exp -> positive
+        # (monotone), unit at 0 (identity). See chibi_knots().
         self.remap_incr = nn.Parameter(torch.zeros(5))
         # per-knot radial log-scale; exp(0)=1 -> identity.
         self.radial_log = nn.Parameter(torch.zeros(6))
 
     def chibi_knots(self) -> torch.Tensor:
-        """The 6 chibi u-positions. Monotone by construction."""
-        seg = F.softplus(self.remap_incr) + 1e-4
+        """The 6 chibi u-positions. Monotone by construction; identity (==
+        REALISTIC_KNOTS) at remap_incr=0 because exp(0)=1.
+
+        Each interior segment is the realistic spacing scaled by exp(incr),
+        then the 6 knots are the normalized cumulative sum. exp keeps every
+        segment positive (monotone) and unit at rest (identity)."""
+        rk = self.realistic_knots
+        spacing = rk[1:] - rk[:-1]                 # (5,) sums to 1
+        seg = spacing * torch.exp(self.remap_incr)
         cum = torch.cat([torch.zeros(1), torch.cumsum(seg, 0)])
         return cum / cum[-1]
 
@@ -202,11 +209,11 @@ def test_region_transform_scales_only_masked_verts():
 
 
 def test_local_jacobian_matches_finite_difference():
-    f = _field()
+    f = _field().double()  # float64: FD of (g1-g0)/eps needs the precision
     with torch.no_grad():
         f.remap_incr.copy_(torch.randn(5) * 0.3)
         f.radial_log.copy_(torch.randn(6) * 0.2)
-    v = torch.tensor([[0.12, 0.55, 0.08], [-0.2, 0.3, -0.05]])
+    v = torch.tensor([[0.12, 0.55, 0.08], [-0.2, 0.3, -0.05]], dtype=torch.float64)
     J = f.local_jacobian(v)                       # (2,3,3)
     eps = 1e-4
     for k in range(2):
@@ -217,12 +224,12 @@ def test_local_jacobian_matches_finite_difference():
 
 
 def test_local_jacobian_includes_region_transforms():
-    f = _field()
+    f = _field().double()  # float64: FD precision (see test above)
     with torch.no_grad():
         f.s_eye_log.copy_(torch.log(torch.tensor(1.8)))
     n = 120
-    v = torch.rand(n, 3)
-    w = torch.zeros(n); w[:30] = 1.0
+    v = torch.rand(n, 3, dtype=torch.float64)
+    w = torch.zeros(n, dtype=torch.float64); w[:30] = 1.0
     rw = {"eye": w}
     J_full = f.local_jacobian(v, region_weights=rw)   # (n,3,3)
     J_glob = f.local_jacobian(v)
