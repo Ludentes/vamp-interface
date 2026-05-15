@@ -12,6 +12,8 @@ mouth 48-67).
 """
 from __future__ import annotations
 from functools import lru_cache
+import pathlib
+import pickle
 import numpy as np
 import torch
 
@@ -44,7 +46,7 @@ def load_landmark_embedding(path: str) -> tuple[np.ndarray, np.ndarray]:
 @lru_cache(maxsize=1)
 def _template_faces() -> np.ndarray:
     faces = []
-    for L in open(FLAME_TEMPLATE):
+    for L in pathlib.Path(FLAME_TEMPLATE).read_text().splitlines():
         if L.startswith("f "):
             idx = [int(p.split("/")[0]) - 1 for p in L.split()[1:]]
             if len(idx) >= 3:
@@ -76,3 +78,32 @@ def landmark_lines(verts: torch.Tensor) -> dict:
     y_chin = lm[8, 1]
     return {name: _u(lm[idx, 1], y_crown, y_chin).mean()
             for name, idx in GROUPS.items()}
+
+
+# FLAME_masks region names that compose each chibi feature region.
+REGION_MASKS = {
+    "eye": ["eye_region", "left_eyeball", "right_eyeball"],
+    "nose": ["nose"],
+    "mouth": ["lips"],
+}
+
+
+def region_falloff_weights(verts: torch.Tensor, masks_path: str,
+                           falloff: float = 0.015) -> dict:
+    """Smooth per-vertex weight in [0,1] per feature region.
+
+    1.0 on masked verts, decaying as exp(-(d/falloff)^2) with Euclidean
+    distance d to the nearest masked vert. `falloff` is in FLAME mesh units
+    (the head spans ~0.3 units); 0.015 gives a ~2-ring blend band so region
+    transforms fade out without tearing.
+    """
+    with open(masks_path, "rb") as fh:
+        masks = pickle.load(fh, encoding="latin1")
+    v = verts.detach()
+    out = {}
+    for region, names in REGION_MASKS.items():
+        idx = np.unique(np.concatenate([np.asarray(masks[n]) for n in names]))
+        core = v[torch.as_tensor(idx, dtype=torch.long)]      # (M,3)
+        d2 = torch.cdist(v, core).min(dim=1).values            # (N,)
+        out[region] = torch.exp(-(d2 / falloff) ** 2)
+    return out

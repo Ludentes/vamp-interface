@@ -36,3 +36,18 @@ def test_quarter_grid_targets_present():
         assert k in QUARTER_GRID_TARGETS["lines"]
     assert abs(QUARTER_GRID_TARGETS["lines"]["eye"] - 0.50) < 1e-9
     assert abs(QUARTER_GRID_TARGETS["lines"]["mouth"] - 0.75) < 1e-9
+
+
+from chibi.landmarks import region_falloff_weights
+
+MASKS = "/home/newub/w/LAM/model_zoo/human_parametric_models/flame_assets/flame/FLAME_masks.pkl"
+
+
+def test_region_falloff_weights_shape_and_range():
+    v = _template_verts()
+    w = region_falloff_weights(v, MASKS)
+    for name in ("eye", "nose", "mouth"):
+        assert w[name].shape == (5023,)
+        assert float(w[name].min()) >= 0.0 and float(w[name].max()) <= 1.0 + 1e-6
+        assert float(w[name].max()) > 0.9       # core of the region is ~1
+        assert float(w[name].sum()) > 1.0       # region is non-empty
