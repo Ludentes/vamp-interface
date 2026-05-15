@@ -14,21 +14,25 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import cv2  # type: ignore[import-not-found]
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
-ID_DIR = REPO / "data/importer/identities"
-OUT_DIR = REPO / "data/importer/cn_canny"
 
 
 def main() -> int:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    pngs = sorted(ID_DIR.glob("id_*.png"))
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--id-dir", type=Path, default=REPO / "data/importer/identities")
+    ap.add_argument("--out-dir", type=Path, default=REPO / "data/importer/cn_canny")
+    args = ap.parse_args()
+
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    pngs = sorted(args.id_dir.glob("id_*.png"))
     if not pngs:
-        print(f"[cn_canny] no identities found in {ID_DIR}")
+        print(f"[cn_canny] no identities found in {args.id_dir}")
         return 1
 
     for p in pngs:
@@ -41,11 +45,11 @@ def main() -> int:
         edges = cv2.Canny(gray, 100, 200)
         # Comfy convention: white edges on black background, 3-channel
         edges_rgb = np.stack([edges, edges, edges], axis=-1)
-        out = OUT_DIR / p.name.replace(".png", "_canny.png")
+        out = args.out_dir / p.name.replace(".png", "_canny.png")
         cv2.imwrite(str(out), edges_rgb)
         print(f"  [ok] {out.name}")
 
-    print(f"[cn_canny] wrote {len(pngs)} canny maps to {OUT_DIR}")
+    print(f"[cn_canny] wrote {len(pngs)} canny maps to {args.out_dir}")
     return 0
 
 

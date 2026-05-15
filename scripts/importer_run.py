@@ -37,35 +37,40 @@ import pandas as pd
 import requests
 
 
-# Adjust LoRA filenames + weights here to match the local ComfyUI install.
-# Filenames must exist in ComfyUI/models/loras/.
+# LoRA filenames are the actual filenames as deployed in the Windows ComfyUI
+# install (C:\comfy\ComfyUI\models\loras\). ComfyUI's LoraLoaderModelOnly node
+# validates lora_name against the file list and rejects sentinels like "none",
+# so inactive slots must still reference a real file with strength_model=0.0.
+LORA_CHIBI = "Ksbt_000001750.safetensors"
+LORA_FURRY = "Anime_Furry_Style_Flux.safetensors"
+
 STYLE_CONFIGS: dict[str, dict[str, Any]] = {
     "photoreal": {
-        # No style LoRA; both slots inactive.
-        "lora_a_name": "none",
+        # No style LoRA; both slots inactive but use real filenames at 0.0.
+        "lora_a_name": LORA_CHIBI,
         "lora_a_strength": 0.0,
-        "lora_b_name": "none",
+        "lora_b_name": LORA_FURRY,
         "lora_b_strength": 0.0,
         "positive_suffix": ", photoreal portrait, neutral expression, plain background, looking at camera, sharp focus, FFHQ studio photograph",
     },
     "chibi": {
-        "lora_a_name": "chibi_characters_flux_dev.safetensors",
+        "lora_a_name": LORA_CHIBI,
         "lora_a_strength": 0.9,
-        "lora_b_name": "none",
+        "lora_b_name": LORA_FURRY,
         "lora_b_strength": 0.0,
         "positive_suffix": ", chibi character, cute, big eyes, small body, neutral expression, plain background, full character portrait",
     },
     "furry": {
-        "lora_a_name": "anime_furry_style_flux.safetensors",
-        "lora_a_strength": 0.9,
-        "lora_b_name": "none",
-        "lora_b_strength": 0.0,
+        "lora_a_name": LORA_CHIBI,
+        "lora_a_strength": 0.0,
+        "lora_b_name": LORA_FURRY,
+        "lora_b_strength": 0.9,
         "positive_suffix": ", anthropomorphic furry character, anime style, portrait, neutral expression, looking at camera, plain background",
     },
     "chibi_furry": {
-        "lora_a_name": "chibi_characters_flux_dev.safetensors",
+        "lora_a_name": LORA_CHIBI,
         "lora_a_strength": 0.7,
-        "lora_b_name": "anime_furry_style_flux.safetensors",
+        "lora_b_name": LORA_FURRY,
         "lora_b_strength": 0.7,
         "positive_suffix": ", chibi anthropomorphic furry character, cute, big eyes, anime style portrait, plain background",
     },
@@ -192,9 +197,23 @@ def main() -> int:
     ap.add_argument("--seeds-per-style", type=int, default=3)
     ap.add_argument("--max-jobs", type=int, default=0, help="Stop after N successful new jobs; 0 = no limit (default).")
     ap.add_argument("--seed-base", type=int, default=20260512)
+    ap.add_argument("--cn-strength", type=float, default=None,
+                    help="Override the default CN_STRENGTH (0.65). v2 baseline uses 0.5.")
+    ap.add_argument("--chibi-strength", type=float, default=None,
+                    help="Override chibi LoRA strength (0.9). v2 baseline uses 0.7.")
+    ap.add_argument("--workflow-version", default="v1_2026-05-12",
+                    help="Tag written to manifest's workflow_version column.")
     ap.add_argument("--comfy-input-dir", type=Path, default=None,
                     help="If ComfyUI runs on this machine, copy identity+canny PNGs into ComfyUI/input/ here.")
     args = ap.parse_args()
+
+    global CN_STRENGTH
+    if args.cn_strength is not None:
+        CN_STRENGTH = args.cn_strength
+    if args.chibi_strength is not None:
+        STYLE_CONFIGS["chibi"]["lora_a_strength"] = args.chibi_strength
+    print(f"[run] CN_STRENGTH={CN_STRENGTH} chibi_strength={STYLE_CONFIGS['chibi']['lora_a_strength']} "
+          f"workflow_version={args.workflow_version}")
 
     styles = args.styles.split(",")
     for s in styles:
@@ -270,7 +289,7 @@ def main() -> int:
                     "pulid_weight": PULID_WEIGHT,
                     "cn_strength": CN_STRENGTH,
                     "duration_s": round(duration, 2),
-                    "workflow_version": "v1_2026-05-12",
+                    "workflow_version": args.workflow_version,
                 }
                 append_manifest_row(args.manifest, row)
                 done += 1
