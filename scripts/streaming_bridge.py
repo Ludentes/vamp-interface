@@ -39,11 +39,137 @@ from __future__ import annotations
 import argparse
 import signal
 import sys
+import threading
 import time
+from collections import deque
 from pathlib import Path
 
 import numpy as np
 import torch
+
+
+class PacedSinkWriter:
+    """Background thread that writes frames to a sink at a fixed FPS.
+
+    Decouples render rate from sink rate: while the daemon renders the
+    next batch (~3 s on RTX 5090), this thread is consuming the previous
+    batch from the queue and feeding v4l2loopback at the configured FPS.
+    If the queue empties before the next batch arrives, the writer
+    repeats the last good frame so v4l2 stays alive (no frozen-then-burst
+    pattern that confuses OBS).
+    """
+
+    def __init__(self, sink, fps: int, max_queue: int = 256,
+                 prebuffer: int = 0):
+        self._sink = sink
+        self._dt = 1.0 / fps
+        self._q: deque = deque()
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._last = None
+        self._max_queue = max_queue
+        # prebuffer: don't start draining until queue reaches this depth
+        # the FIRST time. Absorbs render variance (cohort-time + prep-time
+        # at batch boundary). After the initial fill the writer drains
+        # normally; if the queue empties, it repeats the last frame.
+        self._prebuffer = prebuffer
+        self._primed = prebuffer == 0
+        self._thr = threading.Thread(target=self._run, daemon=True)
+        # Objective sink-side counters (read with snapshot()).
+        self._writes = 0          # total frames written to sink
+        self._fresh_writes = 0    # writes that drained a real queued frame
+        self._repeat_writes = 0   # writes that repeated _last (queue empty)
+        self._dropped = 0         # frames evicted from queue (overflow)
+        self._depth_sum = 0       # for mean queue depth
+        self._depth_samples = 0
+        self._depth_max = 0
+
+    def snapshot(self):
+        """Atomic copy of writer counters; safe to call from any thread."""
+        with self._lock:
+            return {
+                "writes": self._writes,
+                "fresh": self._fresh_writes,
+                "repeat": self._repeat_writes,
+                "dropped": self._dropped,
+                "depth_mean": (self._depth_sum / self._depth_samples
+                               if self._depth_samples else 0.0),
+                "depth_max": self._depth_max,
+            }
+
+    def reset_window(self):
+        """Reset rolling counters (call after each log line)."""
+        with self._lock:
+            self._writes = 0
+            self._fresh_writes = 0
+            self._repeat_writes = 0
+            self._dropped = 0
+            self._depth_sum = 0
+            self._depth_samples = 0
+            self._depth_max = 0
+
+    def start(self):
+        self._thr.start()
+
+    def stop(self, timeout: float = 2.0):
+        self._stop.set()
+        self._thr.join(timeout=timeout)
+
+    def push(self, frames):
+        """Append frames (iterable of HWC uint8) to the write queue.
+
+        Drops oldest if the queue is fuller than max_queue — better to
+        skip a stale render than to keep growing latency unboundedly.
+        """
+        with self._lock:
+            for f in frames:
+                if len(self._q) >= self._max_queue:
+                    self._q.popleft()
+                    self._dropped += 1
+                self._q.append(f)
+
+    def _run(self):
+        next_t = time.time()
+        while not self._stop.is_set():
+            with self._lock:
+                depth = len(self._q)
+                # Hold off draining until the prebuffer has filled once.
+                # After that we always drain (or repeat last frame on empty).
+                if not self._primed:
+                    if depth >= self._prebuffer:
+                        self._primed = True
+                if not self._primed:
+                    f = self._last  # still warming; sink keeps last frame
+                    fresh = False
+                elif self._q:
+                    f = self._q.popleft()
+                    fresh = True
+                else:
+                    f = self._last
+                    fresh = False
+                self._depth_sum += depth
+                self._depth_samples += 1
+                if depth > self._depth_max:
+                    self._depth_max = depth
+            if f is not None:
+                try:
+                    self._sink.write(f)
+                    self._last = f
+                    with self._lock:
+                        self._writes += 1
+                        if fresh:
+                            self._fresh_writes += 1
+                        else:
+                            self._repeat_writes += 1
+                except (BrokenPipeError, OSError):
+                    return
+            next_t += self._dt
+            slack = next_t - time.time()
+            if slack > 0:
+                time.sleep(slack)
+            else:
+                # Fell behind; reset cadence to "now" to avoid burst.
+                next_t = time.time()
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
@@ -86,7 +212,24 @@ def main():
     ap.add_argument("--port", type=int, default=11111)
     ap.add_argument("--batch", type=int, default=24,
                     help="frames per pipe call; multiple of 4")
-    ap.add_argument("--fps", type=int, default=25)
+    ap.add_argument("--fps", type=int, default=25,
+                    help="sink advertise rate AND writer drain rate; lower "
+                         "this (e.g. 8) when render rate is below 25 to "
+                         "spread each fresh frame evenly instead of "
+                         "bursting a cohort then sitting on last-frame")
+    ap.add_argument("--sample_span_s", type=float, default=3.0,
+                    help="window of real time each batch represents. "
+                         "k=batch packets are sampled evenly across this "
+                         "span, so output played at fps=k/span_s shows "
+                         "real-time-speed motion. Set this to your "
+                         "expected render time per batch (~3.0s for "
+                         "batch=24 V2 on 5090).")
+    ap.add_argument("--writer_prebuffer", type=int, default=0,
+                    help="frames to accumulate before writer starts draining "
+                         "the FIRST time. Adds slack to absorb cohort/prep "
+                         "variance at batch boundaries. 0 = no buffer "
+                         "(writer starts immediately, may stutter if "
+                         "render is slower than drain)")
     ap.add_argument("--torch_device", default="cuda")
     ap.add_argument("--num_inference_steps", type=int, default=4)
     ap.add_argument("--mode", choices=["v1", "v2"], default="v1",
@@ -143,10 +286,22 @@ def main():
         output_format=sink_kind,
     )
     sink.open()
+    # Paced writer thread: decouples render rate from sink rate. The
+    # daemon's render loop pushes frames into the writer's queue and
+    # never blocks on sink I/O. The writer drains at args.fps,
+    # repeating the last frame when the queue is empty (OBS sees a
+    # continuous stream instead of bursts of frames-faster-than-OBS-reads
+    # interspersed with frozen gaps).
+    writer = PacedSinkWriter(sink, fps=args.fps,
+                             prebuffer=args.writer_prebuffer)
+    writer.start()
 
     if args.driver == "llf":
         print(f"[4/4] starting LLF receiver on UDP :{args.port}...", flush=True)
-        rx = LLFReceiver(host="0.0.0.0", port=args.port, ring_size=args.batch * 4)
+        # Ring must hold at least 2 × span × 60Hz LLF packets so the
+        # evenly-spaced sampler always has both endpoints of its window.
+        ring_size = max(args.batch * 4, int(2.5 * args.sample_span_s * 60))
+        rx = LLFReceiver(host="0.0.0.0", port=args.port, ring_size=ring_size)
         rx.start()
         grabber = None
     else:
@@ -170,6 +325,7 @@ def main():
 
     last_log = time.time()
     rendered = 0
+    last_cohort_stats = ""
     if args.driver == "llf":
         print("daemon ready; waiting for LLF packets", flush=True)
     else:
@@ -180,16 +336,14 @@ def main():
                 assert grabber is not None
                 frames = grabber.pop_window(k=args.batch, timeout_s=2.0)
                 if not frames:
-                    for f in last_good_rgb:
-                        sink.write(f)
-                        time.sleep(1.0 / args.fps)
+                    # Writer thread holds the last frame autonomously.
+                    time.sleep(0.1)
                     continue
                 t0 = time.time()
                 rgb = drv.render_batch_rgb(frames)
                 infer_ms = (time.time() - t0) * 1000.0
                 last_good_rgb = rgb
-                for f in rgb:
-                    sink.write(f)
+                writer.push(rgb)
                 rendered += len(rgb)
                 now = time.time()
                 if now - last_log >= 5.0:
@@ -205,12 +359,12 @@ def main():
                 continue
 
             assert rx is not None
-            pkts = rx.pop_window(k=args.batch, timeout_s=2.0)
+            pkts = rx.pop_window_evenly_spaced(
+                k=args.batch, span_s=args.sample_span_s, timeout_s=6.0,
+            )
             if not pkts:
-                # Idle: emit anchor passthrough so OBS sees a signal.
-                for f in last_good_rgb:
-                    sink.write(f)
-                    time.sleep(1.0 / args.fps)
+                # Writer thread holds the last frame; just idle briefly.
+                time.sleep(0.1)
                 continue
 
             b58, ypr = packets_to_arrays(pkts)
@@ -221,40 +375,64 @@ def main():
                 rgb = drv.render_batch(b58, ypr)
                 infer_ms = (time.time() - t0) * 1000.0
                 last_good_rgb = rgb
-                for f in rgb:
-                    sink.write(f)
+                writer.push(rgb)
                 rendered += len(rgb)
             else:
-                # V2: prepare once per batch (warmup absorbed in prepare_v2),
-                # then drain windows×step_v2 each emitting 4 frames. The
-                # earliest cohort lands at sink ~1 step after prepare instead
-                # of waiting for all 24 frames.
+                # V2: prepare + per-cohort step. Push each cohort to the
+                # writer as soon as it's decoded so the user sees motion
+                # ~500 ms after the batch fills, not after the full 3 s
+                # render.
                 t0 = time.time()
                 windows = drv.prepare_v2(b58, ypr)
                 prep_ms = (time.time() - t0) * 1000.0
                 rgb_blocks = []
                 step_ms_total = 0.0
+                cohort_dts = []
                 for _ in range(windows):
                     ts = time.time()
                     block = drv.step_v2(n=4)
                     step_ms_total += (time.time() - ts) * 1000.0
+                    cohort_dts.append((time.time() - ts) * 1000.0)
                     rgb_blocks.append(block)
-                    for f in block:
-                        sink.write(f)
+                    writer.push(block)
                 rgb = np.concatenate(rgb_blocks, axis=0)
                 infer_ms = prep_ms + step_ms_total
                 last_good_rgb = rgb
                 rendered += len(rgb)
+                if cohort_dts:
+                    cd = sorted(cohort_dts)
+                    last_cohort_stats = (
+                        f"prep={prep_ms:.0f} cohort_ms="
+                        f"min={cd[0]:.0f}/p50={cd[len(cd)//2]:.0f}/"
+                        f"max={cd[-1]:.0f}/n={len(cd)}"
+                    )
+                else:
+                    last_cohort_stats = "no cohorts"
 
             now = time.time()
             if now - last_log >= 5.0:
-                fps = rendered / (now - last_log)
+                dt_log = now - last_log
+                fps = rendered / dt_log
+                snap = writer.snapshot()
+                writer.reset_window()
+                sink_fps = snap["writes"] / dt_log
+                fresh_fps = snap["fresh"] / dt_log
+                repeat_fps = snap["repeat"] / dt_log
                 print(
                     f"  rendered={rendered} fps={fps:.1f} "
                     f"infer_ms={infer_ms:.0f} rx_received={rx.received} "
-                    f"rx_dropped={rx.dropped}",
+                    f"rx_dropped={rx.dropped} cursor_skips={rx.cursor_skips}",
                     flush=True,
                 )
+                print(
+                    f"    sink: write_fps={sink_fps:.1f} "
+                    f"fresh_fps={fresh_fps:.1f} repeat_fps={repeat_fps:.1f} "
+                    f"q_mean={snap['depth_mean']:.1f} q_max={snap['depth_max']} "
+                    f"dropped={snap['dropped']}",
+                    flush=True,
+                )
+                if last_cohort_stats:
+                    print(f"    {last_cohort_stats}", flush=True)
                 rendered = 0
                 last_log = now
     finally:
@@ -263,6 +441,7 @@ def main():
             rx.stop()
         if grabber is not None:
             grabber.stop()
+        writer.stop()
         sink.close()
         drv.stop()
 

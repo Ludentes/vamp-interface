@@ -200,6 +200,8 @@ if __name__ == "__main__":
     ap.add_argument("cmd", choices=["diff"])
     ap.add_argument("lora_path")
     args = ap.parse_args()
+    # Resolve before chdir into PersonaLive — relative paths break otherwise.
+    args.lora_path = str(Path(args.lora_path).resolve())
 
     PL = Path(os.path.expanduser("~/w/PersonaLive"))
     sys.path.insert(0, str(PL))

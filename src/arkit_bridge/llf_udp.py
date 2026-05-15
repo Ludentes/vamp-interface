@@ -120,6 +120,13 @@ class LLFReceiver:
         self._stop = threading.Event()
         self.dropped = 0
         self.received = 0
+        # Cursor for pop_window_evenly_spaced. Advances by span_s each
+        # call so successive batches tile real time contiguously. None
+        # means "uninitialized" (first call seeds it).
+        self._cursor: Optional[float] = None
+        # Diagnostic: how many times we had to skip the cursor forward
+        # because render fell behind real time.
+        self.cursor_skips = 0
 
     def start(self):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -158,6 +165,15 @@ class LLFReceiver:
                 self._ring.append(pkt)
                 self.received += 1
 
+    def peek_latest(self) -> Optional[B61Packet]:
+        """Non-destructive read of the most recent packet, or None if ring
+        is empty. Use for display/diagnostics where you want the freshest
+        value at any cadence (independent of LLF arrival rate)."""
+        with self._lock:
+            if not self._ring:
+                return None
+            return self._ring[-1]
+
     def pop_window(self, k: int = 24, timeout_s: float = 2.0) -> list[B61Packet]:
         """Block until k packets are available, then pop the k most recent
         in arrival order. Returns [] on timeout."""
@@ -168,5 +184,63 @@ class LLFReceiver:
                     pkts = list(self._ring)[-k:]
                     self._ring.clear()
                     return pkts
+            time.sleep(0.005)
+        return []
+
+    def pop_window_evenly_spaced(
+        self,
+        k: int = 24,
+        span_s: float = 3.0,
+        timeout_s: float = 6.0,
+        max_lag_s: Optional[float] = None,  # unused; kept for API compat
+    ) -> list[B61Packet]:
+        """Return k packets evenly spaced in time across the most recent
+        span_s window of real wall time, i.e. recv_times tiled across
+        ``[newest - span_s, newest]``.
+
+        Stateless — no cursor across calls. Successive batches tile real
+        time roughly contiguously when render time ≈ span_s, with mild
+        overlap (fast render) or mild gap (slow render) at seams. There
+        is no catastrophic skip-to-live behavior; if render permanently
+        outpaces real time, latency tracks render time directly.
+
+        The ring must contain packets spanning at least span_s; otherwise
+        we wait up to timeout_s for it. Returns [] on timeout.
+
+        ``cursor_skips`` is incremented whenever a call had to wait —
+        i.e. whenever the previous batch consumed more than span_s of
+        real time. Useful as a "render_time > span_s" alarm without
+        affecting playback.
+        """
+        del max_lag_s  # no longer used
+        deadline = time.time() + timeout_s
+        had_to_wait = False
+        while time.time() < deadline:
+            with self._lock:
+                if self._ring:
+                    newest_t = self._ring[-1].recv_time
+                    oldest_t = self._ring[0].recv_time
+                    target_end = newest_t
+                    target_start = newest_t - span_s
+                    if oldest_t <= target_start:
+                        snapshot = list(self._ring)
+                        if k == 1:
+                            targets = [target_end]
+                        else:
+                            stride = span_s / (k - 1)
+                            targets = [target_start + i * stride
+                                       for i in range(k)]
+                        out: list[B61Packet] = []
+                        j = 0
+                        for t in targets:
+                            while (j + 1 < len(snapshot) and
+                                   abs(snapshot[j + 1].recv_time - t) <=
+                                   abs(snapshot[j].recv_time - t)):
+                                j += 1
+                            out.append(snapshot[j])
+                        if had_to_wait:
+                            self.cursor_skips += 1
+                        return out
+            had_to_wait = True
             time.sleep(0.005)
         return []
