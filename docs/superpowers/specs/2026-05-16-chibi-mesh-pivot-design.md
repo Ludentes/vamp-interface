@@ -84,10 +84,19 @@ corner. Two concrete obligations:
 - The `ChibiMesh` dataclass is the **stable interface** between units. v2's UV bake
   consumes it; v2's Blender export consumes it. v1 keeps `mesh_deform` and the dataclass
   renderer-agnostic — no pytorch3d type leaks into them.
-- `extract_lam_mesh` retains the v2 inputs even though v1 ignores them: the base
-  `verts_uvs` and per-face `textures_idx` (5023+teeth UV layout), and the rest-pose base
-  verts. v2's bake rasterises in that UV space; re-extracting later risks drift against
-  a different LAM run. Store them on `ChibiMesh` as optional fields.
+- The v2 UV bake reads the `verts_uvs`/`textures_idx` layout from the **static FLAME
+  template** (`head_template_mesh.obj`, 5118 vt), not from a LAM run — so it is not
+  run-dependent and need not be carried on `ChibiMesh`. What *is* run-dependent is the
+  baked per-vertex RGB, and that is already persisted as `<stem>_textured_mesh.obj`.
+  v1 must therefore preserve that OBJ as the canonical colour source for v2.
+
+Spike correction: `extract_lam_mesh` is **not** a LAM-inference wrapper. LAM inference
+already runs upstream (`chibi_anchor_render.sh` stage 1) and writes
+`exps/cano_gs/<stem>_textured_mesh.obj` — an OBJ carrying 20018 `v x y z r g b` lines
+(per-vertex RGB = `_gm.shs.squeeze(1)`, written by `lam/runners/infer/lam.py:408-411`)
+and 39904 `f` lines. `extract_lam_mesh` is a pure OBJ parser: no LAM env, no checkpoint,
+fully unit-testable in the vamp uv env. Opacity is not in the OBJ and not needed (a mesh
+is opaque) — it is dropped from v1's `ChibiMesh`.
 
 ## Architecture (v1)
 
@@ -118,11 +127,19 @@ from all angles without the ARKit path), plus a baseline (field=identity) render
 side-by-side against the splat-path verdict videos (`chibi_asian_m_secant_neck.mp4`,
 `chibi_me_secant_neck.mp4`).
 
-ARKit animation: `apply_chibi` operates on rest-pose verts; ARKit-52 + FLAME LBS are
-applied *after* chibi, by the same `canonical + Σαₖbₖ` path LAM already uses, on the
-deformed verts. The secant-rescaled basis from `chibi_make_assets.py` is still the
-correct per-frame basis and is reused. Animation wiring is a v1.1 task; the v1 render
-is a static / single-pose verdict.
+**Milestone 0 — the gate (built and run first).** Before any chibi code, render an
+existing ARKit-driven take as an animated *mesh* and compare it to the splat render of
+the same take, to confirm splats→mesh did not catastrophically lose quality. LAM already
+dumps per-frame `.ply` files (`exps/images/lam/lam_20k/<stem>/NNNN.ply`) carrying the
+animated per-vertex `xyz` and per-vertex RGB; Milestone 0 reads those, attaches the
+constant faces, and renders the sequence. No chibi, no rig re-implementation — LAM is
+the rig. If the gate fails, the pivot is reworked before chibi.
+
+ARKit animation *of the chibi mesh*: `apply_chibi` operates on rest-pose verts; ARKit-52
++ FLAME LBS are applied *after* chibi, by the same `canonical + Σαₖbₖ` path LAM uses, on
+the deformed verts. The secant-rescaled basis from `chibi_make_assets.py` is the correct
+per-frame basis and is reused. Driven *chibi* animation is a later task; the chibi v1
+render is a static turntable verdict.
 
 ## Data flow
 
