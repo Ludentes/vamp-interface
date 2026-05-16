@@ -74,8 +74,20 @@ deformation propagates. Rejected: it re-imports the exact density-coupling probl
 pivot exists to escape.
 
 **Decision: A for v1, B kept as the documented v2 upgrade.** A is the minimum that
-answers "does the mesh pivot resolve blur/smear/leak"; if A's flat look is too low-fi,
-B is the known next move.
+answers "does the mesh pivot resolve blur/smear/leak"; A's flat per-vertex look is
+*expected* to be too low-fi to ship — v1 is built as the **foundation for v2**, not the
+final renderer.
+
+**v2-readiness constraint (load-bearing on v1).** v1 must not paint itself into a
+corner. Two concrete obligations:
+
+- The `ChibiMesh` dataclass is the **stable interface** between units. v2's UV bake
+  consumes it; v2's Blender export consumes it. v1 keeps `mesh_deform` and the dataclass
+  renderer-agnostic — no pytorch3d type leaks into them.
+- `extract_lam_mesh` retains the v2 inputs even though v1 ignores them: the base
+  `verts_uvs` and per-face `textures_idx` (5023+teeth UV layout), and the rest-pose base
+  verts. v2's bake rasterises in that UV space; re-extracting later risks drift against
+  a different LAM run. Store them on `ChibiMesh` as optional fields.
 
 ## Architecture (v1)
 
