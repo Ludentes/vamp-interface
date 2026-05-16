@@ -70,7 +70,7 @@ def main() -> None:
     imageio.imwrite(out / "splat_ref.png", images[args.n_azim // 2].numpy())
 
     baked = bake_vertex_colors(mesh, images, depth, views)
-    frames = render([baked], [0.0, 30.0, 60.0, 90.0], image_size=256)
+    frames = render([baked], [0.0, 30.0, 60.0, 90.0], image_size=args.render_size)
     for i, az in enumerate((0, 30, 60, 90)):
         imageio.imwrite(out / f"baked_mesh_{az:03d}.png", frames[i].numpy())
     print(f"[bake] {baked.verts.shape[0]} verts, dist={dist:.3f} -> {out}")
