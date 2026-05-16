@@ -137,3 +137,4 @@ data/arkit_bridge_pairs/
 
 # Rorschach (separate project, separate repo TBD)
 /rorschach/
+scripts/face_landmarker.task

@@ -7,10 +7,16 @@ with ComfyUI for GPU VRAM.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import cv2
 import numpy as np
 
 _CPU = ["CPUExecutionProvider"]
+
+# MediaPipe Tasks-API face model -- shipped next to this file (the legacy
+# mediapipe.solutions API is absent from current wheels).
+_LANDMARKER_TASK = Path(__file__).with_name("face_landmarker.task")
 
 
 def make_face_app():
@@ -38,28 +44,39 @@ def detect_source(app, img_bgr):
 
 
 def mediapipe_kps_bbox(img_bgr):
-    """(kps[5,2], bbox[4]) from MediaPipe FaceMesh, else (None, None).
+    """(kps[5,2], bbox[4]) from MediaPipe FaceLandmarker, else (None, None).
 
-    Fallback landmarker for doll faces SCRFD cannot see. kps order is
-    [eyeL, eyeR, nose, mouthL, mouthR] (arcface convention, image-left
-    first). Returns (None, None) when mediapipe.solutions is unavailable --
-    the caller treats that as 'fallback unavailable', it never crashes.
+    Fallback landmarker for the flat painted doll faces SCRFD cannot see --
+    MediaPipe is stylization-tolerant where SCRFD is not. Uses the Tasks API
+    (the legacy mediapipe.solutions API is absent from current wheels) and
+    needs face_landmarker.task next to this file; the model returns 478
+    landmarks (0-467 face mesh, 468-477 iris). kps order is [eyeL, eyeR,
+    nose, mouthL, mouthR] (arcface convention, image-left first). Returns
+    (None, None) if mediapipe or the model is unavailable -- never crashes.
     """
     try:
         import mediapipe as mp
-        face_mesh = mp.solutions.face_mesh
-    except (ImportError, AttributeError):
+        from mediapipe.tasks import python as mpp
+        from mediapipe.tasks.python import vision
+    except ImportError:
+        return None, None
+    if not _LANDMARKER_TASK.exists():
         return None, None
 
     rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     h, w = img_bgr.shape[:2]
-    with face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1,
-                            refine_landmarks=True,
-                            min_detection_confidence=0.1) as fm:
-        res = fm.process(rgb)
-    if not res.multi_face_landmarks:
+    opts = vision.FaceLandmarkerOptions(
+        base_options=mpp.BaseOptions(model_asset_path=str(_LANDMARKER_TASK)),
+        num_faces=1, min_face_detection_confidence=0.1)
+    landmarker = vision.FaceLandmarker.create_from_options(opts)
+    try:
+        res = landmarker.detect(
+            mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+    finally:
+        landmarker.close()
+    if not res.face_landmarks:
         return None, None
-    lm = res.multi_face_landmarks[0].landmark
+    lm = res.face_landmarks[0]
 
     def pt(i):
         return np.array([lm[i].x * w, lm[i].y * h])
