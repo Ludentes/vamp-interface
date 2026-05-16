@@ -221,7 +221,7 @@ def main() -> int:
         os.replace(tmp, swapped_png)
 
         manifest_rows.append({
-            "cell": cell["cell"], "anchor": anchor,
+            "cell": cell["cell"], "stem": stem, "anchor": anchor,
             "finish": cell["finish"], "cn_strength": cell["cn_strength"],
             "pulid_start": cell["pulid_start"],
             "pulid_weight": cell["pulid_weight"], "seed": cell["seed"],
