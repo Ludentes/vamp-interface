@@ -290,7 +290,7 @@ Arms:
 - `flux_schnell_pulid` — same ComfyUI graph, checkpoint swapped to FLUX.1-schnell, KSampler steps 4, PuLID-for-Schnell weights.
 - `flux2_klein` — FLUX.2 [klein] 4B; person photo passed as a reference image, no PuLID node, no ControlNet. Needs the klein ComfyUI nodes installed.
 - `sdxl_lightning_ipa` — SDXL-Lightning 8-step + IP-Adapter (face) + Canny ControlNet on the doll template.
-- `zimage_inswapper` — Z-Image-Turbo (8-step) + ControlNet on the doll template for the *generic* doll, then `inswapper_128` swaps the identity face in as a post-process.
+- `zimage_inswapper` — Z-Image-Turbo (8-step) + ControlNet on the doll template for the *generic* doll, then `inswapper_128` swaps the identity face in as a post-process. **No output-side detection:** source face + kps detected on the raw input photo; target kps come from a fixed canonical layout for the doll head box the Canny template enforces (optionally render the doll with a blank face oval to make the target region fully deterministic). This keeps the swap robust no matter how stylized the doll face is.
 
 - [ ] **Step 1: Stand up each arm's workflow**
 

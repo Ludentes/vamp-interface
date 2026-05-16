@@ -60,6 +60,15 @@ generator, a bake-off runs the same 4 identities × matryoshka prompt through
    identity arrives via a separate `inswapper_128` swap. Evaluated, not
    assumed: insightface SCRFD is style-aware on a gradient (it landmarked the
    chibis), so the swap is an empirical question.
+   **Output-side detection is avoided entirely:** the source face + kps are
+   detected on the *raw input photo* (always reliable); the swap *target* kps
+   come from a fixed canonical layout for the doll head box that the Canny
+   template enforces — no detection on the stylized output. The strongest
+   form renders the doll with a deliberately blank face oval, making the
+   target region designed and fully deterministic. This makes the swap arm
+   robust regardless of doll-face stylization; it does **not** remove the
+   uncanny tradeoff (inswapper still pastes a photoreal crop) — that is
+   exactly what the bake-off measures.
 
 Scoring caveat: ArcFace **detection rate** is degenerate as the uncanny proxy
 for arm 5 — a swap manufactures a detectable photoreal face by construction.
