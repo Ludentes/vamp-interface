@@ -4,7 +4,7 @@
 
 **Goal:** Given a person's photo, render a single identity-preserving Russian matryoshka doll, with a sweep + scorer to pick the best generation cell.
 
-**Architecture:** Reuse the chibi hero-doll node graph — Flux-Krea + PuLID (identity) + Canny ControlNet of a doll-silhouette template (structure) + style prompt. Two new scripts cloned from the chibi sweep: a resumable sweep runner and a scorer. A Phase 0 prompt-only baseline gates whether a matryoshka style LoRA is needed before the full sweep.
+**Architecture:** Reuse the chibi hero-doll node graph — Flux-Krea + PuLID (identity) + Canny ControlNet of a doll-silhouette template (structure) + style prompt. Two new scripts cloned from the chibi sweep: a resumable sweep runner and a scorer. A Phase 0 prompt-only baseline gates whether a matryoshka style LoRA is needed; a Phase 0.5 generator bake-off picks which generator the full sweep runs on.
 
 **Tech Stack:** Python 3.12 / uv, ComfyUI HTTP API at 127.0.0.1:8188, insightface buffalo_l, MediaPipe FaceLandmarker, open-clip for the matryoshka-ness metric.
 
@@ -272,14 +272,58 @@ python scripts/matryoshka_sweep.py --comfy-url http://127.0.0.1:8188 \
 - [ ] **Step 3: Eyeball gate**
 
 Build a contact sheet of the prompt-only renders across the 4 identities. **Gate question:** does prompt-only Flux-Krea read as a matryoshka *and* is the face recognizable as the person? 
-- If yes → proceed to Task 5 with the sweep results; no LoRA needed.
+- If yes → proceed to Task 5 (bake-off); no LoRA needed.
 - If the doll form is fine but the painted-face style is unconvincing → a matryoshka style LoRA is needed; stop and open a Phase 2 LoRA-training task (out of scope for this plan — record the finding in the spec and a research doc).
 
 ---
 
-### Task 5: Full sweep, score, pick winner
+### Task 5: Generator bake-off (Phase 0.5)
+
+**Files:**
+- Create: `exp_output/matryoshka_bakeoff/` (renders, one subfolder per arm)
+- Create: `docs/research/2026-05-16-matryoshka-generator-bakeoff.md`
+
+Run the same 4 identities × the matryoshka prompt through 5 architecturally distinct arms, score with `score_matryoshka.py`, record wall-clock latency per render, and pick the generator the full sweep (Task 6) runs on. Each arm produces 4 PNGs (one per identity, fixed seed) into `exp_output/matryoshka_bakeoff/<arm>/`.
+
+Arms:
+- `flux_krea_pulid` — current pipeline; `matryoshka_sweep.py` restricted to one cell (`cn_strength=0.5, pulid_weight=0.6, pulid_start=0.1`).
+- `flux_schnell_pulid` — same ComfyUI graph, checkpoint swapped to FLUX.1-schnell, KSampler steps 4, PuLID-for-Schnell weights.
+- `flux2_klein` — FLUX.2 [klein] 4B; person photo passed as a reference image, no PuLID node, no ControlNet. Needs the klein ComfyUI nodes installed.
+- `sdxl_lightning_ipa` — SDXL-Lightning 8-step + IP-Adapter (face) + Canny ControlNet on the doll template.
+- `zimage_inswapper` — Z-Image-Turbo (8-step) + ControlNet on the doll template for the *generic* doll, then `inswapper_128` swaps the identity face in as a post-process.
+
+- [ ] **Step 1: Stand up each arm's workflow**
+
+For arms 1–2 reuse `flux_pulid_canny_lora.api.json` (arm 2 swaps the checkpoint loader + step count). For arms 3–5 install the model + nodes on the ComfyUI box and save one API-format workflow JSON per arm under `data/importer/workflows/matryoshka_<arm>.api.json`. Verify each renders one test image before the batch.
+
+- [ ] **Step 2: Render all arms**
+
+For each arm, render the 4 identities at a fixed seed (`80_000_000`). Save to `exp_output/matryoshka_bakeoff/<arm>/id_NN.png`. Capture per-render wall-clock latency (the ComfyUI `/history` entry carries execution timing) into `exp_output/matryoshka_bakeoff/latency.csv` with columns `arm,identity,seconds`.
+
+- [ ] **Step 3: Score every arm**
+
+Point `score_matryoshka.py` at each arm folder (or add an `--in-dir` argument). Collect per-arm: mean `clip_matryoshka`, ArcFace detection rate, MediaPipe rate, gender-match rate, mean latency.
+
+- [ ] **Step 4: Eyeball + pick**
+
+Build a 5-row (arm) × 4-col (identity) montage → `exp_output/matryoshka_bakeoff/montage.png`. **The leveling metric is the human eyeball rating + CLIP matryoshka-ness — NOT ArcFace detection**, which is degenerate for the `zimage_inswapper` arm (a swap manufactures a detectable photoreal face by construction). Pick the arm with the best recognizability × matryoshka-ness at acceptable latency.
+
+- [ ] **Step 5: Record + commit**
+
+Write the bake-off table, the montage reference, and the chosen generator + reasoning to `docs/research/2026-05-16-matryoshka-generator-bakeoff.md`.
+
+```bash
+git add docs/research/2026-05-16-matryoshka-generator-bakeoff.md
+git commit -m "docs(matryoshka): generator bake-off results + chosen generator"
+```
+
+---
+
+### Task 6: Full sweep, score, pick winner
 
 **Files:** none created — analysis.
+
+The full sweep runs on the **bake-off winner** from Task 5. If the winner is not `flux_krea_pulid`, point `matryoshka_sweep.py --workflow` at that arm's workflow JSON; the grid axes (`cn_strength`, `pulid_weight`, `pulid_start`) still apply for the Flux/SDXL arms. If the winner is `flux2_klein` (no PuLID/CN), the sweep axes collapse to reference-strength + prompt variants — adjust `build_grid` accordingly before running.
 
 - [ ] **Step 1: Run the full 96-cell sweep** (if Phase 0 ran only `CN_STRENGTHS=[0.0]`, restore `[0.0, 0.5]` and re-run — skip-if-exists keeps the baseline renders).
 
@@ -311,12 +355,13 @@ git commit -m "docs(matryoshka): v1 single-doll sweep results + winning cell"
 - Subject extraction → Task 2 (insightface ID dir, reused via `--id-dir`). ✓
 - Structure (Canny doll template) → Task 1. ✓
 - Render (Flux-Krea + PuLID + style) → Task 2 sweep. ✓
-- Metric: recognizability → Task 5 eyeball + Task 3 gender/age proxy. ✓
+- Metric: recognizability → Task 6 eyeball + Task 3 gender/age proxy. ✓
 - Metric: matryoshka-ness CLIP → Task 3. ✓
 - Metric: uncanny ArcFace detection → Task 3. ✓
 - Metric: MediaPipe floor → Task 3. ✓
-- Plan Phase 0 baseline → Task 4. ✓
-- Plan Phase 1 sweep → Tasks 2,3,5. ✓
+- Spec Phase 0 baseline → Task 4. ✓
+- Spec Phase 0.5 generator bake-off (5 arms) → Task 5. ✓
+- Spec Phase 1 sweep → Tasks 2,3,6. ✓
 - Phase 2 (set, LoRA training) explicitly deferred — Task 4 Step 3 records the LoRA trigger condition. ✓
 
 **Placeholder scan:** no TBD/TODO; the one "placeholder" `LORA_CHIBI` constant is explicitly inert (`LORA_A_STRENGTH = 0.0`) and named as such. ✓

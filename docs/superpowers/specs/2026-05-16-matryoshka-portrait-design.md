@@ -40,6 +40,34 @@ Flux-Krea + PuLID (identity) + Canny ControlNet of a doll-silhouette template
 structure tool (keeps PuLID from drifting the render into a portrait), not a
 contract — it is swept, not fixed.
 
+### Generator bake-off (Phase 0.5)
+
+The hero-doll pipeline is generator-agnostic; the metric suite below scores
+any generator apples-to-apples. Before committing the full sweep to one
+generator, a bake-off runs the same 4 identities × matryoshka prompt through
+5 architecturally distinct arms and scores them + wall-clock latency:
+
+1. **Flux-Krea + PuLID + Canny** — control (current pipeline).
+2. **Flux Schnell + PuLID + Canny** — same components, few-step; isolates the
+   speed delta with zero re-architecture.
+3. **FLUX.2 [klein]** — native multi-reference editing; the person photo is a
+   reference, no PuLID and no ControlNet. Sub-second; collapses the
+   three-adapter graph into one call. The architectural bet.
+4. **SDXL Lightning + IP-Adapter + ControlNet** — fast-floor; richest
+   adapter ecosystem, quality below Flux.
+5. **Z-Image-Turbo (ControlNet doll) + inswapper face-transfer** — the
+   heads-on face-swap solution. Z-Image-Turbo has no IP-Adapter yet, so
+   identity arrives via a separate `inswapper_128` swap. Evaluated, not
+   assumed: insightface SCRFD is style-aware on a gradient (it landmarked the
+   chibis), so the swap is an empirical question.
+
+Scoring caveat: ArcFace **detection rate** is degenerate as the uncanny proxy
+for arm 5 — a swap manufactures a detectable photoreal face by construction.
+The cross-arm leveling metrics are therefore the **human eyeball rating** and
+**CLIP matryoshka-ness**; ArcFace-detection stays valid only *within* the
+restylization arms (1–4). Z-Image-Turbo as a restylization arm is deferred
+until Z-Image Edit ships an image-prompt path.
+
 ### Pipeline (v1)
 
 1. **Extract** — normalize the input face via the existing insightface crop.
