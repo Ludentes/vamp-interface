@@ -214,7 +214,9 @@ def main() -> int:
 
         doll = cv2.imread(str(doll_png))
         result, mode, score = swap_identity(app, swapper, doll, source_face)
-        tmp = swapped_png.with_suffix(".png.tmp")
+        # temp name keeps a .png extension -- cv2.imwrite picks its encoder
+        # from the suffix, so it must not end in .tmp
+        tmp = swapped_png.with_name(swapped_png.stem + ".tmp.png")
         cv2.imwrite(str(tmp), result)
         os.replace(tmp, swapped_png)
 
