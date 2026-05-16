@@ -66,3 +66,45 @@ def render(meshes: Sequence[ChibiMesh], azims: Sequence[float], *,
         img = renderer(p3d)[0, ..., :3]
         frames.append((img.clamp(0.0, 1.0) * 255.0).round().to(torch.uint8).cpu())
     return torch.stack(frames)
+
+
+def render_textured(tmesh, azims: Sequence[float], *,
+                    image_size: int = 512, dist: float = 2.7,
+                    elev: float = 0.0, device: str = "cuda") -> torch.Tensor:
+    """Render a TexturedMesh turntable. Unlit (AmbientLights) so the output is
+    the UV-sampled atlas — same recentre/unit-scale and camera conventions as
+    `render`. Returns (len(azims), image_size, image_size, 3) uint8 on CPU."""
+    from pytorch3d.structures import Meshes
+    from pytorch3d.renderer import (
+        TexturesUV, FoVPerspectiveCameras, RasterizationSettings,
+        MeshRenderer, MeshRasterizer, SoftPhongShader, AmbientLights,
+        look_at_view_transform,
+    )
+    dev = torch.device(device)
+    verts = tmesh.verts.to(torch.float32).to(dev)
+    centre = verts.mean(0, keepdim=True)
+    scale = (verts - centre).abs().max().clamp_min(1e-6)
+    verts = (verts - centre) / scale
+    faces = tmesh.faces.to(torch.int64).to(dev)
+    textures = TexturesUV(
+        maps=[tmesh.texture.to(torch.float32).to(dev)],
+        faces_uvs=[tmesh.uv_faces.to(torch.int64).to(dev)],
+        verts_uvs=[tmesh.uv.to(torch.float32).to(dev)],
+    )
+    raster = RasterizationSettings(image_size=image_size, blur_radius=0.0,
+                                   faces_per_pixel=1)
+    lights = AmbientLights(device=dev)
+    frames = []
+    for azim in azims:
+        R, T = look_at_view_transform(dist=dist, elev=elev, azim=azim,
+                                      device=dev)
+        cameras = FoVPerspectiveCameras(R=R, T=T, device=dev)
+        renderer = MeshRenderer(
+            rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster),
+            shader=SoftPhongShader(device=dev, cameras=cameras, lights=lights),
+        )
+        p3d = Meshes(verts=[verts], faces=[faces], textures=textures)
+        img = renderer(p3d)[0, ..., :3]
+        frames.append((img.clamp(0.0, 1.0) * 255.0).round()
+                       .to(torch.uint8).cpu())
+    return torch.stack(frames)
