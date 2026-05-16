@@ -4,7 +4,9 @@ Living interpretation of the "human → chibi 3DGS" thread on top of LAM-20K.
 
 ## Current belief
 
-LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vertex splat-scale ratio) renders a coherent chibi avatar at FLAME-rate from any LAM-compatible anchor PNG. ARKit-52 driving stays compatible because the basis is swapped at FLAME init, not after upsample. Splat density follows mesh stretch via `chibi_scale_ratio.npy` so blink closes and eyes read proportionally.
+**Chibi-on-splats is concluded dead (2026-05-15).** Chibi is too large a deformation for a baked Gaussian-splat representation — appearance is glued to verts at fixed density, so chibi-magnitude stretch always rescatters it (blur/smear/leak), and the vertex-space fit loss cannot see that failure. The secant-basis and neck-pancake fixes shipped on `chibi-diff-leak-fix` but the representation limit is not a fixable bug. **Pivot: bake LAM avatar → FLAME-UV-textured mesh, chibi as ordinary mesh deformation.** Splats→mesh research at `2026-05-15-splats-to-mesh-conversion.md`.
+
+Prior belief (splat path, retained for audit): LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vertex splat-scale ratio) renders a coherent chibi avatar at FLAME-rate from any LAM-compatible anchor PNG.
 
 ## Asset surface
 
@@ -22,7 +24,8 @@ LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vert
 - [`2026-05-13-arkit-flame-mapping-extracted.md`](../2026-05-13-arkit-flame-mapping-extracted.md) — `flame_arkit_bs.npy` (52, 5023, 3) lives at `model_zoo/human_parametric_models/flame_assets/flame_arkit_bs.npy`. Used by both Python runtime and offline GLB-bake path.
 - [`2026-05-14-chibi-splat-scale-fix.md`](../2026-05-14-chibi-splat-scale-fix.md) — Falsification ladder + v1 boost + v2 per-vertex ratio. Closes the iris-through-lid artifact at chibi_strength=2.0.
 - [`2026-05-14-neural-renderer-override-pattern.md`](../2026-05-14-neural-renderer-override-pattern.md) — Methodology note distilled from the splat-scale fix: the override-audit checklist, closed-form pull-backs over trained corrections, when the scalar edge-ratio model breaks (anisotropic / large-stretch cases).
-- [`2026-05-15-chibi-painter-proportion-rules.md`](../2026-05-15-chibi-painter-proportion-rules.md) — **Most recent.** Digital-painter rule set for chibi faces (head=sphere/block, features clustered low, eyes huge/low/~1-eye-width apart, nose→button, mouth→strip, nose-mouth:mouth-chin≈1:2, flat skin). Each rule mapped to a mesh op + tagged for differentiability — rules 1–7/8a are vertex-displacement (differentiable), rule 8b (flat skin) is an SH-DC appearance edit and must be a separate optimization target. Anti-creepy = no realistic shading on chibi proportions, and no literal-infant proportions.
+- [`2026-05-15-splats-to-mesh-conversion.md`](../2026-05-15-splats-to-mesh-conversion.md) — **Most recent.** Splats→mesh for the pivot. LAM already *is* a FLAME-topology UV-unwrapped rigged mesh → skip SuGaR/2DGS surface extraction entirely; the only operation is baking per-vertex splat SH-DC into a deformation-invariant FLAME UV texture. Teeth: add static jaw-parented proxy (FLAME has none). Eyelids: mesh is opaque by construction → iris-leak gone, `LAM_CHIBI_SCALE_RATIO`/J·SVD apparatus deletable. Hair: the real open loss — off-surface splats don't bake to UV; ship helmet-hair shell first, hair cards (Strands2Cards/CGHair) in reserve.
+- [`2026-05-15-chibi-painter-proportion-rules.md`](../2026-05-15-chibi-painter-proportion-rules.md) — Digital-painter rule set for chibi faces (head=sphere/block, features clustered low, eyes huge/low/~1-eye-width apart, nose→button, mouth→strip, nose-mouth:mouth-chin≈1:2, flat skin). Each rule mapped to a mesh op + tagged for differentiability — rules 1–7/8a are vertex-displacement (differentiable), rule 8b (flat skin) is an SH-DC appearance edit and must be a separate optimization target. Anti-creepy = no realistic shading on chibi proportions, and no literal-infant proportions.
 
 ## Retired hypotheses
 
