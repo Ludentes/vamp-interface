@@ -50,11 +50,15 @@ def rasterize_uv_attrs(verts: torch.Tensor, faces: torch.Tensor,
 
 def bake_texture(verts: torch.Tensor, faces: torch.Tensor, flame_uv: FlameUV,
                  images: torch.Tensor, depth: torch.Tensor,
-                 views: Sequence[View], tex_size: int
+                 views: Sequence[View], tex_size: int, *,
+                 facing_power: float = 4.0, mode: str = "best",
+                 min_facing: float = 0.5, erode_px: int = 2
                  ) -> tuple[torch.Tensor, torch.Tensor]:
     """Bake a (tex,tex,3) float32 texture atlas. Returns (texture, filled),
     where `filled` (tex,tex) bool marks texels a view actually saw — the
-    complement is what dilate_texture must fill."""
+    complement is what dilate_texture must fill. `mode` defaults to "best"
+    (winner-take-all per texel) — blending decorrelates the splat renders'
+    high-frequency skin detail into a blocky pattern (see bake_points)."""
     pos_map, nrm_map, mask = rasterize_uv_attrs(verts, faces, flame_uv, tex_size)
     flat_pos = pos_map.reshape(-1, 3)
     flat_nrm = nrm_map.reshape(-1, 3)
@@ -63,7 +67,9 @@ def bake_texture(verts: torch.Tensor, faces: torch.Tensor, flame_uv: FlameUV,
         raise ValueError("no texel covered by the UV layout")
     nrm = flat_nrm[idx]
     nrm = nrm / nrm.norm(dim=1, keepdim=True).clamp_min(1e-9)
-    rgb, seen = bake_points(flat_pos[idx], nrm, images, depth, views)
+    rgb, seen = bake_points(flat_pos[idx], nrm, images, depth, views,
+                            facing_power=facing_power, mode=mode,
+                            min_facing=min_facing, erode_px=erode_px)
 
     texture = torch.full((tex_size * tex_size, 3), 0.5, dtype=torch.float32)
     texture[idx] = rgb
@@ -71,6 +77,33 @@ def bake_texture(verts: torch.Tensor, faces: torch.Tensor, flame_uv: FlameUV,
     filled[idx] = seen
     return (texture.reshape(tex_size, tex_size, 3),
             filled.reshape(tex_size, tex_size))
+
+
+def _gaussian_blur(img: torch.Tensor, sigma: float) -> torch.Tensor:
+    """Separable Gaussian blur of an (H,W,3) float texture."""
+    import torch.nn.functional as F
+    k = int(sigma * 3.0) * 2 + 1
+    x = torch.arange(k, dtype=torch.float32) - k // 2
+    g = torch.exp(-(x ** 2) / (2.0 * sigma * sigma))
+    g = (g / g.sum()).to(img.device)
+    t = img.permute(2, 0, 1).unsqueeze(0)                  # (1,3,H,W)
+    gh = g.view(1, 1, 1, k).repeat(3, 1, 1, 1)
+    gv = g.view(1, 1, k, 1).repeat(3, 1, 1, 1)
+    t = F.conv2d(t, gh, padding=(0, k // 2), groups=3)
+    t = F.conv2d(t, gv, padding=(k // 2, 0), groups=3)
+    return t.squeeze(0).permute(1, 2, 0)
+
+
+def unsharp_mask(texture: torch.Tensor, sigma: float = 2.0,
+                 amount: float = 0.6) -> torch.Tensor:
+    """Sharpen a seam-free blended atlas by adding back a fraction of its own
+    high-frequency band. Unlike a winner-take-all / multiband merge this is a
+    purely local operation on a single texture, so it introduces no view-
+    boundary seams. Input/output (H,W,3) in [0,1]."""
+    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    t = texture.to(dev)
+    hi = t - _gaussian_blur(t, sigma)
+    return (t + amount * hi).clamp(0.0, 1.0).cpu()
 
 
 def dilate_texture(texture: torch.Tensor, mask: torch.Tensor,
