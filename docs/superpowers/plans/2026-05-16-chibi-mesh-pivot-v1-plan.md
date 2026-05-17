@@ -38,12 +38,12 @@ python -m pytest <args>
 | File | Responsibility |
 |------|----------------|
 | `src/chibi/mesh.py` | `ChibiMesh` dataclass — stable, renderer-agnostic interface. |
-| `src/chibi/mesh_extract.py` | `load_chibi_mesh(obj)` — parse LAM textured-mesh OBJ. `load_gaussian_ply(ply)` — parse a LAM per-frame `.ply` → verts + rgb. |
-| `src/chibi/mesh_render.py` | `render(meshes, azims, ...)` — pytorch3d render of a mesh sequence (animation) or one mesh from many angles (turntable). |
-| `src/chibi/mesh_deform.py` | `apply_chibi(mesh, field_params, masks)` — deform verts with `ChibiField`. |
+| `src/chibi/mesh_extract.py` | `load_chibi_mesh(obj)` — parse LAM textured-mesh OBJ. `load_gaussian_ply(ply)` — parse a LAM per-frame `.ply` → verts + rgb. `load_textured_mesh(obj)` — parse a v3 UV-textured OBJ (+ `.mtl` + atlas PNG) → `TexturedMesh`. |
+| `src/chibi/mesh_render.py` | `render(meshes, azims, ...)` — pytorch3d render of a mesh sequence (animation) or one mesh from many angles (turntable). `render_textured(tmesh, azims, ...)` — same for a `TexturedMesh`. |
+| `src/chibi/mesh_deform.py` | `apply_chibi(mesh, field_params, masks)` — deform verts with `ChibiField`. Accepts a `ChibiMesh` or a `TexturedMesh`, returns the same type. |
 | `scripts/mesh_quality_check.py` | Milestone 0: per-frame `.ply` sequence → animated mesh video. |
-| `scripts/chibi_mesh_render.py` + `.sh` | Chibi turntable render + side-by-side (Task 6). |
-| `tests/test_chibi_mesh.py` | Tests for `ChibiMesh`, `load_chibi_mesh`, `load_gaussian_ply`, `apply_chibi`. |
+| `scripts/chibi_mesh_render.py` + `.sh` | Chibi turntable render + side-by-side on the v3 textured mesh (Task 6). |
+| `tests/test_chibi_mesh.py` | Tests for `ChibiMesh`, `load_chibi_mesh`, `load_gaussian_ply`, `load_textured_mesh`, `apply_chibi`. |
 | `tests/test_chibi_mesh_render.py` | Test for `render`. |
 
 ## Task order and the gate
@@ -730,134 +730,170 @@ git commit -m "feat(chibi): apply_chibi — deform a ChibiMesh with ChibiField"
 
 ---
 
-### Task 6: Chibi render + side-by-side verdict *(gated on Milestone 0)*
+### Task 6: Chibi render + side-by-side verdict — v3 textured mesh *(gated on Milestone 0)*
+
+**Rewritten from the v2 per-vertex-colour path to v3.** The shipped colour path
+is the nvdiffrast UV-texture bake (`scripts/bake_uv_texture.py`), whose output
+is a `TexturedMesh` (`<stem>_textured.obj` + `.mtl` + `<stem>_texture.png`) —
+not a per-vertex-RGB `ChibiMesh`. So Task 6 loads a `TexturedMesh`, deforms its
+verts, and renders via `render_textured`. The chibi deform is UV-invariant:
+`uv` / `uv_faces` / `texture` pass through untouched.
 
 **Files:**
-- Create: `scripts/chibi_mesh_render.py`
-- Create: `scripts/chibi_mesh_render.sh`
+- Modify: `src/chibi/mesh_extract.py` — add `load_textured_mesh`
+- Modify: `src/chibi/mesh_deform.py` — `apply_chibi` accepts a `TexturedMesh`
+- Modify: `tests/test_chibi_mesh.py` — append
+- Create: `scripts/chibi_mesh_render.py` + `.sh`
 
-No unit test — orchestration glue verified by the run below.
+- [ ] **Step 1: Write the failing tests for `load_textured_mesh` + `apply_chibi` on a `TexturedMesh`**
 
-- [ ] **Step 1: Write the orchestration entrypoint**
-
-Create `scripts/chibi_mesh_render.py`:
+Append to `tests/test_chibi_mesh.py`:
 
 ```python
-"""Chibi mesh-pivot driver: canonical mesh -> chibi deform -> turntable mp4.
-
-A static-pose chibi render (camera orbit). Driven chibi animation reuses the
-same units but is a later task. Run via scripts/chibi_mesh_render.sh.
-
-  python scripts/chibi_mesh_render.py \
-      --obj   /home/newub/w/LAM/exps/cano_gs/asian_m_textured_mesh.obj \
-      --field exp_output/lam_chibi/diff_geometry/chibi_field_params.json \
-      --out   exp_output/lam_chibi/renders/mesh_v1
-"""
-from __future__ import annotations
-import argparse
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-import imageio.v2 as imageio  # noqa: E402
-
-from chibi.mesh_extract import load_chibi_mesh   # noqa: E402
-from chibi.mesh_deform import apply_chibi          # noqa: E402
-from chibi.mesh_render import render               # noqa: E402
-
-MASKS = ("/home/newub/w/LAM/model_zoo/human_parametric_models/"
-         "flame_assets/flame/FLAME_masks.pkl")
+from chibi.mesh import TexturedMesh
+from chibi.mesh_extract import load_textured_mesh
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--obj", required=True)
-    ap.add_argument("--field", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--n_frames", type=int, default=72)
-    ap.add_argument("--image_size", type=int, default=256)
-    args = ap.parse_args()
-
-    obj = Path(args.obj)
-    assert obj.exists(), (
-        f"textured-mesh OBJ not found: {obj}\n"
-        f"Run scripts/chibi_anchor_render.sh on the anchor first to bake it.")
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    stem = obj.stem.replace("_textured_mesh", "")
-
-    mesh = load_chibi_mesh(str(obj))
-    print(f"[mesh] {stem}: {mesh.verts.shape[0]} verts")
-    azims = [360.0 * i / args.n_frames for i in range(args.n_frames)]
-
-    base = render([mesh], azims, image_size=args.image_size)
-    imageio.mimwrite(out / f"mesh_baseline_{stem}.mp4", list(base.numpy()), fps=24)
-    print(f"[render] baseline -> mesh_baseline_{stem}.mp4")
-
-    chibi = apply_chibi(mesh, args.field, MASKS)
-    cf = render([chibi], azims, image_size=args.image_size)
-    imageio.mimwrite(out / f"mesh_chibi_{stem}.mp4", list(cf.numpy()), fps=24)
-    print(f"[render] chibi -> mesh_chibi_{stem}.mp4")
+def test_load_textured_mesh_roundtrips_a_v3_obj(tmp_path):
+    import imageio.v2 as imageio, numpy as np
+    obj = tmp_path / "t_textured.obj"
+    obj.write_text(
+        "mtllib t_textured.mtl\nusemtl t_mat\n"
+        "v 0 0 0\nv 1 0 0\nv 0 1 0\n"
+        "vt 0 0\nvt 1 0\nvt 0 1\n"
+        "f 1/1 2/2 3/3\n")
+    (tmp_path / "t_textured.mtl").write_text("newmtl t_mat\nmap_Kd t_texture.png\n")
+    imageio.imwrite(tmp_path / "t_texture.png",
+                    np.full((8, 8, 3), 128, dtype=np.uint8))
+    m = load_textured_mesh(str(obj))
+    assert isinstance(m, TexturedMesh)
+    assert m.verts.shape == (3, 3) and m.faces.shape == (1, 3)
+    assert m.uv.shape == (3, 2) and m.uv_faces.shape == (1, 3)
+    assert m.texture.shape == (8, 8, 3)
+    assert torch.allclose(m.texture, torch.full((8, 8, 3), 128 / 255.0), atol=1e-6)
 
 
-if __name__ == "__main__":
-    main()
+@needs_flame
+def test_apply_chibi_on_textured_mesh_returns_textured_mesh(tmp_path):
+    from chibi.field import ChibiField
+    from chibi.fit import save_field_params, _load_obj_verts
+    from chibi.landmarks import FLAME_TEMPLATE, _template_faces
+    from chibi.uv_template import load_flame_uv
+    v = _load_obj_verts(FLAME_TEMPLATE).double()
+    faces = torch.as_tensor(_template_faces(), dtype=torch.int64)
+    fuv = load_flame_uv(FLAME_TEMPLATE)
+    tex = torch.full((16, 16, 3), 0.5, dtype=torch.float32)
+    mesh = TexturedMesh(verts=v, faces=faces, uv=fuv.uv,
+                        uv_faces=fuv.uv_faces, texture=tex)
+    params = tmp_path / "f.json"
+    f = ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0)
+    with torch.no_grad():
+        f.remap_incr.copy_(torch.tensor([0.25, -0.35, 0.1, -0.2, 0.15]))
+        f.radial_log.copy_(torch.linspace(0.0, 0.3, 6))
+    save_field_params(f, str(params))
+    out = apply_chibi(mesh, str(params), MASKS)
+    assert isinstance(out, TexturedMesh)
+    assert torch.equal(out.faces, mesh.faces)
+    assert torch.equal(out.uv, mesh.uv)
+    assert torch.equal(out.uv_faces, mesh.uv_faces)
+    assert torch.equal(out.texture, mesh.texture)
+    assert not torch.allclose(out.verts, mesh.verts, atol=1e-3)
 ```
 
-- [ ] **Step 2: Write the env wrapper**
+- [ ] **Step 2: Run the tests to verify they fail**
 
-Create `scripts/chibi_mesh_render.sh`:
+Run: `python -m pytest tests/test_chibi_mesh.py -k "textured_mesh" -v`
+Expected: FAIL — `ImportError: cannot import name 'load_textured_mesh'`
 
-```bash
-#!/usr/bin/env bash
-# Chibi mesh-pivot driver. Activates the lam conda env (pytorch3d lives there)
-# and runs scripts/chibi_mesh_render.py.
-#   bash scripts/chibi_mesh_render.sh STEM [FIELD_PARAMS_JSON]
-set -eu
+- [ ] **Step 3: Implement `load_textured_mesh`**
 
-STEM=${1:?usage: $0 STEM [FIELD_PARAMS_JSON]}
-VAMP=/home/newub/w/vamp-interface
-LAM=/home/newub/w/LAM
-FIELD=${2:-${VAMP}/exp_output/lam_chibi/diff_geometry/chibi_field_params.json}
-OBJ=${LAM}/exps/cano_gs/${STEM}_textured_mesh.obj
-OUT=${VAMP}/exp_output/lam_chibi/renders/mesh_v1
+Append to `src/chibi/mesh_extract.py`:
 
-source /home/newub/miniconda3/etc/profile.d/conda.sh
-conda activate lam
-export PATH=/home/newub/miniconda3/envs/lam/bin:$PATH
-
-python "${VAMP}/scripts/chibi_mesh_render.py" \
-    --obj "${OBJ}" --field "${FIELD}" --out "${OUT}"
+```python
+def load_textured_mesh(obj_path: str):
+    """Parse a v3 UV-textured OBJ (written by scripts/bake_uv_texture.py:
+    `v x y z`, `vt u v`, `f v/vt v/vt v/vt`) into a TexturedMesh. The atlas
+    PNG is resolved from the sibling `.mtl`'s `map_Kd`."""
+    from chibi.mesh import TexturedMesh
+    import imageio.v2 as imageio
+    obj = Path(obj_path)
+    verts: list[list[float]] = []
+    uvs: list[list[float]] = []
+    faces: list[list[int]] = []
+    uv_faces: list[list[int]] = []
+    mtl_name = None
+    for line in obj.read_text().splitlines():
+        p = line.split()
+        if not p:
+            continue
+        if p[0] == "v":
+            verts.append([float(x) for x in p[1:4]])
+        elif p[0] == "vt":
+            uvs.append([float(p[1]), float(p[2])])
+        elif p[0] == "f":
+            faces.append([int(t.split("/")[0]) - 1 for t in p[1:4]])
+            uv_faces.append([int(t.split("/")[1]) - 1 for t in p[1:4]])
+        elif p[0] == "mtllib":
+            mtl_name = p[1]
+    assert verts and faces and uvs, f"incomplete textured OBJ: {obj_path}"
+    tex_name = None
+    if mtl_name and (obj.parent / mtl_name).exists():
+        for line in (obj.parent / mtl_name).read_text().splitlines():
+            if line.startswith("map_Kd"):
+                tex_name = line.split()[1]
+    assert tex_name, f"no map_Kd texture found for {obj_path}"
+    tex = imageio.imread(obj.parent / tex_name)
+    texture = torch.tensor(tex[..., :3], dtype=torch.float32) / 255.0
+    return TexturedMesh(
+        verts=torch.tensor(verts, dtype=torch.float64),
+        faces=torch.tensor(faces, dtype=torch.int64),
+        uv=torch.tensor(uvs, dtype=torch.float32),
+        uv_faces=torch.tensor(uv_faces, dtype=torch.int64),
+        texture=texture,
+    )
 ```
 
-- [ ] **Step 3: Make the wrapper executable and run both anchors**
+- [ ] **Step 4: Extend `apply_chibi` to dispatch on mesh type**
+
+Replace the body of `apply_chibi` in `src/chibi/mesh_deform.py` so the verts
+deform is shared and the return type matches the input type (`ChibiMesh` →
+`ChibiMesh`, `TexturedMesh` → `TexturedMesh`). Import `TexturedMesh`.
+
+- [ ] **Step 5: Run the tests to verify they pass**
+
+Run: `python -m pytest tests/test_chibi_mesh.py -k "textured_mesh or apply_chibi" -v`
+Expected: PASS — 4 passed (2 from Task 5, 2 new)
+
+- [ ] **Step 6: Write the render driver**
+
+Create `scripts/chibi_mesh_render.py` — load the v3 textured OBJ, render a
+baseline turntable, `apply_chibi`, render the chibi turntable, write both mp4s
+and a baseline-vs-chibi side-by-side. Create `scripts/chibi_mesh_render.sh` to
+activate the `lam` conda env and call it with a `STEM` arg, resolving
+`--obj exp_output/lam_chibi/renders/bake_v3/<stem>/<stem>_textured.obj`.
+
+- [ ] **Step 7: Run both anchors**
 
 ```bash
-chmod +x scripts/chibi_mesh_render.sh
 bash scripts/chibi_mesh_render.sh asian_m
-bash scripts/chibi_mesh_render.sh me
+bash scripts/chibi_mesh_render.sh me_512
 ```
-Expected: `mesh_baseline_<stem>.mp4` and `mesh_chibi_<stem>.mp4` for each anchor under `exp_output/lam_chibi/renders/mesh_v1/`. The `me` anchor is the stress case (its deeper-z frame broke the splat path).
+Expected: `mesh_baseline_<stem>.mp4`, `mesh_chibi_<stem>.mp4`,
+`sidebyside_<stem>.mp4` under `exp_output/lam_chibi/renders/mesh_v1/`.
 
-- [ ] **Step 4: Build the side-by-side against the splat-path chibi verdict**
+- [ ] **Step 8: Record the verdict and close the task**
+
+Eyeball the outputs: the chibi deform should enlarge the head / shrink features
+without tearing the UV texture. Note the verdict in a `TaskUpdate` on #65, then
+mark #65 and #32 completed.
+
+- [ ] **Step 9: Commit**
 
 ```bash
-ffmpeg -y -i exp_output/lam_chibi/renders/mesh_v1/mesh_chibi_asian_m.mp4 \
-       -i exp_output/lam_chibi/renders/chibi_asian_m_secant_neck.mp4 \
-       -filter_complex "[0:v]scale=256:256[a];[1:v]scale=256:256[b];[a][b]hstack" \
-       exp_output/lam_chibi/renders/mesh_v1/sidebyside_chibi_asian_m.mp4
-```
-Expected: `sidebyside_chibi_asian_m.mp4` — mesh chibi (left) vs splat chibi (right).
-
-- [ ] **Step 5: Record the verdict and close the task**
-
-Eyeball the side-by-side and the `me` outputs: do the splat-path failures (blurred skull/hair edges, smear, iris-leak) survive on the mesh? Expected: no. Note the answer (and any new mesh-side issues — flat look is expected, that is v2) in a `TaskUpdate` comment on task #65, then mark #65 and #32 completed.
-
-- [ ] **Step 6: Commit the scripts**
-
-```bash
-git add scripts/chibi_mesh_render.py scripts/chibi_mesh_render.sh
-git commit -m "feat(chibi): chibi_mesh_render — chibi turntable + side-by-side"
+git add src/chibi/mesh_extract.py src/chibi/mesh_deform.py \
+        tests/test_chibi_mesh.py scripts/chibi_mesh_render.py \
+        scripts/chibi_mesh_render.sh
+git commit -m "feat(chibi): chibi_mesh_render — deform + render the v3 textured mesh"
 ```
 
 ---
