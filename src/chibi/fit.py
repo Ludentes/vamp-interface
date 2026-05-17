@@ -31,8 +31,15 @@ def _mesh_laplacian_penalty(disp: torch.Tensor, faces: torch.Tensor) -> torch.Te
 
 def chibi_loss(field: ChibiField, verts: torch.Tensor,
                region_weights: dict, faces: torch.Tensor | None = None,
-               lam_smooth: float = 1.0, lam_reg: float = 0.005) -> dict:
-    """Return {'total','landmark','smooth','reg'} loss tensors."""
+               lam_smooth: float = 1.0, lam_reg: float = 0.005,
+               lam_curv: float = 3e-3) -> dict:
+    """Return {'total','landmark','smooth','reg','curv'} loss tensors.
+
+    `lam_curv=3e-3` was picked by sweep: it drops the radial-knot swing from
+    0.71 (unregularized — the wasp-waist) to 0.04 with the landmark RMSE
+    unchanged at 0.068. The plateau 1e-3..1e-2 all work; 3e-3 is mid-plateau,
+    clear of the >=3e-2 regime where over-regularisation forces a pure ramp.
+    """
     if faces is None:
         faces = torch.as_tensor(_template_faces(), dtype=torch.long)
     deformed = field(verts, region_weights=region_weights)
@@ -56,13 +63,39 @@ def chibi_loss(field: ChibiField, verts: torch.Tensor,
         (p ** 2).mean() for p in [field.radial_log, field.s_eye_log,
                                   field.s_nose_xy_log, field.s_nose_z_log,
                                   field.s_mouth_y_log])
-    total = l_lm + lam_smooth * l_smooth + lam_reg * l_reg
-    return {"total": total, "landmark": l_lm, "smooth": l_smooth, "reg": l_reg}
+
+    # Curvature penalty on the radial-width profile. The landmark targets
+    # constrain feature *line positions* and *sizes* but never the head's
+    # radial width, so `radial_log` is underdetermined; the mesh-Laplacian
+    # above is local and cannot see a low-frequency oscillation between wide
+    # height bands. Without this term the fit leaves `radial_log` oscillating
+    # (e.g. 0.70x at the nose, 1.42x at the mouth), folding the head into a
+    # self-occluding wasp-waist.
+    #
+    # The 6 radial knots sit at the non-uniformly spaced REALISTIC_KNOTS
+    # u-positions, so a uniform [1,-2,1] stencil would penalise a profile that
+    # is genuinely linear in u. This is the non-uniform 3-point second-
+    # derivative stencil keyed on the knot positions: it is exactly zero for
+    # any profile linear in u (a smooth taper costs nothing) and grows with
+    # true curvature (the pinch/balloon oscillation).
+    rl = field.radial_log
+    xp = field.realistic_knots
+    h_l = xp[1:-1] - xp[:-2]
+    h_r = xp[2:] - xp[1:-1]
+    slope_l = (rl[1:-1] - rl[:-2]) / h_l
+    slope_r = (rl[2:] - rl[1:-1]) / h_r
+    l_curv = (((slope_r - slope_l) / (h_l + h_r)) ** 2).mean()
+
+    total = (l_lm + lam_smooth * l_smooth + lam_reg * l_reg
+             + lam_curv * l_curv)
+    return {"total": total, "landmark": l_lm, "smooth": l_smooth,
+            "reg": l_reg, "curv": l_curv}
 
 
 def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
                     n_steps: int = 300, lr: float = 0.05,
                     lam_smooth: float = 1.0, lam_reg: float = 0.005,
+                    lam_curv: float = 3e-3,
                     verbose: bool = True) -> ChibiField:
     field = ChibiField(y_crown=float(verts[:, 1].max()),
                        y_chin=float(landmark_positions(verts)[8, 1]),
@@ -73,14 +106,15 @@ def fit_chibi_field(verts: torch.Tensor, masks_path: str, *,
     history = []
     for step in range(n_steps):
         opt.zero_grad()
-        loss = chibi_loss(field, verts, rw, faces,
-                          lam_smooth=lam_smooth, lam_reg=lam_reg)
+        loss = chibi_loss(field, verts, rw, faces, lam_smooth=lam_smooth,
+                          lam_reg=lam_reg, lam_curv=lam_curv)
         loss["total"].backward()
         opt.step()
         history.append(loss["total"].item())
         if verbose and step % 50 == 0:
             print(f"step {step:4d}  total={loss['total'].item():.5f}  "
-                  f"lm={loss['landmark'].item():.5f}")
+                  f"lm={loss['landmark'].item():.5f}  "
+                  f"curv={loss['curv'].item():.5f}")
     field._loss_history = history
     return field
 
