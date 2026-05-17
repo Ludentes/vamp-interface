@@ -91,3 +91,53 @@ def test_load_gaussian_ply_returns_verts_and_rgb(tmp_path):
     assert verts.shape == (n, 3) and rgb.shape == (n, 3)
     assert np.allclose(verts.numpy(), xyz, atol=1e-6)
     assert np.allclose(rgb.numpy(), fdc, atol=1e-6)
+
+
+import os
+from chibi.mesh_deform import apply_chibi
+
+MASKS = "/home/newub/w/LAM/model_zoo/human_parametric_models/flame_assets/flame/FLAME_masks.pkl"
+needs_flame = pytest.mark.skipif(
+    not os.path.exists(MASKS),
+    reason="local FLAME assets (FLAME_masks.pkl) not found")
+
+
+def _flame_template_chibi_mesh():
+    """ChibiMesh from the real 5023 FLAME template (dummy rgb — apply_chibi
+    must pass rgb through untouched)."""
+    from chibi.fit import _load_obj_verts
+    from chibi.landmarks import FLAME_TEMPLATE, _template_faces
+    v = _load_obj_verts(FLAME_TEMPLATE).double()
+    faces = torch.as_tensor(_template_faces(), dtype=torch.int64)
+    rgb = torch.full((v.shape[0], 3), 0.5, dtype=torch.float32)
+    return ChibiMesh(verts=v, faces=faces, rgb=rgb)
+
+
+@needs_flame
+def test_apply_chibi_identity_field_leaves_verts_unchanged(tmp_path):
+    from chibi.field import ChibiField
+    from chibi.fit import save_field_params
+    mesh = _flame_template_chibi_mesh()
+    params = tmp_path / "identity.json"
+    save_field_params(ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0),
+                      str(params))
+    out = apply_chibi(mesh, str(params), MASKS)
+    assert torch.allclose(out.verts, mesh.verts, atol=1e-5)
+
+
+@needs_flame
+def test_apply_chibi_preserves_faces_and_rgb(tmp_path):
+    from chibi.field import ChibiField
+    from chibi.fit import save_field_params
+    mesh = _flame_template_chibi_mesh()
+    params = tmp_path / "nontrivial.json"
+    f = ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0)
+    with torch.no_grad():
+        f.remap_incr.copy_(torch.tensor([0.25, -0.35, 0.1, -0.2, 0.15]))
+        f.radial_log.copy_(torch.linspace(0.0, 0.3, 6))
+    save_field_params(f, str(params))
+    out = apply_chibi(mesh, str(params), MASKS)
+    assert torch.equal(out.faces, mesh.faces)
+    assert torch.equal(out.rgb, mesh.rgb)
+    assert out.verts.shape == mesh.verts.shape
+    assert not torch.allclose(out.verts, mesh.verts, atol=1e-3)
