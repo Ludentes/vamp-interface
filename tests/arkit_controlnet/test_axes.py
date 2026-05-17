@@ -1,4 +1,5 @@
 from arkit_controlnet.axes import AXES, Axis
+from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
 
 
 def test_smile_axis_is_defined_and_well_formed():
@@ -16,3 +17,11 @@ def test_smile_axis_is_defined_and_well_formed():
 
 def test_three_axes_present():
     assert set(AXES) == {"smile", "pucker", "surprise"}
+
+
+def test_every_target_channel_is_a_real_arkit_name():
+    # bs_delta indexes target_channels directly; a typo would KeyError mid-sweep.
+    valid = set(ARKIT_BLENDSHAPE_NAMES)
+    for axis in AXES.values():
+        unknown = [c for c in axis.target_channels if c not in valid]
+        assert not unknown, f"{axis.name}: unknown ARKit channels {unknown}"

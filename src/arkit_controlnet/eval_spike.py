@@ -57,9 +57,17 @@ def _get_arcface():
     return _arcface
 
 
+def _imread(path: Path):
+    """cv2.imread that fails loudly instead of returning None on a bad path."""
+    img = cv2.imread(str(path))
+    if img is None:
+        raise FileNotFoundError(f"could not read image: {path}")
+    return img
+
+
 def bs_read(image_path: Path) -> dict[str, float]:
     """52-d ARKit blendshapes from an image. Missing detection -> all zeros."""
-    arr = cv2.cvtColor(cv2.imread(str(image_path)), cv2.COLOR_BGR2RGB)
+    arr = cv2.cvtColor(_imread(image_path), cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=arr)
     res = _get_landmarker().detect(mp_image)
     if not res.face_blendshapes:
@@ -71,8 +79,8 @@ def bs_read(image_path: Path) -> dict[str, float]:
 def arcface_cos(path_a: Path, path_b: Path) -> float:
     """Cosine similarity of buffalo_l embeddings. -1.0 if either has no face."""
     app = _get_arcface()
-    fa = app.get(cv2.imread(str(path_a)))
-    fb = app.get(cv2.imread(str(path_b)))
+    fa = app.get(_imread(path_a))
+    fb = app.get(_imread(path_b))
     if not fa or not fb:
         return -1.0
     ea, eb = fa[0].normed_embedding, fb[0].normed_embedding
