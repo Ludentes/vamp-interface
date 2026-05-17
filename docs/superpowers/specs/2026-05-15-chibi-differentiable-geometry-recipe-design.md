@@ -1,6 +1,7 @@
 ---
-status: live
+status: superseded
 topic: lam-chibi-recipe
+superseded_by: 2026-05-17-chibi-geometry-redesign-design.md
 ---
 
 # Differentiable Chibi-Geometry Recipe — Design
