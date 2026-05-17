@@ -43,6 +43,49 @@ def load_chibi_mesh(obj_path: str) -> ChibiMesh:
     )
 
 
+def load_textured_mesh(obj_path: str):
+    """Parse a v3 UV-textured OBJ (written by scripts/bake_uv_texture.py:
+    `v x y z`, `vt u v`, `f v/vt v/vt v/vt`) into a TexturedMesh. The atlas
+    PNG is resolved from the sibling `.mtl`'s `map_Kd`."""
+    from chibi.mesh import TexturedMesh
+    import imageio.v2 as imageio
+    obj = Path(obj_path)
+    verts: list[list[float]] = []
+    uvs: list[list[float]] = []
+    faces: list[list[int]] = []
+    uv_faces: list[list[int]] = []
+    mtl_name = None
+    for line in obj.read_text().splitlines():
+        p = line.split()
+        if not p:
+            continue
+        if p[0] == "v":
+            verts.append([float(x) for x in p[1:4]])
+        elif p[0] == "vt":
+            uvs.append([float(p[1]), float(p[2])])
+        elif p[0] == "f":
+            faces.append([int(t.split("/")[0]) - 1 for t in p[1:4]])
+            uv_faces.append([int(t.split("/")[1]) - 1 for t in p[1:4]])
+        elif p[0] == "mtllib":
+            mtl_name = p[1]
+    assert verts and faces and uvs, f"incomplete textured OBJ: {obj_path}"
+    tex_name = None
+    if mtl_name and (obj.parent / mtl_name).exists():
+        for line in (obj.parent / mtl_name).read_text().splitlines():
+            if line.startswith("map_Kd"):
+                tex_name = line.split()[1]
+    assert tex_name, f"no map_Kd texture found for {obj_path}"
+    tex = imageio.imread(obj.parent / tex_name)
+    texture = torch.tensor(tex[..., :3], dtype=torch.float32) / 255.0
+    return TexturedMesh(
+        verts=torch.tensor(verts, dtype=torch.float64),
+        faces=torch.tensor(faces, dtype=torch.int64),
+        uv=torch.tensor(uvs, dtype=torch.float32),
+        uv_faces=torch.tensor(uv_faces, dtype=torch.int64),
+        texture=texture,
+    )
+
+
 def load_gaussian_ply(ply_path: str) -> tuple[torch.Tensor, torch.Tensor]:
     """Parse a LAM per-frame .ply. Returns (verts (V,3) float64,
     rgb (V,3) float32 in [0,1]). f_dc_* is already sigmoid RGB (gs_use_rgb)."""
