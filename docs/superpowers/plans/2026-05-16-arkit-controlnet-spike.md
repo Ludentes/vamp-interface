@@ -20,52 +20,60 @@
 - `src/arkit_controlnet/run_spike.py` — the runner: select identities, drive ComfyUI, collect metrics, write grid.
 - `comfyui/workflows/arkit_controlnet_spike.json` — the InfU + FluxSpace ComfyUI graph (API format).
 - `tests/arkit_controlnet/test_axes.py`, `tests/arkit_controlnet/test_eval_spike.py` — unit tests.
-- `models/mediapipe/face_landmarker.task` — MediaPipe model asset (download in Task 0).
+- `models/mediapipe/face_landmarker.task` — MediaPipe model asset (already present — see Task 0).
 
 ---
 
 ## Task 0: Environment and inventory
 
+All weights and both custom nodes are **already in place** — verified
+2026-05-17, see `docs/research/2026-05-16-infiniteyou-asset-report.md`. There
+is nothing to download or install. This task only confirms the nodes register
+and records the inventory the runner depends on.
+
 **Files:**
 - Create: `docs/research/2026-05-16-arkit-spike-env-notes.md` (running notes)
 
-- [ ] **Step 1: Confirm the FluxSpace nodes load**
+- [ ] **Step 1: Restart ComfyUI and confirm both node sets register**
 
-Run: `ls /home/newub/w/ComfyUI/custom_nodes/demographic_pc_fluxspace/__init__.py`
-Then start ComfyUI and confirm `FluxSpaceEditPair` appears in the node list.
-Expected: file exists; node `FluxSpaceEditPair` registered (it defines
-`INPUT_TYPES` with `edit_conditioning_a`, `edit_conditioning_b`, `scale`,
-`mix_b`, `start_percent`, `end_percent`; `RETURN_TYPES = ("MODEL",)`).
+The official `ComfyUI_InfiniteYou` node (ByteDance,
+`~/w/ComfyUI/custom_nodes/ComfyUI_InfiniteYou/`, deps in `~/w/ComfyUI/.venv`)
+and the project's `demographic_pc_fluxspace` node both need a ComfyUI restart
+to register. Restart ComfyUI, then confirm in the node list:
+- InfiniteYou: `IDEmbeddingModelLoader`, `ExtractIDEmbedding`,
+  `ExtractFacePoseImage`, `InfuseNetLoader`, `InfuseNetApply`.
+- FluxSpace: `FluxSpaceEditPair` (defines `INPUT_TYPES` with
+  `edit_conditioning_a`, `edit_conditioning_b`, `scale`, `mix_b`,
+  `start_percent`, `end_percent`; `RETURN_TYPES = ("MODEL",)`).
+Expected: all six node classes appear. If `ComfyUI_InfiniteYou` fails to
+import, check the venv deps (facexlib, insightface, onnxruntime,
+opencv-python) per the asset report.
 
-- [ ] **Step 2: Install an InfiniteYou ComfyUI integration**
+- [ ] **Step 2: Verify the weight inventory**
 
-InfiniteYou ships official diffusers weights + code at
-`github.com/bytedance/InfiniteYou` (model `ByteDance/InfiniteYou` on HF).
-Research the current community ComfyUI node options (search for
-"ComfyUI InfiniteYou"), pick one, and install it into
-`/home/newub/w/ComfyUI/custom_nodes/`. Record the exact repo + commit in the
-env-notes doc. If no maintained ComfyUI node exists, fall back to running InfU
-via diffusers in a wrapper node — record that decision.
-Expected: an InfU identity node appears in ComfyUI; it takes an identity image
-+ FLUX model and returns a patched MODEL (or conditioning).
-
-- [ ] **Step 3: Download weights**
-
-Download FLUX.1-dev, the InfU/InfuseNet weights, and the MediaPipe model:
+Confirm each asset resolves — no download, listed so the runner's paths are
+known:
 ```bash
-huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir ~/w/ComfyUI/models/diffusers/FLUX.1-dev
-huggingface-cli download ByteDance/InfiniteYou --local-dir ~/w/ComfyUI/models/infiniteyou
-mkdir -p models/mediapipe
-curl -L -o models/mediapipe/face_landmarker.task \
-  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+ls -lL ~/w/ComfyUI/models/infinite_you/sim_stage1/infusenet_sim_fp8e4m3fn.safetensors  # 2.95 GB
+ls -lL ~/w/ComfyUI/models/infinite_you/sim_stage1/image_proj_model.bin                 # 338 MB
+ls ~/w/ComfyUI/models/diffusion_models/FLUX1/flux1-dev-fp8.safetensors                 # base — dev, NOT Krea
+ls ~/w/ComfyUI/models/text_encoders/t5/t5xxl_fp8_e4m3fn.safetensors ~/w/ComfyUI/models/text_encoders/clip_l.safetensors
+ls ~/w/ComfyUI/models/vae/FLUX1/ae.safetensors
+ls ~/w/ComfyUI/models/insightface/models/antelopev2/                                   # 5 onnx — InfU face encoder
+ls models/mediapipe/face_landmarker.task                                               # eval harness
 ```
-Expected: weights present; `face_landmarker.task` ~3.8 MB.
+Expected: every path exists. The InfiniteYou variant is `sim_stage1` (the
+identity-similarity arm — correct for identity-through-style), fp8 (fits the
+32 GB card; bf16 peaks ~43 GB and would not). The base MUST be FLUX.1-**dev** —
+InfuseNet residuals are dev-aligned; do not substitute Krea.
 
-- [ ] **Step 4: Commit env notes**
+- [ ] **Step 3: Commit env notes**
 
+Record in `docs/research/2026-05-16-arkit-spike-env-notes.md` the verified node
++ weight inventory and the `ComfyUI_InfiniteYou` node commit. Then:
 ```bash
 git add docs/research/2026-05-16-arkit-spike-env-notes.md
-git commit -m "chore(arkit-spike): record env setup — InfU node, weights, mediapipe asset"
+git commit -m "chore(arkit-spike): verify env — InfiniteYou node + weights already staged"
 ```
 
 ---
@@ -193,18 +201,28 @@ git commit -m "feat(arkit-spike): FluxSpace expression axis config (smile verifi
 
 - [ ] **Step 1: Build the graph in the ComfyUI UI**
 
+The two halves patch different wires — InfiniteYou rides the conditioning /
+ControlNet path (`InfuseNetApply` returns `(positive, negative)`), FluxSpace
+patches the MODEL — so they compose without contending for the same wire.
 Construct, left to right:
-1. Load FLUX.1-dev (checkpoint / UNet + CLIP + VAE loaders, fp8).
-2. The InfU identity node — input: an identity image (Load Image) + the FLUX
-   MODEL. Output: a patched MODEL carrying the ArcFace residual injection.
-3. Two `CLIPTextEncode` (or the FluxSpace conditioning encoders) for the axis's
-   `edit_prompt_a` and `edit_prompt_b`.
-4. `FluxSpaceEditPair` — inputs: the InfU-patched MODEL,
-   `edit_conditioning_a`, `edit_conditioning_b`, `scale`, `mix_b=0.5`,
-   `start_percent=0.0`, `end_percent=1.0`. Output: doubly-patched MODEL.
-5. A neutral base prompt (`CLIPTextEncode`, e.g. `"a portrait photograph of a
-   person, plain background"`) → positive conditioning.
-6. `KSampler` (FLUX scheduler, fixed seed 2026) → `VAEDecode` → `SaveImage`.
+1. Load FLUX.1-dev fp8 (diffusion-model loader) + `clip_l` + `t5xxl` + FLUX
+   VAE loaders.
+2. `CLIPTextEncode` — neutral base prompt (e.g. `"a portrait photograph of a
+   person, plain background"`) → base positive conditioning.
+3. Identity branch:
+   - `IDEmbeddingModelLoader` → `(FACE_DETECTOR, ARCFACE_MODEL, IMAGE_PROJ_MODEL)`.
+   - `Load Image` (the identity photo) → `ExtractIDEmbedding(face_detector,
+     arcface, image_proj, id_image)` → identity CONDITIONING.
+   - `InfuseNetLoader("infusenet_sim_fp8e4m3fn.safetensors")` → `CONTROL_NET`.
+   - `ExtractFacePoseImage(face_detector, id_image, w, h)` → 5-keypoint pose IMAGE.
+   - `InfuseNetApply(positive=base_positive, id_embedding, control_net,
+     image=pose_image, strength, start%, end%)` → `(positive, negative)`.
+4. Expression branch: two conditioning encoders for the axis's `edit_prompt_a`
+   and `edit_prompt_b`, then `FluxSpaceEditPair(model, edit_conditioning_a,
+   edit_conditioning_b, scale, mix_b=0.5, start_percent=0.0, end_percent=1.0)`
+   → patched MODEL.
+5. `KSampler` — patched MODEL from (4), positive/negative from `InfuseNetApply`,
+   FLUX scheduler, fixed seed 2026 → `VAEDecode` → `SaveImage`.
 
 - [ ] **Step 2: Smoke-test in the UI**
 
