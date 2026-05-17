@@ -91,20 +91,24 @@ enough to cover a head including under-chin and crown. Returns pytorch3d
 cameras (and the raw R/T so the splat renderer can consume them). One camera
 model, used by both the splat render and the projection bake.
 
-**`src/chibi/splat_render.py` — `render_splats(ply_path, cameras, image_size) -> (T,H,W,3)`.**
+**`src/chibi/splat_render.py` — `render_splats(ply_path, cameras, image_size) -> (rgb, depth)`.**
 Loads a standard 3DGS `.ply` (xyz, `f_dc`, opacity=`sigmoid(stored)`,
 scale=`exp(stored)`, rotation=quaternion) and rasterises it from each camera with
-`diff_gaussian_rasterization`. `gs_use_rgb` → pass `f_dc` as `colors_precomp`.
-Returns uint8 RGB images. Depends on: `diff_gaussian_rasterization`, plyfile.
+`diff_gaussian_rasterization` (via LAM's `Camera` + `GaussianRasterizer`).
+`gs_use_rgb` → pass `f_dc` as `colors_precomp`. Returns per-view RGB images and
+the rasteriser's depth maps. Depends on: `diff_gaussian_rasterization`, plyfile,
+LAM's `gs_renderer` camera helpers.
 
-**`src/chibi/bake.py` — `bake_vertex_colors(mesh, images, cameras) -> ChibiMesh`.**
-For each mesh vertex: project into every view; rasterise the mesh from that view
-(pytorch3d `MeshRasterizer`, reuse for depth) and depth-test the vertex against
-the `zbuf` to reject occluded views; weight surviving views by
-`max(normal·viewdir, 0)`; take the weighted-average sampled pixel. Vertices
-visible in zero views (inner mouth, eyeball backs) get the nearest-visible
-vertex's color. Returns a new `ChibiMesh` with baked `rgb`, faces/verts
-unchanged. Pure function over `ChibiMesh` + arrays — no LAM dependency.
+**`src/chibi/bake.py` — `bake_vertex_colors(mesh, images, depth, cameras) -> ChibiMesh`.**
+Single camera convention — 3DGS throughout, no pytorch3d cameras. For each mesh
+vertex: project into every view with the camera's `full_proj_transform` (world →
+NDC → pixel); occlusion-test by comparing the vertex's camera-space depth to the
+splat-render `depth` map at that pixel (occluded if the vertex is meaningfully
+behind the rendered surface); weight surviving views by `max(normal·viewdir, 0)`;
+take the weighted-average sampled pixel. Vertices visible in zero views (inner
+mouth, eyeball backs) get the nearest-visible vertex's color. Returns a new
+`ChibiMesh` with baked `rgb`, faces/verts unchanged. Pure function over
+`ChibiMesh` + arrays — no LAM dependency.
 
 **`scripts/bake_anchor_texture.py` + `.sh` — driver.**
 `<stem>_cano.ply` + `<stem>_shaped_mesh.obj` → render splats → bake → render the
