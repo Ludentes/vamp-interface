@@ -85,6 +85,9 @@ def _tessellation_triangles() -> list[tuple[int, int, int]]:
 
 
 _DEPTH_TRIANGLES = _tessellation_triangles()
+# MediaPipe's tessellation is a clean 2-manifold triangulation (~880 faces);
+# a much smaller count means edge-set 3-clique recovery picked up the wrong set.
+assert len(_DEPTH_TRIANGLES) > 800, "tessellation triangle recovery failed"
 
 
 def render_landmark_mesh(image_path: Path) -> np.ndarray:
@@ -145,5 +148,8 @@ def render_depth_map(image_path: Path) -> np.ndarray:
     for i in order:
         tri = tris[i]
         shade = int(grays[tri].mean())
-        cv2.fillConvexPoly(canvas, pts[tri], shade, lineType=cv2.LINE_AA)
+        # LINE_8 (default), NOT LINE_AA: anti-aliased fill alpha-blends edge
+        # pixels against whatever is already painted, which corrupts a
+        # flat-shaded painter's-algorithm depth raster with spurious shades.
+        cv2.fillConvexPoly(canvas, pts[tri], shade)
     return np.repeat(canvas[:, :, None], 3, axis=2)

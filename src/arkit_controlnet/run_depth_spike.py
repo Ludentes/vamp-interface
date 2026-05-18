@@ -7,6 +7,10 @@ with it while identity-only InfuseNet (black spatial control, fixed strength
 baseline. Scores identity drift (ArcFace cosine) and expression match
 (blendshape cosine vs the exemplar). Resumable: skips a fresh output PNG. See
 docs/superpowers/specs/2026-05-18-arkit-depth-controlnet-spike-design.md.
+
+Run under the miniconda python, not the uv .venv: landmark_control imports
+mediapipe's `solutions` module, which the uv .venv's mediapipe build lacks.
+    PYTHONPATH=src /home/newub/miniconda3/bin/python -m arkit_controlnet.run_depth_spike
 """
 import asyncio
 import copy
@@ -31,7 +35,9 @@ SEED = 2026
 DEPTH_STRENGTHS = [0.5, 0.8]
 AXES_TO_RUN = ["smile", "pucker", "surprise"]
 _CANVAS_W, _CANVAS_H = 864, 1152
-_MIN_PNG_BYTES = 1024
+# a real 864x1152 FLUX PNG is tens-to-hundreds of KB; 20 KB rejects a
+# truncated file from a crashed prior run so it gets regenerated, not scored.
+_MIN_PNG_BYTES = 20_000
 
 
 def _is_fresh(png: Path) -> bool:
@@ -92,6 +98,8 @@ def _prepare_inputs() -> tuple[dict[str, dict[str, Path]], Path]:
 async def _run() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     identities = select_identities(3)
+    assert len({i.stem for i in identities}) == len(identities), \
+        "identity stems must be unique — they key the output PNG / metric rows"
     inputs, black_png = _prepare_inputs()
     rows = []
     # neutral first: a collapsed neutral row means the InfuseNet black-image
