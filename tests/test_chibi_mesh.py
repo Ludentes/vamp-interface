@@ -114,29 +114,9 @@ def _flame_template_chibi_mesh():
 
 
 @needs_flame
-def test_apply_chibi_identity_field_leaves_verts_unchanged(tmp_path):
-    from chibi.field import ChibiField
-    from chibi.fit import save_field_params
+def test_apply_chibi_deforms_and_preserves_faces_rgb(tmp_path):
     mesh = _flame_template_chibi_mesh()
-    params = tmp_path / "identity.json"
-    save_field_params(ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0),
-                      str(params))
-    out = apply_chibi(mesh, str(params), MASKS)
-    assert torch.allclose(out.verts, mesh.verts, atol=1e-5)
-
-
-@needs_flame
-def test_apply_chibi_preserves_faces_and_rgb(tmp_path):
-    from chibi.field import ChibiField
-    from chibi.fit import save_field_params
-    mesh = _flame_template_chibi_mesh()
-    params = tmp_path / "nontrivial.json"
-    f = ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0)
-    with torch.no_grad():
-        f.remap_incr.copy_(torch.tensor([0.25, -0.35, 0.1, -0.2, 0.15]))
-        f.radial_log.copy_(torch.linspace(0.0, 0.3, 6))
-    save_field_params(f, str(params))
-    out = apply_chibi(mesh, str(params), MASKS)
+    out = apply_chibi(mesh, None, MASKS)          # None -> pipeline defaults
     assert torch.equal(out.faces, mesh.faces)
     assert torch.equal(out.rgb, mesh.rgb)
     assert out.verts.shape == mesh.verts.shape
@@ -168,8 +148,7 @@ def test_load_textured_mesh_roundtrips_a_v3_obj(tmp_path):
 
 @needs_flame
 def test_apply_chibi_on_textured_mesh_returns_textured_mesh(tmp_path):
-    from chibi.field import ChibiField
-    from chibi.fit import save_field_params, _load_obj_verts
+    from chibi.fit import _load_obj_verts
     from chibi.landmarks import FLAME_TEMPLATE, _template_faces
     from chibi.uv_template import load_flame_uv
     v = _load_obj_verts(FLAME_TEMPLATE).double()
@@ -178,13 +157,7 @@ def test_apply_chibi_on_textured_mesh_returns_textured_mesh(tmp_path):
     tex = torch.full((16, 16, 3), 0.5, dtype=torch.float32)
     mesh = TexturedMesh(verts=v, faces=faces, uv=fuv.uv,
                         uv_faces=fuv.uv_faces, texture=tex)
-    params = tmp_path / "f.json"
-    f = ChibiField(y_crown=1.0, y_chin=0.0, z_center=0.0)
-    with torch.no_grad():
-        f.remap_incr.copy_(torch.tensor([0.25, -0.35, 0.1, -0.2, 0.15]))
-        f.radial_log.copy_(torch.linspace(0.0, 0.3, 6))
-    save_field_params(f, str(params))
-    out = apply_chibi(mesh, str(params), MASKS)
+    out = apply_chibi(mesh, None, MASKS)
     assert isinstance(out, TexturedMesh)
     assert torch.equal(out.faces, mesh.faces)
     assert torch.equal(out.uv, mesh.uv)

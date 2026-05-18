@@ -19,9 +19,14 @@ NECK = ["neck"]
 
 @dataclass
 class HeadBlockParams:
-    exponent: float = 8.0          # superellipsoid: 2 ellipsoid .. large box
-    strength_cranium: float = 0.9  # blend weight on scalp+forehead
-    strength_face: float = 0.3     # blend weight on the face panel
+    # defaults tuned at the Task-5 milestone render (asian_m): exponent 14
+    # reads as a distinctly boxy skull. strength_cranium is capped at 0.85 —
+    # a full 1.0 blend snaps cranium verts onto the box and flips ~290 faces
+    # at the high-curvature corners (over the pipeline's 2% fold gate); 0.85
+    # keeps it fold-safe (~170 faces) with the block look intact.
+    exponent: float = 14.0          # superellipsoid: 2 ellipsoid .. large box
+    strength_cranium: float = 0.85  # blend weight on scalp+forehead
+    strength_face: float = 0.45     # blend weight on the face panel
 
 
 def head_block(verts: torch.Tensor, faces: torch.Tensor, masks_path: str,

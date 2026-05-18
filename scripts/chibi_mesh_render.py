@@ -20,7 +20,6 @@ import numpy as np                                  # noqa: E402
 import imageio.v2 as imageio                        # noqa: E402
 
 from chibi.mesh_extract import load_textured_mesh    # noqa: E402
-from chibi.mesh_deform import apply_chibi            # noqa: E402
 from chibi.mesh_render import render_textured        # noqa: E402
 
 MASKS = ("/home/newub/w/LAM/model_zoo/human_parametric_models/"
@@ -30,10 +29,13 @@ MASKS = ("/home/newub/w/LAM/model_zoo/human_parametric_models/"
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--obj", required=True, help="<stem>_textured.obj (v3 bake)")
-    ap.add_argument("--field", required=True, help="chibi_field_params.json")
+    ap.add_argument("--field", required=True,
+                    help="chibi_pipeline_params.json (may be absent)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--n_frames", type=int, default=72)
     ap.add_argument("--image_size", type=int, default=256)
+    ap.add_argument("--through", default=None,
+                    help="stop the pipeline after this stage (inspection)")
     args = ap.parse_args()
 
     obj = Path(args.obj)
@@ -53,16 +55,21 @@ def main() -> None:
     imageio.mimwrite(out / f"mesh_baseline_{stem}.mp4", list(base.numpy()), fps=24)
     print(f"[render] baseline -> mesh_baseline_{stem}.mp4")
 
-    chibi = apply_chibi(mesh, args.field, MASKS)
+    from chibi.pipeline import ChibiPipeline
+    pipe = ChibiPipeline(MASKS, args.field if Path(args.field).exists() else None)
+    deformed = pipe.run(mesh.verts, mesh.faces, through=args.through)
+    chibi = type(mesh)(verts=deformed, faces=mesh.faces, uv=mesh.uv,
+                       uv_faces=mesh.uv_faces, texture=mesh.texture)
+    tag = f"{stem}_{args.through}" if args.through else stem
     cf = render_textured(chibi, azims, image_size=args.image_size)
-    imageio.mimwrite(out / f"mesh_chibi_{stem}.mp4", list(cf.numpy()), fps=24)
-    print(f"[render] chibi -> mesh_chibi_{stem}.mp4")
+    imageio.mimwrite(out / f"mesh_chibi_{tag}.mp4", list(cf.numpy()), fps=24)
+    print(f"[render] chibi -> mesh_chibi_{tag}.mp4")
 
     # baseline (left) vs chibi (right) — the verdict frame pair.
     sxs = [np.concatenate([b, c], axis=1)
            for b, c in zip(base.numpy(), cf.numpy())]
-    imageio.mimwrite(out / f"sidebyside_{stem}.mp4", sxs, fps=24)
-    print(f"[render] side-by-side -> sidebyside_{stem}.mp4")
+    imageio.mimwrite(out / f"sidebyside_{tag}.mp4", sxs, fps=24)
+    print(f"[render] side-by-side -> sidebyside_{tag}.mp4")
 
 
 if __name__ == "__main__":
