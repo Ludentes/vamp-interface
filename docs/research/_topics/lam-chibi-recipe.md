@@ -8,6 +8,22 @@ Living interpretation of the "human → chibi 3DGS" thread on top of LAM-20K.
 
 **`ChibiField` scale-and-slide is superseded (2026-05-17).** The mesh pivot worked (v3 UV-texture bake ships), and a radial-oscillation bug that folded the head into a wasp-waist was found and fixed (curvature penalty). But the deeper finding stands: `ChibiField` only *slides* feature lines and *scales* regions — it cannot reshape the skull into a block, round the eyes, delete the nose bridge, or flatten facial relief, and landmark targets cannot detect any of those misses. Output reads as a warped realistic face, not a chibi. **Redesign: a staged re-priming pipeline** (head→block, proportion remap, relief flatten, feature primitives), each stage blending toward an explicit chibi *target primitive* and gated by its own geometric metric. Design at `2026-05-17-chibi-geometry-redesign-design.md`.
 
+**Synthesis + adversarial review (2026-05-18).** The whole thread is consolidated in
+[`2026-05-18-chibi-splat-to-mesh-synthesis.md`](../2026-05-18-chibi-splat-to-mesh-synthesis.md):
+three-attempt failure ladder, a (deliberately over-unified — see review) "appearance was
+never an optimization variable" root cause, and a hypothesised mesh+UV way forward
+(geometry stages 1-3 + procedural texture compositor + Jacobian-retargeted ARKit basis for
+live blendshape driving). An adversarial review found three load-bearing claims asserted
+not verified — the v3 *texture* bake was never shown clean, Jacobian retargeting is
+unvalidated in the eye region where `Φ` is most nonlinear, and "procedural paint is
+sufficient" contradicts painter rule 8b. **The way forward is gated on three spikes**
+(v3-bake-clean eyeball; hand-paint sticker mock; normal-amplitude Jacobian-retarget error)
+before any spec. Path B (GaMeS triangle-rebinding) remains a live, un-refuted alternative.
+Note: the global-Jacobian retarget should be replaced by **deformation transfer**
+(Sumner-Popović) — per-triangle, robust to `Φ`'s global nonlinearity; "repeat LAM for our
+model" = chibi canonical mesh + deformation-transferred chibi blendshape basis (LAM's
+expression path is a fixed basis, not learned — nothing to retrain).
+
 **Open re-evaluation (2026-05-18).** The "chibi-on-splats is dead" conclusion rests on an
 `xyz`-only edit fit by a *vertex-space* landmark loss — `means2d` is `requires_grad=False`,
 so the differentiable rasterizer was never an optimization surface. That loss is blind to
