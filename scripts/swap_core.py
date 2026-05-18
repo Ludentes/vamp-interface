@@ -101,6 +101,43 @@ _EYE_DARK_T = 110       # grayscale threshold below which a pixel is "eye paint"
 _EYE_OVERSIZE_FRAC = 0.18  # collapse only if eye paint fills >this much of disk
 
 
+def _crop_region(bbox, img_shape, margin_frac=0.45):
+    """Square region around the MediaPipe face bbox, clamped to the image.
+
+    Expands the larger bbox side by margin_frac on each side so the crop
+    carries enough context for detection + restoration. Returns integer
+    (x0, y0, x1, y1); the region may be non-square if clamped at a border.
+    """
+    x0, y0, x1, y1 = (float(v) for v in bbox)
+    h, w = img_shape[:2]
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    half = max(x1 - x0, y1 - y0) * (0.5 + margin_frac)
+    rx0 = int(max(0, round(cx - half)))
+    ry0 = int(max(0, round(cy - half)))
+    rx1 = int(min(w, round(cx + half)))
+    ry1 = int(min(h, round(cy + half)))
+    return rx0, ry0, rx1, ry1
+
+
+def _feathered_mask(h, w, feather_frac=0.12):
+    """Float mask, 1.0 in the interior, Gaussian-feathered to 0.0 at edges.
+
+    Used for seam-free paste-back of the swapped crop. feather_frac is the
+    inset (as a fraction of the shorter side) blurred away. Tiny regions
+    where no inset fits are returned as all-ones.
+    """
+    mask = np.zeros((h, w), dtype=np.float32)
+    inset = int(round(min(h, w) * feather_frac))
+    inset = max(0, min(inset, min(h, w) // 2 - 1))
+    if inset <= 0:
+        mask[:] = 1.0
+        return mask
+    mask[inset:h - inset, inset:w - inset] = 1.0
+    k = 2 * inset + 1
+    mask = cv2.GaussianBlur(mask, (k, k), 0)
+    return np.clip(mask, 0.0, 1.0)
+
+
 def collapse_eyes(img_bgr, kps):
     """Shrink the doll's oversized painted eyes to small folk-art dots.
 
