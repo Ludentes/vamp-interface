@@ -12,6 +12,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from face_restore import restore_face
+
 _CPU = ["CPUExecutionProvider"]
 
 # MediaPipe Tasks-API face model -- shipped next to this file (the legacy
@@ -191,34 +193,63 @@ def collapse_eyes(img_bgr, kps):
     return out
 
 
-def swap_identity(app, swapper, doll_bgr, source_face, collapse=True):
-    """Swap source_face's identity onto the doll.
+def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
+                  restore=True):
+    """Swap source_face's identity onto the doll's painted face.
 
-    When collapse is True (default), the doll's oversized painted eyes are
-    shrunk to folk-art dots before the swap (see collapse_eyes) -- inswapper
-    preserves target eye geometry, so the eyes must be fixed on the input.
+    The doll face is a small patch of a large image -- too few pixels for
+    SCRFD to detect or for inswapper to align well. So the face region is
+    cropped, upscaled to 512 px, and the detect/collapse/swap/restore
+    pipeline runs on that isolated high-res crop; the restored crop is then
+    feathered back into a copy of the doll.
+
+    When collapse is True the doll's oversized painted eyes are shrunk to
+    folk-art dots before the swap (inswapper preserves target eye geometry).
+    When restore is True the swapped crop is passed through GFPGAN.
 
     Returns (result_bgr, mode, det_score). mode is 'default' (SCRFD found
-    the doll face), 'forced' (MediaPipe synthetic-kps fallback), or 'failed'
-    (neither -- the un-swapped doll is returned unchanged).
+    the crop face), 'forced' (MediaPipe synthetic-kps fallback), or 'failed'
+    (no detectable doll face -- the un-swapped doll is returned unchanged).
     """
-    kps, bbox = mediapipe_kps_bbox(doll_bgr)
-    work = doll_bgr
-    if collapse and kps is not None:
-        work = collapse_eyes(doll_bgr, kps)
+    kps_full, bbox_full = mediapipe_kps_bbox(doll_bgr)
+    if kps_full is None or bbox_full is None:
+        return doll_bgr, "failed", 0.0
+
+    rx0, ry0, rx1, ry1 = _crop_region(bbox_full, doll_bgr.shape)
+    crop = doll_bgr[ry0:ry1, rx0:rx1]
+    if crop.size == 0:
+        return doll_bgr, "failed", 0.0
+
+    ch, cw = crop.shape[:2]
+    scale = 512.0 / max(ch, cw)
+    up = cv2.resize(crop, (max(1, round(cw * scale)), max(1, round(ch * scale))),
+                    interpolation=cv2.INTER_LANCZOS4)
+
+    kps_up, bbox_up = mediapipe_kps_bbox(up)
+    work = up
+    if collapse and kps_up is not None:
+        work = collapse_eyes(up, kps_up)
 
     det = app.get(work)
     if det:
         target = max(det, key=lambda f: f.det_score)
-        result = swapper.get(work.copy(), target, source_face,
-                             paste_back=True)
-        return result, "default", float(target.det_score)
-
-    if kps is not None:
+        mode, det_score = "default", float(target.det_score)
+    elif kps_up is not None:
         from insightface.app.common import Face
-        target = Face(bbox=bbox, kps=kps, det_score=1.0)
-        result = swapper.get(work.copy(), target, source_face,
-                             paste_back=True)
-        return result, "forced", 0.0
+        target = Face(bbox=bbox_up, kps=kps_up, det_score=1.0)
+        mode, det_score = "forced", 0.0
+    else:
+        return doll_bgr, "failed", 0.0
 
-    return doll_bgr, "failed", 0.0
+    swapped = swapper.get(work.copy(), target, source_face, paste_back=True)
+    if restore:
+        swapped = restore_face(swapped)
+
+    patch = cv2.resize(swapped, (rx1 - rx0, ry1 - ry0),
+                       interpolation=cv2.INTER_LANCZOS4)
+    mask = _feathered_mask(ry1 - ry0, rx1 - rx0)[..., None]
+    out = doll_bgr.copy()
+    region = out[ry0:ry1, rx0:rx1].astype(np.float32)
+    blended = patch.astype(np.float32) * mask + region * (1.0 - mask)
+    out[ry0:ry1, rx0:rx1] = np.clip(blended, 0, 255).astype(np.uint8)
+    return out, mode, det_score
