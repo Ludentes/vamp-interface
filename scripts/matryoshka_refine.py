@@ -46,12 +46,16 @@ NEGATIVE_PROMPT = (
 REFINE_SEED = 88_000_001
 
 # arm -> (inpaint workflow file, steps, sampler, scheduler).
-# Recipe = the bake-off winners; only denoise is swept.
+# Step counts are RAISED above the bake-off generation recipe: partial-denoise
+# img2img (denoise < 1) on a distilled few-step model only runs the tail
+# `steps * denoise` of the schedule, so the bake-off's 6/4-step counts leave
+# too few effective steps. Z-Image runs 12 (a bake-off-validated count); SDXL
+# runs 8 to match the 8-step Lightning LoRA the workflow loads.
 ARMS: dict[str, dict] = {
     "zimage_turbo": {"workflow": "matryoshka_zimage_inpaint.api.json",
-                     "steps": 6, "sampler": "euler", "scheduler": "simple"},
+                     "steps": 12, "sampler": "euler", "scheduler": "simple"},
     "sdxl_lightning": {"workflow": "matryoshka_sdxl_inpaint.api.json",
-                       "steps": 4, "sampler": "dpmpp_sde",
+                       "steps": 8, "sampler": "dpmpp_sde",
                        "scheduler": "sgm_uniform"},
 }
 
