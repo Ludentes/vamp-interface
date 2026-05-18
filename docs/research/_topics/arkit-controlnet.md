@@ -53,17 +53,32 @@ zero-train expression routes (FluxSpace + InfuseNet mesh slot) are now
 falsified; expression must be trained (CFM). Doc:
 `docs/research/2026-05-18-arkit-landmark-control-spike-verdict.md`.
 
+## Approach C zero-train spike — falsified for expression (2026-05-18)
+
+Tested the last cheap fallback: a stock FLUX Depth ControlNet (InstantX
+ControlNet-Union, `depth` mode) stacked alongside identity-only InfuseNet,
+driven by a flat-shaded depth raster of the MediaPipe face tessellation. No
+training. 3 identities × 4 axes × strength {0.5, 0.8}, 24/24 rendered.
+**Negative, both regimes:** at str 0.8 the ControlNet imprints the literal
+low-poly faceted mesh as a 3D plastic mask (11/12 outputs have no detectable
+face); at str 0.5 the face is photoreal and identity holds (ArcFace
+0.39–0.66) but expression does not transfer at all — surprise and neutral
+outputs are indistinguishable, baseline-relative expr deltas average negative
+on every axis (smile −0.01, pucker −0.18, surprise −0.33). No usable strength
+between. Root cause: a faceted landmark raster is OOD for a depth ControlNet
+trained on smooth scene depth — the same OOD gap that killed the other two
+routes. All three zero-train expression routes (FluxSpace, InfuseNet mesh
+slot, stacked depth CN) are now falsified. **No free cheese — proceed
+directly to the CFM run.** Doc:
+`docs/research/2026-05-18-arkit-depth-controlnet-spike-verdict.md`.
+
 ## Open questions
 
-- Fallback before CFM: sparse-contour control (lip/eye/oval polylines, closer
-  to the 5-kp training distribution) and/or approach C (stock FLUX Depth
-  ControlNet stacked alongside identity-only InfuseNet, driven by a landmark
-  depth map). One run each; if both fail, proceed directly to the CFM run.
-- Render modality — surface normals vs depth vs flat-shaded mesh vs landmark
-  overlay — which the InfuseNet control channel reads best. (Dense
-  tessellation falsified 2026-05-18.)
 - SPMS data: mine ArcFace-near / blendshape-far pairs from `reverse_index`, or
   generate synthetic SPMS per InfiniteYou Stage 2.
+- Render modality for the *trained* CFM channel — surface normals vs depth vs
+  flat-shaded mesh. (Untrained, all modalities are OOD; the question is which
+  the CFM model learns from fastest.)
 - Position vs FG-Portrait (CVPR 2026) — the closest published prior art.
 
 ## Reading list
