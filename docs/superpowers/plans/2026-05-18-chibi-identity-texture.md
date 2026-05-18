@@ -48,7 +48,7 @@ git commit -m "docs(chibi): record Koban licensing decision"
 
 The Koban `.blend` cannot be parsed by Python directly; export to OBJ via headless Blender. `scripts/koban_prep.py` runs *inside* Blender (`blender -b --python`). `koban_asset.py` loads the exported artifacts for the rest of the pipeline.
 
-**Canonical source = `Koban Chibi Base Mesh VRM export.blend`** (verified 2026-05-18). The base `Koban Chibi Base Mesh 1.0.blend` mesh has a degenerate UV layer (only 53 UV coords, the body unmapped) — useless for texture baking. The VRM-export `.blend` has the same `Chibi Base Mesh` object (5662 verts, 10980 tris) with a proper active UV unwrap (`UVMap`, 32940 loops, spanning x∈[0,0.5] y∈[0,0.672] — left-half, symmetry-mirrored) AND all 61 shape keys including the full camelCase ARKit-52. Export from this file.
+**Canonical source = `Koban Chibi Base Mesh VRM export.blend`** (verified 2026-05-18). It holds the `Chibi Base Mesh` object (5662 verts, 10980 tris) with all 61 shape keys including the full camelCase ARKit-52. **Neither** blend ships a usable UV — all three UV layers in the VRM blend (`UVMap`, `UV0`, `UVMap.001`) are degenerate (26 unique coords mesh-wide). The prep script therefore *generates* a frontal-projection unwrap (see Step 1). Use the VRM blend purely as the geometry + shape-key source.
 
 - [ ] **Step 1: Write the Blender export script**
 
