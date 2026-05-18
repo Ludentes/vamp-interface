@@ -38,13 +38,30 @@ and no continuous modulation (s0.5 ≈ s1.0). Strengthens the case for the
 *trained* CFM route; FluxSpace is not a substitute for a trained expression
 ControlNet. Doc: `docs/research/2026-05-18-arkit-controlnet-spike-verdict.md`.
 
+## Path 1 zero-train spike — falsified for expression (2026-05-18)
+
+Tested Path 1 the cheap way: a MediaPipe 478-vertex face-mesh control image fed
+into InfuseNet's spatial-control slot (no FLAME, no training). 3 identities ×
+3 axes × strength {0.6, 1.0}, 24/24 rendered. **Negative:** only 2/9
+identity×axis cells beat the neutral-control baseline by the ≥0.05 expression
+margin; several deltas were strongly negative (dense mesh acting as OOD noise);
+str 1.0 destroyed identity for 2/3 identities; the collage shows no
+viewer-visible expression change across control columns. Confirms the design's
+central risk — the 5-keypoint-trained InfuseNet slot has no expression
+bandwidth for a dense tessellation. Identity injection still solid. Both
+zero-train expression routes (FluxSpace + InfuseNet mesh slot) are now
+falsified; expression must be trained (CFM). Doc:
+`docs/research/2026-05-18-arkit-landmark-control-spike-verdict.md`.
+
 ## Open questions
 
-- Path 1 spike result: does a stock normal/depth ControlNet driven by a FLAME
-  render steer FLUX expression while ArcFace holds identity, with zero training?
-  (Still untested — the cheapest remaining experiment before a training run.)
+- Fallback before CFM: sparse-contour control (lip/eye/oval polylines, closer
+  to the 5-kp training distribution) and/or approach C (stock FLUX Depth
+  ControlNet stacked alongside identity-only InfuseNet, driven by a landmark
+  depth map). One run each; if both fail, proceed directly to the CFM run.
 - Render modality — surface normals vs depth vs flat-shaded mesh vs landmark
-  overlay — which the InfuseNet control channel reads best.
+  overlay — which the InfuseNet control channel reads best. (Dense
+  tessellation falsified 2026-05-18.)
 - SPMS data: mine ArcFace-near / blendshape-far pairs from `reverse_index`, or
   generate synthetic SPMS per InfiniteYou Stage 2.
 - Position vs FG-Portrait (CVPR 2026) — the closest published prior art.
