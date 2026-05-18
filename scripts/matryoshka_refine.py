@@ -190,38 +190,48 @@ def main() -> int:
     client_id = str(uuid.uuid4())
     done = skipped = failed = passthrough = 0
 
-    for denoise in args.denoise:
-        sub = args.out / denoise_subdir(denoise)
-        for n, doll_path in enumerate(dolls):
-            if args.limit and n >= args.limit:
-                break
-            out_png = sub / doll_path.name
-            if out_png.exists():
-                skipped += 1
-                continue
-            arm = arm_of(doll_path.name)
-            assert arm is not None  # filtered above
-            doll_bgr = cv2.imread(str(doll_path))
-            if doll_bgr is None:
-                print(f"  [fail] unreadable {doll_path.name}")
-                failed += 1
-                continue
-            mask = build_face_mask(doll_bgr)
-            if mask is None:
-                # no detectable face -> pass the doll through unrefined
+    # Outer loop = doll, inner loop = denoise. Because `dolls` is arm-sorted,
+    # this runs every cell for one arm before the next, so ComfyUI swaps the
+    # checkpoint once for the whole run instead of once per denoise value.
+    for n, doll_path in enumerate(dolls):
+        if args.limit and n >= args.limit:
+            break
+        # Each denoise gets its own output subdir; skip the doll entirely if
+        # every rung already exists (resumable, no model load / no detect).
+        targets = [(d, args.out / denoise_subdir(d) / doll_path.name)
+                   for d in args.denoise]
+        pending = [(d, p) for d, p in targets if not p.exists()]
+        skipped += len(targets) - len(pending)
+        if not pending:
+            continue
+
+        arm = arm_of(doll_path.name)
+        assert arm is not None  # filtered above
+        doll_bgr = cv2.imread(str(doll_path))
+        if doll_bgr is None:
+            print(f"  [fail] unreadable {doll_path.name}")
+            failed += len(pending)
+            continue
+
+        # Mask + comfy-input staging are denoise-independent: do them once.
+        mask = build_face_mask(doll_bgr)
+        if mask is None:
+            # no detectable face -> pass the doll through unrefined
+            for _d, out_png in pending:
                 out_png.parent.mkdir(parents=True, exist_ok=True)
                 tmp = out_png.with_suffix(".png.tmp")
                 cv2.imwrite(str(tmp), doll_bgr)
                 os.replace(tmp, out_png)
                 passthrough += 1
-                continue
+            continue
 
-            stem = doll_path.stem
-            doll_file = f"refine_{stem}.png"
-            mask_file = f"refine_{stem}_mask.png"
-            cv2.imwrite(str(args.comfy_input_dir / doll_file), doll_bgr)
-            cv2.imwrite(str(args.comfy_input_dir / mask_file), mask)
+        stem = doll_path.stem
+        doll_file = f"refine_{stem}.png"
+        mask_file = f"refine_{stem}_mask.png"
+        cv2.imwrite(str(args.comfy_input_dir / doll_file), doll_bgr)
+        cv2.imwrite(str(args.comfy_input_dir / mask_file), mask)
 
+        for denoise, out_png in pending:
             wf = build_workflow(templates[arm], doll_file=doll_file,
                                 mask_file=mask_file, denoise=denoise,
                                 arm_cfg=ARMS[arm],
