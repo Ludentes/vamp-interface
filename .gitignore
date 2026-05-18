@@ -137,4 +137,8 @@ data/arkit_bridge_pairs/
 
 # Rorschach (separate project, separate repo TBD)
 /rorschach/
+
+# Koban canonical mesh export — large OBJ regenerable via scripts/koban_prep.py
+exp_output/chibi_meshes/koban_canonical/koban.obj
+exp_output/chibi_meshes/koban/
 scripts/face_landmarker.task
