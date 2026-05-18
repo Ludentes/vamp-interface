@@ -95,13 +95,31 @@ A is the minimum that produces the artifact. B and C both depend on A.
 Each is a focused module under `src/chibi/`; drivers under `scripts/`.
 
 **`koban_asset.py` — canonical-mesh prep (one-time).** Loads the Koban mesh
-(from the `.vrm` glTF — guarantees UV + humanoid rig — or the `.blend` via a
-headless Blender export script), writes a clean OBJ with UVs, verifies the
-ARKit-52 shape keys survive export, and stores: the UV layout (reuse the
-`FlameUV` dataclass — it is just `vt` + `f v/vt`, topology-agnostic), ~15
-hand-annotated landmark vertex indices (eye corners, brow, nose tip, mouth
-corners, chin), and one canonical frontal `View`. Output: `koban_canonical/`
-(OBJ, `uv.pt`, `landmarks.json`, `view.json`).
+(from the VRM-export `.blend` via a headless Blender export script), **generates
+a UV unwrap** (the Koban mesh ships none — see *UV unwrap* below), writes a
+clean OBJ with UVs, verifies the ARKit-52 shape keys survive export, and stores:
+the UV layout (reuse the `FlameUV` dataclass — it is just `vt` + `f v/vt`,
+topology-agnostic), ~15 landmark vertex indices (eye corners, brow, nose tip,
+mouth corners, chin), and one canonical frontal `View`. Output:
+`koban_canonical/` (OBJ, `landmarks.json`, `view.json`, `arkit_keys.json`).
+
+*UV unwrap (frontal projection).* Verified 2026-05-18: the Koban mesh — both
+the `1.0.blend` and the VRM-export blend — has **no usable UV** (26 unique
+coords across the whole mesh). The prep step generates one, computed directly
+in Python (no viewport — headless-safe), not via a Blender viewport operator:
+- *Face region* = the union of all polygons touching any vertex displaced
+  (> ε) by any ARKit-52 shape key relative to `Basis`. The ARKit basis only
+  moves face geometry, so this is a robust, rig-derived face mask — no manual
+  selection, no material guessing.
+- *Face UV* = frontal orthographic projection: each face-vertex's
+  `(x, z)` (the two non-depth axes) normalised by the face region's frontal
+  bounding box into the UV sub-rect `[0, 0.95]²`. The face UV island is then
+  literally what the frontal camera sees — the projective bake is near-1:1 and
+  TPS registration only has to correct the portrait's framing.
+- *Non-face polygons* carry no identity; all their loops map to one reserved
+  skin texel near `(0.98, 0.98)`. No second unwrap, no island packing, zero
+  UV overlap. `skin_fallback` fills that texel with a flat skin tone.
+This keeps geometry and the rig untouched (R1) — only UV coordinates are added.
 
 **`chibi_portrait.py` — Flux portrait generation.** Given a job anchor
 (embedding/seed), generates one 1024² flat-lit, front-facing, chibi-styled face
