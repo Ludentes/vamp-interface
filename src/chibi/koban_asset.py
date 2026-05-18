@@ -1,13 +1,18 @@
 """Load the exported Koban canonical mesh: a UV-textured triangle mesh plus
 the ARKit-52 verification list.
 
-NOTE ON UV LAYOUT: The Koban OBJ exports Blender's 'UVMap' layer, which is
-degenerate for most of the mesh body (only 53 unique UV coords, mostly at 0,0).
-Only the face/skin material region has meaningful UVs in [0,0.5]×[0,0.672].
-This is the raw UV layout from the asset; UV baking will replace it in Task 5.
+Canonical source: exp_output/chibi_meshes/koban/Koban Chibi Base Mesh VRM export.blend
+Mesh: 5662 verts, 10980 triangle polys.
 
-NOTE ON FACES: The Blender OBJ export uses quad faces (4 vertices per f-line).
-We fan-triangulate each quad into two triangles: (0,1,2) and (0,2,3).
+NOTE ON UV LAYOUT: The Koban OBJ exports Blender's 'UVMap' layer, which is
+degenerate for most of the mesh body (only 53 unique UV coords; 32440/32940
+loops sit at (0,0)). Only 176/10980 polys have any non-zero UV.
+This is the raw UV layout from the asset prior to baking. UV baking (Task 5)
+will replace it with a full-coverage FLAME-UV layout.
+
+NOTE ON FACES: The Blender OBJ exporter writes triangle faces (3 vertices per
+f-line) for this mesh. The fan-triangulation path in load_koban handles both
+tri (3-token) and quad (4-token) f-lines, so it is robust to both.
 Face tokens are `v/vt/vn` format; we extract v (index 0) and vt (index 1).
 
 NOTE ON load_flame_uv: We do NOT reuse load_flame_uv here because:
@@ -102,11 +107,10 @@ def load_koban(canon_dir: str | Path) -> KobanMesh:
 # Frontal view (azim=0, elev=0)
 # ---------------------------------------------------------------------------
 
-# Distance derived from mesh bbox: the head occupies roughly ±0.15 in Y,
-# with FOV 40° a dist of ~0.5 frames it comfortably.  Derived empirically from
-# the Koban mesh bbox: z-extent ≈ 0.28 (head only), so dist = 0.28 / tan(20°)
-# ≈ 0.77.  We use 0.8 to leave a small margin.
-_FRONTAL_DIST = 0.8
+# Distance derived from the VRM-export mesh bbox (recentred head).
+# Head half-extent in X = 0.918; fov=40°, tan(20°) = 0.364.
+# dist = 0.918 / tan(20°) * 1.15 (15% margin) ≈ 2.90 → rounded to 3.0.
+_FRONTAL_DIST = 3.0
 _FRONTAL_FOV_DEG = 40.0
 _FRONTAL_IMAGE_SIZE = 512
 

@@ -1,37 +1,17 @@
 {
   "w2c": [
-    [
-      1.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    [
-      -0.0,
-      -1.0,
-      -0.0,
-      0.0
-    ],
-    [
-      -0.0,
-      -0.0,
-      -1.0,
-      2.5
-    ],
-    [
-      0.0,
-      0.0,
-      0.0,
-      1.0
-    ]
+    [1.0, 0.0, 0.0, 0.0],
+    [-0.0, -1.0, -0.0, 0.0],
+    [-0.0, -0.0, -1.0, 3.0],
+    [0.0, 0.0, 0.0, 1.0]
   ],
   "fov_rad": 0.6981317007977318,
   "image_size": 512,
   "_meta": {
     "azim_deg": 0.0,
     "elev_deg": 0.0,
-    "dist": 2.5,
+    "dist": 3.0,
     "fov_deg": 40.0,
-    "note": "Frontal view for origin-centred mesh. Mesh must be recentred on origin before use. dist=2.5 frames a head of half-extent ~0.65 at fov=40deg with 20% margin."
+    "note": "Frontal view for origin-centred mesh. Mesh must be recentred on origin before use. dist=3.0 frames the recentred head (half-extent ~0.92 in X) at fov=40deg with ~15% margin. Regenerated 2026-05-18 against VRM-export blend (5662-vert mesh)."
   }
 }

@@ -1,170 +1,106 @@
 {
   "_meta": {
     "picking_method": "nearest-vertex to anatomical 3D estimate from mesh bbox",
-    "mesh_space": "OBJ world space (Y-up, Z-forward, head at Y~4.0). Recentre before projecting.",
+    "mesh_space": "OBJ world space (Y-up, Z-forward, head at Y~3.8). Recentre before projecting.",
     "NEEDS_VISUAL_VERIFICATION": true,
-    "note": "These vertex indices were picked algorithmically without visual inspection. Before Task 6 (registration), render the mesh frontally, overlay the projected landmark pixels, and correct any misaligned indices."
+    "note": "These vertex indices were picked algorithmically without visual inspection. Before Task 6 (registration), render the mesh frontally, overlay the projected landmark pixels, and correct any misaligned indices. Regenerated 2026-05-18 against VRM-export blend (5662-vert mesh)."
   },
   "landmarks": [
     {
-      "vertex_idx": 4301,
+      "vertex_idx": 4300,
       "label": "left_eye_inner",
       "insightface_106": 39,
-      "pos_world": [
-        0.11,
-        4.254,
-        0.704
-      ]
+      "pos_world": [0.110, 4.254, 0.704]
     },
     {
-      "vertex_idx": 4583,
+      "vertex_idx": 4582,
       "label": "left_eye_outer",
       "insightface_106": 35,
-      "pos_world": [
-        0.43,
-        4.203,
-        0.597
-      ]
+      "pos_world": [0.430, 4.203, 0.597]
     },
     {
       "vertex_idx": 3661,
       "label": "right_eye_inner",
       "insightface_106": 89,
-      "pos_world": [
-        -0.11,
-        4.254,
-        0.704
-      ]
+      "pos_world": [-0.110, 4.254, 0.704]
     },
     {
       "vertex_idx": 3965,
       "label": "right_eye_outer",
       "insightface_106": 93,
-      "pos_world": [
-        -0.43,
-        4.203,
-        0.597
-      ]
+      "pos_world": [-0.430, 4.203, 0.597]
     },
     {
-      "vertex_idx": 4295,
+      "vertex_idx": 4294,
       "label": "left_brow_inner",
       "insightface_106": 43,
-      "pos_world": [
-        0.117,
-        4.445,
-        0.561
-      ]
+      "pos_world": [0.117, 4.445, 0.561]
     },
     {
-      "vertex_idx": 4215,
+      "vertex_idx": 4214,
       "label": "left_brow_outer",
       "insightface_106": 46,
-      "pos_world": [
-        0.369,
-        4.382,
-        0.51
-      ]
+      "pos_world": [0.369, 4.382, 0.510]
     },
     {
       "vertex_idx": 3655,
       "label": "right_brow_inner",
       "insightface_106": 96,
-      "pos_world": [
-        -0.117,
-        4.445,
-        0.561
-      ]
+      "pos_world": [-0.117, 4.445, 0.561]
     },
     {
       "vertex_idx": 3563,
       "label": "right_brow_outer",
       "insightface_106": 99,
-      "pos_world": [
-        -0.369,
-        4.382,
-        0.51
-      ]
+      "pos_world": [-0.369, 4.382, 0.510]
     },
     {
       "vertex_idx": 3634,
       "label": "nose_tip",
       "insightface_106": 86,
-      "pos_world": [
-        -0.0,
-        3.903,
-        0.842
-      ]
+      "pos_world": [-0.000, 3.903, 0.842]
     },
     {
-      "vertex_idx": 4554,
+      "vertex_idx": 5488,
       "label": "mouth_left",
       "insightface_106": 76,
-      "pos_world": [
-        0.195,
-        3.795,
-        0.82
-      ]
+      "pos_world": [0.184, 3.735, 0.828]
     },
     {
-      "vertex_idx": 3936,
+      "vertex_idx": 5423,
       "label": "mouth_right",
       "insightface_106": 82,
-      "pos_world": [
-        -0.195,
-        3.795,
-        0.82
-      ]
+      "pos_world": [-0.184, 3.735, 0.828]
     },
     {
       "vertex_idx": 3622,
       "label": "upper_lip_top",
       "insightface_106": 58,
-      "pos_world": [
-        -0.0,
-        3.785,
-        0.848
-      ]
+      "pos_world": [-0.000, 3.785, 0.848]
     },
     {
-      "vertex_idx": 5371,
+      "vertex_idx": 3881,
       "label": "lower_lip_bottom",
       "insightface_106": 66,
-      "pos_world": [
-        -0.127,
-        3.712,
-        0.835
-      ]
+      "pos_world": [-0.000, 3.677, 0.846]
     },
     {
-      "vertex_idx": 4548,
+      "vertex_idx": 4395,
       "label": "chin",
       "insightface_106": 16,
-      "pos_world": [
-        0.126,
-        3.401,
-        0.606
-      ]
+      "pos_world": [0.124, 3.346, 0.607]
     },
     {
-      "vertex_idx": 4568,
+      "vertex_idx": 4567,
       "label": "left_jaw",
       "insightface_106": 13,
-      "pos_world": [
-        0.387,
-        3.538,
-        0.414
-      ]
+      "pos_world": [0.387, 3.538, 0.414]
     },
     {
       "vertex_idx": 3950,
       "label": "right_jaw",
       "insightface_106": 103,
-      "pos_world": [
-        -0.387,
-        3.538,
-        0.414
-      ]
+      "pos_world": [-0.387, 3.538, 0.414]
     }
   ]
 }
