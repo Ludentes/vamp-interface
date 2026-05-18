@@ -13,8 +13,12 @@ appearance only: bake a Flux-generated chibi portrait onto the fixed mesh's UV
 MeshLAM (CVPR 2026, `2604.22865`, no code released) confirms the shape: its
 strong component is an image→UV reprojection texture branch; we borrow the
 idea, not the weights. Design: [`2026-05-18-chibi-identity-texture-design.md`](../../superpowers/specs/2026-05-18-chibi-identity-texture-design.md).
-Supersedes the geometry-redesign spec. Gated on R0 (Koban licensing) + spikes
-S1 (TPS registration), S2 (rig drives), S3 (no double-shading).
+Supersedes the geometry-redesign spec. Gated on spikes S1 (TPS registration),
+S2 (rig drives), S3 (no double-shading).
+
+**Licensing (R0) — cleared 2026-05-18.** The Koban Chibi Base Mesh is a paid
+Gumroad asset with no explicit license file; the user confirmed its use is fine
+for this local research project. No mesh swap needed.
 
 **Chibi-on-splats is concluded dead (2026-05-15).** Chibi is too large a deformation for a baked Gaussian-splat representation — appearance is glued to verts at fixed density, so chibi-magnitude stretch always rescatters it (blur/smear/leak), and the vertex-space fit loss cannot see that failure. The secant-basis and neck-pancake fixes shipped on `chibi-diff-leak-fix` but the representation limit is not a fixable bug. **Pivot: bake LAM avatar → FLAME-UV-textured mesh, chibi as ordinary mesh deformation.** Splats→mesh research at `2026-05-15-splats-to-mesh-conversion.md`.
 

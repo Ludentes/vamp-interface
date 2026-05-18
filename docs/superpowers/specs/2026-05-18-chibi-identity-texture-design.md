@@ -69,11 +69,9 @@ A is the minimum that produces the artifact. B and C both depend on A.
 
 ## Requirements
 
-- **R0 — Licensing gate.** Koban Chibi Base Mesh is a paid Gumroad asset; its
-  `READ ME.txt` states no license. Use is **blocked** until the user confirms
-  permitted use (research/internal visualisation is the likely-OK case). The
-  design is written mesh-agnostically so a differently-licensed ARKit-rigged
-  chibi can be swapped in if Koban is unusable.
+- **R0 — Licensing gate. CLEARED (2026-05-18).** Koban Chibi Base Mesh is a
+  paid Gumroad asset; the user confirmed use is fine for this local research
+  project. The design remains written mesh-agnostically, but no swap is needed.
 - **R1** — Geometry and rig are immutable. The canonical mesh is never deformed
   per-anchor; only its UV texture varies.
 - **R2** — Per-anchor output is one UV texture PNG; identity is fully carried by
