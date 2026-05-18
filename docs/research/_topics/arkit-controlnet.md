@@ -48,6 +48,22 @@ missing.
 - `docs/research/2026-05-03-slider-operational-handbook.md` — the `t_max`
   gating values and the per-channel R²(t) map reused for the auxiliary loss.
 
+## Matryoshka fast-model bake-off (2026-05-18)
+
+Side experiment on the idle Windows 3090: which fast 2026 base model generates
+the *generic* matryoshka doll fastest without losing quality (identity is added
+downstream by inswapper, so generation needs only Canny + folk-art style).
+
+**Verdict: Z-Image Turbo at 6 steps** — 7.2 s warm, 3.1× faster than the
+flux_krea baseline (22.5 s), coherent photoreal single doll despite being
+prompt-only (no Canny CN for Z-Image). flux_schnell rejected (only usable at
+8 steps, no faster than baseline); sdxl_lightning rejected (3 s but flat
+illustration output, unsuitable for face-swap input — and still paints the
+black doll-eyes, confirming that artifact is not FLUX-specific).
+
+- `docs/research/2026-05-18-matryoshka-bakeoff-verdict.md` — results + verdict.
+- `docs/superpowers/specs/2026-05-18-matryoshka-fast-model-bakeoff-design.md` — design.
+
 ## Related threads
 
 - `_topics/arc-distill.md` — ArcFace-in-FLUX-latent distillation; the
