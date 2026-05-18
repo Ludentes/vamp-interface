@@ -80,3 +80,27 @@ def test_relief_flatten_identity_strength_is_noop():
     v, f = _flame_mesh()
     out = relief_flatten(v, f, MASKS, ReliefParams(strength=0.0))
     assert torch.allclose(out, v, atol=1e-9)
+
+
+@needs_flame
+def test_feature_primitives_round_the_eye_and_shrink_the_bridge():
+    from chibi.stages.feature_primitives import (feature_primitives,
+                                                 FeatureParams)
+    from chibi.chibi_metrics import eye_aspect, bridge_height
+    v, f = _flame_mesh()
+    out = feature_primitives(v, f, MASKS, FeatureParams())
+    assert eye_aspect(out) < eye_aspect(v)          # rounder
+    assert bridge_height(out) < bridge_height(v)    # flatter bridge
+    assert out.shape == v.shape
+
+
+@needs_flame
+def test_feature_primitives_identity_params_is_noop():
+    from chibi.stages.feature_primitives import (feature_primitives,
+                                                 FeatureParams)
+    v, f = _flame_mesh()
+    out = feature_primitives(v, f, MASKS,
+                             FeatureParams(eye_round=0.0, eye_enlarge=1.0,
+                                           bridge_collapse=0.0,
+                                           mouth_compress=0.0))
+    assert torch.allclose(out, v, atol=1e-9)
