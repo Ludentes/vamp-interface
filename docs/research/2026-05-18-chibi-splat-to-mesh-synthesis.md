@@ -106,6 +106,11 @@ cheaper than LAM's 310 fps splat cloud.
 
 ## Recommended way forward — three components
 
+> **⚠️ Gated.** Adversarial review (see *Adversarial review* below) found three
+> load-bearing claims here that are asserted, not verified. Treat this section
+> as a *hypothesis to test*, not a plan to execute. Run the three gating spikes
+> first.
+
 1. **Geometry** — stages 1–3 (`HeadBlock`, `ProportionRemap`, `ReliefFlatten`),
    kept as built.
 2. **Appearance** — a deterministic procedural texture compositor as the new
@@ -123,12 +128,77 @@ The differentiable image-space machinery (directional-CLIP, NNFM, VQ-palette
 through the rasterizer) is the right tool for a *later* anime cel-style track —
 a genuine perceptual problem — and is held out of base-chibi scope.
 
-## Open questions for review
+## Adversarial review (2026-05-18)
 
-- Is procedural feature paint actually sufficient, or does the relief-flattened
-  realistic skin still read uncanny under painted features (does Stage 4 need a
-  flat-skin appearance pass too)?
-- Does `Φ`'s Jacobian retargeting hold for the eye region specifically, where
-  `FeaturePrimitives` enlarges geometry most and the linearization is weakest?
-- Is a single neutral-mesh box freeze safe, or does identity variation across
-  anchors need a per-anchor `Φ` re-derivation?
+An adversarial reviewer attacked this synthesis against the code. Three hits
+are severe and the recommendation above does not survive without addressing
+them. The full critique is sound; the key concessions:
+
+**Root cause is over-unified.** "Appearance was never an optimization variable"
+cleanly explains failure #3, only *partially* explains #1 (an `xyz`-only edit
+tears a fixed-density cloud regardless of whether appearance is free — the
+missing piece is *densification/coverage*, not colour), and *mis-describes* #2
+(the v1 bake *moved* appearance, it just misread SH-DC as albedo). One true
+observation about the latest failure was retro-projected onto two failures with
+distinct causes — and the tidy root cause then launders the recommendation.
+
+**Path B was strawmanned.** The "splats falsified twice" verdict conflates a
+representation failure (#1) with a bake-method failure (#2). GaMeS /
+GaussianAvatars triangle-rebinding — splats bound to FLAME triangles, coverage
+preserved by construction under deformation — is refuted by *neither* failure
+and is dismissed here without a sentence of real engagement. It remains a live
+alternative for the geometry-coverage problem (though it does not by itself
+solve the chibi *appearance* problem, and a 2D UV atlas is a far more tractable
+appearance-edit surface than splat SH).
+
+**Three gating spikes — run before any spec.**
+
+1. **Is the v3 UV bake actually clean?** Everything downstream assumes it. The
+   *geometry* survived the bake; the *texture* has never been shown
+   artifact-free. *Spike:* render the v3 baked-textured neutral mesh vs the
+   original LAM splat render, ≥4 views, eyeball for seams, baked-in lighting,
+   and the sRGB/linear washout the topic index already flags. An afternoon;
+   either unblocks or kills the plan.
+
+2. **Does Jacobian retargeting hold at normal expression amplitude?** `Φ` is
+   sharply nonlinear exactly where blendshapes animate — eye scale is taken
+   about a *vert-dependent* centroid (`feature_primitives.py:38-46`), the
+   superellipsoid has `abs()` gradient kinks on every box axis plane
+   (`primitives.py:40-42`), and relief-flatten compresses panel z to ~0.2×
+   (`relief_flatten.py:32-33`), so `J·B` silently flattens z-component
+   blendshapes too. The proposed extreme-frame gate only catches large weights;
+   the dangerous case is a *normal-amplitude blink* wrong because the eye is the
+   most nonlinear region. *Spike:* compute `J`, retarget the 52-vector basis,
+   render `Φ(neutral+ΣwB)` vs `Φ(neutral)+ΣwB'` for ~20 normal-amplitude ARKit
+   frames (blink/smile/brow), measure per-vertex error inside the eye/lip mask
+   specifically. Visible blink error ⇒ the linear retarget is dead.
+
+3. **Is procedural paint sufficient, or sticker-on-a-photo?** The "no
+   optimization needed" claim contradicts the project's own recorded belief
+   (painter rule 8b — flat skin is a separate appearance edit) and dodges the
+   inherited photoreal skin, baked lighting, hairline, and the paint↔skin seam.
+   *Spike:* hand-paint flat chibi eyes into the v3 atlas in an image editor,
+   render the mesh. If it reads as a sticker, the plan needs a deterministic
+   de-light / flat-skin pass as a *peer* of the paint compositor — "no
+   optimization" downgrades to "no *learned* optimization, but a de-light pass
+   is required."
+
+**Lesser but real:** pytorch3d `TexturesUV` (UV-seam interpolation, no
+mipmapping) may not equal the nvdiffrast bake path — render-for-`J` and
+render-for-bake are not assumed-identical; FLAME's 5023 verts are distributed
+for *realistic* eye topology and may pinch when an aperture is enlarged 1.6× and
+rounded — and the geometry aperture may then not co-register with the painted
+oval; live mesh-rasterization plumbing into the iPhone demo is *new* work,
+whereas the splat live path is already shipped.
+
+**Sound as-is:** geometry stages 1-3 (deterministic, metric-gated); the
+*structure* of basis retargeting (freeze box, compose into basis — only the
+linearization error is unbudgeted); holding CLIP/NNFM/SDS out of base-chibi
+scope.
+
+## Next step
+
+Run spike 1 first — it is the cheapest and the most foundational; a dirty v3
+bake invalidates the entire mesh+UV appearance premise. Then spike 3 (the
+hand-paint mock), then spike 2 (Jacobian validation). Only after all three is a
+brainstorming → spec pass warranted.
