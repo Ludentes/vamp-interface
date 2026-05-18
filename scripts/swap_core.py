@@ -194,7 +194,7 @@ def collapse_eyes(img_bgr, kps):
 
 
 def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
-                  restore=True):
+                  restore=False):
     """Swap source_face's identity onto the doll's painted face.
 
     The doll face is a small patch of a large image -- too few pixels for
@@ -205,7 +205,11 @@ def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
 
     When collapse is True the doll's oversized painted eyes are shrunk to
     folk-art dots before the swap (inswapper preserves target eye geometry).
-    When restore is True the swapped crop is passed through GFPGAN.
+
+    restore (GFPGAN over the swapped crop) defaults False: the swap-test A/B
+    measured GFPGAN *lowering* median identity cosine 0.773 -> 0.525 -- it
+    regularizes the swapped face toward a generic restoration prior. The
+    crop->upscale restructure alone carries the identity lift.
 
     Returns (result_bgr, mode, det_score). mode is 'default' (SCRFD found
     the crop face), 'forced' (MediaPipe synthetic-kps fallback), or 'failed'

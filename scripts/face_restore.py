@@ -16,9 +16,14 @@ def _load():
     if _restorer is not None or _load_failed:
         return _restorer
     try:
+        import torch
         from gfpgan import GFPGANer
+        # CPU-pinned: the swap pipeline is CPU-only by design (no contention
+        # with ComfyUI for GPU VRAM), and GFPGANer otherwise auto-grabs CUDA
+        # and OOMs on a busy card.
         _restorer = GFPGANer(model_path=str(_GFPGAN_WEIGHTS), upscale=1,
-                             arch="clean", channel_multiplier=2, bg_upsampler=None)
+                             arch="clean", channel_multiplier=2,
+                             bg_upsampler=None, device=torch.device("cpu"))
     except Exception as e:
         print(f"[face_restore] GFPGAN unavailable, restoration skipped: {e}")
         _load_failed = True

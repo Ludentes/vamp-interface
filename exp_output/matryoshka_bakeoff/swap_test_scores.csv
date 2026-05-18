@@ -1,0 +1,11 @@
+arm,step,identity,id_cos,mode,det_score
+zimage_turbo,06,id_03,0.8133,forced,0.0000
+zimage_turbo,06,id_11,0.7756,forced,0.0000
+zimage_turbo,08,id_03,0.6651,forced,0.0000
+zimage_turbo,08,id_11,nan,forced,0.0000
+zimage_turbo,12,id_03,0.6201,forced,0.0000
+zimage_turbo,12,id_11,0.3922,forced,0.0000
+sdxl_lightning,04,id_03,0.8234,default,0.5467
+sdxl_lightning,04,id_11,0.7731,default,0.5467
+sdxl_lightning,08,id_03,nan,failed,0.0000
+sdxl_lightning,08,id_11,nan,failed,0.0000

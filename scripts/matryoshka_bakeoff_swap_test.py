@@ -153,7 +153,7 @@ def main() -> int:
         return 1
 
     ncol = 1 + len(sources)
-    col_labels = ["doll"] + [sid for sid, _ in sources]
+    col_labels = ["doll"] + [sid for sid, _, _ in sources]
     grid_w = PAD + ncol * (TILE + PAD)
     grid_h = LABEL_H + PAD + len(rows) * (TILE + LABEL_H + PAD)
     canvas = Image.new("RGB", (grid_w, grid_h), "white")
