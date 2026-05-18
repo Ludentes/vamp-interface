@@ -90,6 +90,27 @@ def identity_cos(app, result_bgr, source_emb):
     return float(np.dot(f.normed_embedding, source_emb))
 
 
+def _swap_stats(app, swapper, dolls, sources):
+    """(default_rate, median_id_cos) over doll x identity swaps.
+
+    default_rate is the fraction of swaps where SCRFD detected the face
+    (mode == 'default'); median_id_cos is over the finite cosines.
+    """
+    modes, cosines = [], []
+    for doll in dolls:
+        for _sid, face, emb in sources:
+            if face is None:
+                continue
+            res, mode, _det = swap_identity(app, swapper, doll, face)
+            modes.append(mode)
+            cos = identity_cos(app, res, emb)
+            if np.isfinite(cos):
+                cosines.append(cos)
+    default_rate = (modes.count("default") / len(modes)) if modes else 0.0
+    median = float(np.median(cosines)) if cosines else float("nan")
+    return default_rate, median
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", type=Path, default=Path("exp_output/matryoshka_bakeoff"))
@@ -98,6 +119,11 @@ def main() -> int:
     ap.add_argument("--swapper", type=Path, required=True)
     ap.add_argument("--ids", nargs="+", default=["id_03", "id_11"])
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--refined-root", type=Path, default=None,
+                    help="root of refined dolls (<root>/d<NNN>/<name>.png); "
+                         "when set, prints a baseline-vs-refined comparison")
+    ap.add_argument("--refined-denoise", default="d055",
+                    help="denoise subdir under --refined-root to compare")
     args = ap.parse_args()
     out = args.out or args.root / "swap_test.png"
 
@@ -181,6 +207,24 @@ def main() -> int:
             im = thumb(t)
             x = PAD + ci * (TILE + PAD)
             canvas.paste(im, (x + (TILE - im.width) // 2, y0 + LABEL_H))
+
+    if args.refined_root is not None:
+        print(f"\n[swap-test] baseline vs refined ({args.refined_denoise})")
+        print(f"  {'arm':14s} {'set':9s} {'default_rate':>12s} {'median_cos':>11s}")
+        for arm, renders in ARM_RENDERS.items():
+            base_dolls, ref_dolls = [], []
+            for rname in renders:
+                bd = cv2.imread(str(args.root / "renders" / rname))
+                rp = args.refined_root / args.refined_denoise / rname
+                rd = cv2.imread(str(rp))
+                if bd is not None:
+                    base_dolls.append(bd)
+                if rd is not None:
+                    ref_dolls.append(rd)
+            b_rate, b_med = _swap_stats(app, swapper, base_dolls, sources)
+            r_rate, r_med = _swap_stats(app, swapper, ref_dolls, sources)
+            print(f"  {arm:14s} {'baseline':9s} {b_rate:12.2f} {b_med:11.3f}")
+            print(f"  {arm:14s} {'refined':9s} {r_rate:12.2f} {r_med:11.3f}")
 
     out.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(out)
