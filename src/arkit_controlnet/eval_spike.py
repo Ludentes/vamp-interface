@@ -91,3 +91,38 @@ def bs_delta(output_path: Path, identity_path: Path, channels: list[str]) -> flo
     """Mean increase in the axis's target channels, output minus identity."""
     out, idn = bs_read(output_path), bs_read(identity_path)
     return float(np.mean([out[c] - idn[c] for c in channels]))
+
+
+def bs_vector(image_path: Path) -> np.ndarray:
+    """52-d ARKit blendshape vector, ordered by ARKIT_BLENDSHAPE_NAMES."""
+    got = bs_read(image_path)
+    return np.array([got[n] for n in ARKIT_BLENDSHAPE_NAMES], dtype=np.float64)
+
+
+def expr_cos(path_a: Path, path_b: Path) -> float:
+    """Cosine of two 52-d blendshape vectors, excluding the `_neutral` channel.
+
+    Measures expression similarity. `_neutral` (index 0) is dropped — it is an
+    inverse summary of all the others and would wash out the signal. Returns
+    -1.0 if either vector is all-zero (no face detected -> bs_read all zeros).
+    """
+    a = bs_vector(path_a)[1:]
+    b = bs_vector(path_b)[1:]
+    na, nb = np.linalg.norm(a), np.linalg.norm(b)
+    if na == 0.0 or nb == 0.0:
+        return -1.0
+    return float(np.dot(a, b) / (na * nb))
+
+
+def face_landmarks_xy(image_path: Path) -> np.ndarray:
+    """(478, 2) array of normalized [0,1] (x, y) MediaPipe face landmarks.
+
+    Raises ValueError if no face is detected — callers select among several
+    candidates, so a hard failure is correct here.
+    """
+    arr = cv2.cvtColor(_imread(image_path), cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=arr)
+    res = _get_landmarker().detect(mp_image)
+    if not res.face_landmarks:
+        raise ValueError(f"no face detected in {image_path}")
+    return np.array([[p.x, p.y] for p in res.face_landmarks[0]], dtype=np.float64)
