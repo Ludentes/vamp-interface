@@ -87,3 +87,39 @@ option; Z-Image is the default for a photoreal result.
 
 Open follow-up: confirm inswapper identity transfer succeeds on a Z-Image
 6-step doll (the swap stage was assumed, not yet tested end-to-end on this arm).
+
+## Swap rebuild (2026-05-18)
+
+The swap test above confirmed the swap *fires* but identity barely *read* —
+the doll face is a small patch of an 864×1152 image, so SCRFD never detects it
+and inswapper aligns from a handful of pixels. `swap_core.swap_identity` was
+rebuilt (design: `docs/superpowers/specs/2026-05-18-matryoshka-swap-rebuild-design.md`,
+plan: `docs/superpowers/plans/2026-05-18-matryoshka-swap-rebuild.md`): crop the
+doll face → upscale the crop to 512 px → detect/collapse/swap on the isolated
+high-res crop → feathered paste-back. `matryoshka_bakeoff_swap_test.py` now
+reports an ArcFace identity cosine (`swap_test_scores.csv`).
+
+**Result — the restructure works.** Median identity cosine **0.773** (n=7
+recoverable faces) across both arms, vs near-random for the pre-rebuild
+pipeline. SDXL-Lightning 4-step now detects the crop face with SCRFD
+(`mode=default`, det 0.55) instead of always falling back to forced kps — the
+crop-upscale is exactly the "help insightface" lever. Per-arm:
+
+| arm            | step | id_03 | id_11 | mode    |
+|----------------|------|-------|-------|---------|
+| zimage_turbo   | 6    | 0.813 | 0.776 | forced  |
+| zimage_turbo   | 8    | 0.665 | nan   | forced  |
+| zimage_turbo   | 12   | 0.620 | 0.392 | forced  |
+| sdxl_lightning | 4    | 0.823 | 0.773 | default |
+| sdxl_lightning | 8    | nan   | nan   | failed  |
+
+`nan` = no face recoverable on the output (sdxl 8-step renders no
+MediaPipe-detectable doll face at all → `swap_identity` returns the doll
+unchanged, `mode=failed` — the regression guard fired cleanly, no crash).
+
+**GFPGAN restoration falsified as an identity step.** The design proposed a
+GFPGAN restore pass after the swap. A/B measured it *lowering* median identity
+cosine **0.773 → 0.525** — GFPGAN regularizes the swapped face toward a generic
+restoration prior, beautifying the identity away. `restore` now defaults
+`False`; the crop→upscale restructure alone carries the lift. GFPGAN stays
+behind the `restore` flag (CPU-pinned, lazy) but is off by default.
