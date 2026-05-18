@@ -103,10 +103,15 @@ async def _run() -> None:
                         except Exception as exc:
                             print(f"  FAILED {tag}: {exc}")
                             continue
+                    try:
+                        af = arcface_cos(out_png, ident)
+                        ec = expr_cos(out_png, ctl["exemplar"])
+                    except Exception as exc:
+                        print(f"  METRIC FAILED {tag}: {exc}")
+                        af, ec = -1.0, -1.0
                     rows.append({
                         "identity": ident.stem, "axis": axis, "strength": strength,
-                        "arcface_cos": arcface_cos(out_png, ident),
-                        "expr_cos": expr_cos(out_png, ctl["exemplar"]),
+                        "arcface_cos": af, "expr_cos": ec,
                     })
     df = pd.DataFrame(rows)
     df.to_parquet(OUT_DIR / "metrics.parquet")

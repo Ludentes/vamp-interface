@@ -85,6 +85,8 @@ def render_landmark_mesh(image_path: Path) -> np.ndarray:
 
     canvas = np.zeros((_CANVAS_H, _CANVAS_W, 3), dtype=np.uint8)
     for a, b in FACEMESH_TESSELATION:
+        # pure white is channel-order-safe through cv2.imwrite (BGR) -> ComfyUI
+        # LoadImage (RGB); keep it gray if this ever switches to colored edges.
         cv2.line(canvas, tuple(pts[a]), tuple(pts[b]), (255, 255, 255), 1,
                  lineType=cv2.LINE_AA)
     return canvas
