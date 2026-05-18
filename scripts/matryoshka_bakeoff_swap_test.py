@@ -23,7 +23,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from swap_core import (_crop_region, detect_source, load_swapper,
+from swap_core import (crop_and_upscale, detect_source, load_swapper,
                         make_face_app, mediapipe_kps_bbox, swap_identity)
 
 # representative renders per arm: one per step count, first sampler/seed
@@ -62,24 +62,31 @@ def identity_cos(app, result_bgr, source_emb):
     """cos(source ArcFace embedding, output face ArcFace embedding).
 
     Re-detects the swapped face on the output the same way the swap does --
-    crop the face region and upscale to 512 px so SCRFD has enough pixels --
-    then takes its normed embedding. Returns NaN if no face is recoverable.
+    crop the face region and upscale so SCRFD has enough pixels (shared
+    swap_core.crop_and_upscale, so the metric's detection path matches the
+    pipeline's). If SCRFD still misses the face, falls back to a MediaPipe
+    forced Face + the recognition model directly -- otherwise the metric
+    would silently under-report exactly the SCRFD-weak renders. Returns NaN
+    only when no face is recoverable at all.
     """
     kps, bbox = mediapipe_kps_bbox(result_bgr)
     if kps is None or bbox is None:
         return float("nan")
-    rx0, ry0, rx1, ry1 = _crop_region(bbox, result_bgr.shape)
-    crop = result_bgr[ry0:ry1, rx0:rx1]
-    if crop.size == 0:
+    up, _ = crop_and_upscale(result_bgr, bbox)
+    if up is None:
         return float("nan")
-    ch, cw = crop.shape[:2]
-    s = 512.0 / max(ch, cw)
-    up = cv2.resize(crop, (max(1, round(cw * s)), max(1, round(ch * s))),
-                    interpolation=cv2.INTER_LANCZOS4)
     faces = app.get(up)
-    if not faces:
+    if faces:
+        f = max(faces, key=lambda x: x.det_score)
+        return float(np.dot(f.normed_embedding, source_emb))
+    # SCRFD missed it -- forced MediaPipe Face through the recognition model
+    kps_up, bbox_up = mediapipe_kps_bbox(up)
+    rec = app.models.get("recognition")
+    if kps_up is None or rec is None:
         return float("nan")
-    f = max(faces, key=lambda x: x.det_score)
+    from insightface.app.common import Face
+    f = Face(bbox=bbox_up, kps=kps_up, det_score=1.0)
+    rec.get(up, f)
     return float(np.dot(f.normed_embedding, source_emb))
 
 
@@ -143,10 +150,14 @@ def main() -> int:
         for arm, step, sid, cos, mode, det in scores:
             print(f"  {arm:14s} {step:4s} {sid:10s} {cos:8.3f} "
                   f"{mode:8s} {det:6.2f}")
+        from collections import Counter
+        modes = Counter(m for _, _, _, _, m, _ in scores)
+        print(f"  modes: " + "  ".join(f"{m}={n}" for m, n in modes.items()))
         finite = [c for _, _, _, c, _, _ in scores if np.isfinite(c)]
         if finite:
             print(f"  median id_cos = {float(np.median(finite)):.3f}  "
-                  f"(n={len(finite)})")
+                  f"(n={len(finite)} of {len(scores)} cells; "
+                  f"{len(scores) - len(finite)} unrecoverable)")
 
     if not rows:
         print("[swap-test] no rows produced")

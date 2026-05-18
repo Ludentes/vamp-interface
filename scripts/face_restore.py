@@ -1,4 +1,11 @@
-"""Face restoration for the matryoshka swap pipeline -- GFPGAN, lazy + optional."""
+"""Face restoration for the matryoshka swap pipeline -- GFPGAN, lazy + optional.
+
+NOTE: disabled by default. The swap-test A/B (commit 0adcab7) measured GFPGAN
+*lowering* median identity cosine 0.773 -> 0.525 -- it regularizes the swapped
+face toward a generic restoration prior. swap_identity defaults restore=False;
+this module is kept behind that flag as an optional lever, not a recommended
+stage.
+"""
 from __future__ import annotations
 
 from pathlib import Path

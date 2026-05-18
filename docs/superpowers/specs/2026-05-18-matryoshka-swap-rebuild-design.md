@@ -91,9 +91,12 @@ New private helpers:
   paste-back.
 
 Rewritten `swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
-restore=True) -> (result_bgr, mode, det_score)` — the signature its two
+restore=False) -> (result_bgr, mode, det_score)` — the signature its two
 consumers (`matryoshka_swap_sweep.py`, `matryoshka_bakeoff_swap_test.py`)
-already use, plus a `restore` flag defaulting True. New data flow:
+already use, plus a `restore` flag. (Updated post-implementation: `restore`
+defaults **False** — the A/B in the verdict doc measured GFPGAN lowering
+identity cosine 0.773 → 0.525, so the restore pass is an off-by-default
+optional lever, not a recommended stage.) New data flow:
 
 1. `mediapipe_kps_bbox(doll_bgr)` → `kps_full, bbox_full`. If `None`, return
    `(doll_bgr, "failed", 0.0)` — unchanged behaviour.

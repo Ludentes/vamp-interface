@@ -99,23 +99,27 @@ doll face → upscale the crop to 512 px → detect/collapse/swap on the isolate
 high-res crop → feathered paste-back. `matryoshka_bakeoff_swap_test.py` now
 reports an ArcFace identity cosine (`swap_test_scores.csv`).
 
-**Result — the restructure works.** Median identity cosine **0.773** (n=7
-recoverable faces) across both arms, vs near-random for the pre-rebuild
-pipeline. SDXL-Lightning 4-step now detects the crop face with SCRFD
-(`mode=default`, det 0.55) instead of always falling back to forced kps — the
-crop-upscale is exactly the "help insightface" lever. Per-arm:
+**Result — the restructure works.** Median identity cosine **0.719** over 8
+measured cells across both arms, vs near-random for the pre-rebuild pipeline.
+SDXL-Lightning 4-step now detects the crop face with SCRFD (`mode=default`,
+det 0.55) instead of always falling back to forced kps — the crop-upscale is
+exactly the "help insightface" lever. Per-arm:
 
 | arm            | step | id_03 | id_11 | mode    |
 |----------------|------|-------|-------|---------|
 | zimage_turbo   | 6    | 0.813 | 0.776 | forced  |
-| zimage_turbo   | 8    | 0.665 | nan   | forced  |
+| zimage_turbo   | 8    | 0.665 | 0.625 | forced  |
 | zimage_turbo   | 12   | 0.620 | 0.392 | forced  |
 | sdxl_lightning | 4    | 0.823 | 0.773 | default |
 | sdxl_lightning | 8    | nan   | nan   | failed  |
 
-`nan` = no face recoverable on the output (sdxl 8-step renders no
-MediaPipe-detectable doll face at all → `swap_identity` returns the doll
-unchanged, `mode=failed` — the regression guard fired cleanly, no crash).
+`nan` = the swap itself failed: sdxl 8-step renders no MediaPipe-detectable
+doll face at all, so `swap_identity` returns the doll unchanged
+(`mode=failed`) — the regression guard fired cleanly, no crash. The
+identity-cosine metric mirrors the swap's detection path (shared
+`crop_and_upscale`) and falls back to a forced MediaPipe Face through the
+recognition model when SCRFD misses the output face, so a measured `nan` now
+means only a genuinely failed swap, not a SCRFD-weak one.
 
 **GFPGAN restoration falsified as an identity step.** The design proposed a
 GFPGAN restore pass after the swap. A/B measured it *lowering* median identity

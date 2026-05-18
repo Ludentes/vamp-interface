@@ -140,6 +140,26 @@ def _feathered_mask(h, w, feather_frac=0.12):
     return np.clip(mask, 0.0, 1.0)
 
 
+def crop_and_upscale(img_bgr, bbox, target=512):
+    """Crop the face region around bbox and Lanczos-upscale its longer side.
+
+    The doll face is a small image patch; isolating and upscaling it to
+    `target` px is what lets SCRFD detect it and gives the swap real pixels.
+    Returns (up_bgr, (x0, y0, x1, y1)), or (None, None) on an empty crop.
+    Shared by swap_identity and the eval harness so the metric's detection
+    path matches the pipeline's.
+    """
+    rx0, ry0, rx1, ry1 = _crop_region(bbox, img_bgr.shape)
+    crop = img_bgr[ry0:ry1, rx0:rx1]
+    if crop.size == 0:
+        return None, None
+    ch, cw = crop.shape[:2]
+    s = float(target) / max(ch, cw)
+    up = cv2.resize(crop, (max(1, round(cw * s)), max(1, round(ch * s))),
+                    interpolation=cv2.INTER_LANCZOS4)
+    return up, (rx0, ry0, rx1, ry1)
+
+
 def collapse_eyes(img_bgr, kps):
     """Shrink the doll's oversized painted eyes to small folk-art dots.
 
@@ -219,15 +239,10 @@ def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
     if kps_full is None or bbox_full is None:
         return doll_bgr, "failed", 0.0
 
-    rx0, ry0, rx1, ry1 = _crop_region(bbox_full, doll_bgr.shape)
-    crop = doll_bgr[ry0:ry1, rx0:rx1]
-    if crop.size == 0:
+    up, region = crop_and_upscale(doll_bgr, bbox_full)
+    if up is None:
         return doll_bgr, "failed", 0.0
-
-    ch, cw = crop.shape[:2]
-    scale = 512.0 / max(ch, cw)
-    up = cv2.resize(crop, (max(1, round(cw * scale)), max(1, round(ch * scale))),
-                    interpolation=cv2.INTER_LANCZOS4)
+    rx0, ry0, rx1, ry1 = region
 
     kps_up, bbox_up = mediapipe_kps_bbox(up)
     work = up
