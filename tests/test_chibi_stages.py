@@ -60,3 +60,23 @@ def test_proportion_remap_is_monotone_in_y():
     y_out_sorted = out[order_in, 1]
     # monotone remap: sorting by input y keeps output y non-decreasing
     assert (y_out_sorted[1:] - y_out_sorted[:-1] >= -1e-6).all()
+
+
+@needs_flame
+def test_relief_flatten_lowers_relief_energy():
+    from chibi.stages.relief_flatten import relief_flatten, ReliefParams
+    from chibi.chibi_metrics import relief_energy
+    from chibi.primitives import mask_weights
+    v, f = _flame_mesh()
+    w = mask_weights(v, MASKS, ["face", "nose"], falloff=0.02)
+    out = relief_flatten(v, f, MASKS, ReliefParams(strength=0.8))
+    assert relief_energy(out, f, w) < relief_energy(v, f, w)
+    assert out.shape == v.shape
+
+
+@needs_flame
+def test_relief_flatten_identity_strength_is_noop():
+    from chibi.stages.relief_flatten import relief_flatten, ReliefParams
+    v, f = _flame_mesh()
+    out = relief_flatten(v, f, MASKS, ReliefParams(strength=0.0))
+    assert torch.allclose(out, v, atol=1e-9)

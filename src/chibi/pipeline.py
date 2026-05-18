@@ -13,9 +13,10 @@ import torch
 
 from chibi.stages.head_block import head_block, HeadBlockParams
 from chibi.stages.proportion_remap import proportion_remap, RemapParams
+from chibi.stages.relief_flatten import relief_flatten, ReliefParams
 
-# stage name -> (callable, params-dataclass). Extended in Tasks 6 and 7.
-STAGE_ORDER = ["head_block", "proportion_remap"]
+# stage name -> (callable, params-dataclass). Extended in Task 7.
+STAGE_ORDER = ["head_block", "proportion_remap", "relief_flatten"]
 
 
 class ChibiPipeline:
@@ -26,6 +27,7 @@ class ChibiPipeline:
             cfg = json.loads(Path(params_path).read_text())
         self.head_block = HeadBlockParams(**cfg.get("head_block", {}))
         self.remap = RemapParams(**cfg.get("proportion_remap", {}))
+        self.relief = ReliefParams(**cfg.get("relief_flatten", {}))
 
     def run(self, verts: torch.Tensor, faces: torch.Tensor,
             through: str | None = None) -> torch.Tensor:
@@ -39,4 +41,9 @@ class ChibiPipeline:
         if through == "head_block":
             return v
         v = proportion_remap(v, self.remap)
+        if through == "proportion_remap":
+            return v
+        v = relief_flatten(v, faces, self.masks_path, self.relief)
+        if through == "relief_flatten":
+            return v
         return v
