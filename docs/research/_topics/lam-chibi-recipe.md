@@ -8,6 +8,15 @@ Living interpretation of the "human → chibi 3DGS" thread on top of LAM-20K.
 
 **`ChibiField` scale-and-slide is superseded (2026-05-17).** The mesh pivot worked (v3 UV-texture bake ships), and a radial-oscillation bug that folded the head into a wasp-waist was found and fixed (curvature penalty). But the deeper finding stands: `ChibiField` only *slides* feature lines and *scales* regions — it cannot reshape the skull into a block, round the eyes, delete the nose bridge, or flatten facial relief, and landmark targets cannot detect any of those misses. Output reads as a warped realistic face, not a chibi. **Redesign: a staged re-priming pipeline** (head→block, proportion remap, relief flatten, feature primitives), each stage blending toward an explicit chibi *target primitive* and gated by its own geometric metric. Design at `2026-05-17-chibi-geometry-redesign-design.md`.
 
+**Open re-evaluation (2026-05-18).** The "chibi-on-splats is dead" conclusion rests on an
+`xyz`-only edit fit by a *vertex-space* landmark loss — `means2d` is `requires_grad=False`,
+so the differentiable rasterizer was never an optimization surface. That loss is blind to
+density rescatter / iris leak / color (all post-rasterization effects). Two unexplored
+doors: (A) image-space photometric+LPIPS loss through the rasterizer with densification on
+and opacity/scale/SH free; (B) GaMeS/GaussianAvatars triangle-rebinding so splats scale
+with their parent triangle (coverage preserved by construction). See
+[`2026-05-18-chibi-differentiable-loss-fishing.md`](../2026-05-18-chibi-differentiable-loss-fishing.md).
+
 Prior belief (splat path, retained for audit): LAM-20K plus a three-asset chibi injection (basis swap + xyz override + per-vertex splat-scale ratio) renders a coherent chibi avatar at FLAME-rate from any LAM-compatible anchor PNG.
 
 ## Asset surface
