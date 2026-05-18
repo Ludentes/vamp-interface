@@ -26,10 +26,23 @@ image with its 52-d ARKit blendshapes and 512-d ArcFace embedding — the
 training triples exist; only the FLAME render of each coefficient vector is
 missing.
 
+## Zero-train compose spike — falsified for expression (2026-05-18)
+
+Tested the shortcut *before* Path 1: compose InfiniteYou (identity) +
+FluxSpace `FluxSpaceEditPair` (expression, attention editing) in one ComfyUI
+graph, zero training. The two modules co-exist with no contention and identity
+injection is solid (ArcFace cos 0.60–0.83), but **FluxSpace is not a viable
+expression channel** — hard collapse to noise at scale ≥1.5, weak and
+identity-dependent smile in the only usable band (clear on 2/5 identities),
+and no continuous modulation (s0.5 ≈ s1.0). Strengthens the case for the
+*trained* CFM route; FluxSpace is not a substitute for a trained expression
+ControlNet. Doc: `docs/research/2026-05-18-arkit-controlnet-spike-verdict.md`.
+
 ## Open questions
 
 - Path 1 spike result: does a stock normal/depth ControlNet driven by a FLAME
   render steer FLUX expression while ArcFace holds identity, with zero training?
+  (Still untested — the cheapest remaining experiment before a training run.)
 - Render modality — surface normals vs depth vs flat-shaded mesh vs landmark
   overlay — which the InfuseNet control channel reads best.
 - SPMS data: mine ArcFace-near / blendshape-far pairs from `reverse_index`, or
