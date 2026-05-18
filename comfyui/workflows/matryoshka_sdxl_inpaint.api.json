@@ -41,50 +41,6 @@
       "text": "$$NEGATIVE_PROMPT"
     }
   },
-  "5": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "$$CANNY_FILENAME"
-    }
-  },
-  "6": {
-    "class_type": "ControlNetLoader",
-    "inputs": {
-      "control_net_name": "controlnet-canny-sdxl-1.0.safetensors"
-    }
-  },
-  "7": {
-    "class_type": "ControlNetApplyAdvanced",
-    "inputs": {
-      "positive": [
-        "3",
-        0
-      ],
-      "negative": [
-        "4",
-        0
-      ],
-      "control_net": [
-        "6",
-        0
-      ],
-      "image": [
-        "5",
-        0
-      ],
-      "strength": "$$CN_STRENGTH",
-      "start_percent": "$$CN_START",
-      "end_percent": "$$CN_END"
-    }
-  },
-  "8": {
-    "class_type": "EmptyLatentImage",
-    "inputs": {
-      "width": 864,
-      "height": 1152,
-      "batch_size": 1
-    }
-  },
   "9": {
     "class_type": "KSampler",
     "inputs": {

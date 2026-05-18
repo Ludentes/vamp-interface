@@ -30,7 +30,10 @@ def build_inpaint_workflow(base_wf: dict) -> dict:
     becomes the placeholder "$$DENOISE". A ControlNetApplyAdvanced feeding the
     KSampler conditioning is bypassed (its own positive/negative sources are
     wired straight into KSampler). New nodes load "$$DOLL_FILENAME" /
-    "$$MASK_FILENAME"; orphaned nodes are left for ComfyUI to ignore.
+    "$$MASK_FILENAME". Nodes left unreachable by the rewire -- the empty-latent
+    and the bypassed ControlNet chain (incl. the Canny LoadImage) -- are
+    pruned: ComfyUI still validates such nodes and warns on their
+    unsubstituted "$$" placeholders, so they cannot be left in the graph.
     """
     wf = copy.deepcopy(base_wf)
     ks_id = next(i for i, n in wf.items() if n["class_type"] == "KSampler")
@@ -56,7 +59,27 @@ def build_inpaint_workflow(base_wf: dict) -> dict:
                   "inputs": {"samples": [enc_id, 0], "mask": [mask_id, 0]}}
     ks["inputs"]["latent_image"] = [snm_id, 0]
     ks["inputs"]["denoise"] = "$$DENOISE"
-    return wf
+    return _prune_unreachable(wf)
+
+
+def _prune_unreachable(wf: dict) -> dict:
+    """Drop nodes not reachable from any output (SaveImage) node.
+
+    Walks input edges -- the [node_id, slot] pairs in each node's "inputs" --
+    backward from every SaveImage node, then keeps only the visited set.
+    """
+    reachable: set[str] = set()
+    stack = [i for i, n in wf.items() if n["class_type"] == "SaveImage"]
+    while stack:
+        nid = stack.pop()
+        if nid in reachable or nid not in wf:
+            continue
+        reachable.add(nid)
+        for val in wf[nid].get("inputs", {}).values():
+            if (isinstance(val, list) and len(val) == 2
+                    and isinstance(val[0], str)):
+                stack.append(val[0])
+    return {i: n for i, n in wf.items() if i in reachable}
 
 
 def main() -> int:

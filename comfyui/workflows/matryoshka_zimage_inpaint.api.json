@@ -39,14 +39,6 @@
       ]
     }
   },
-  "6": {
-    "class_type": "EmptySD3LatentImage",
-    "inputs": {
-      "width": 864,
-      "height": 1152,
-      "batch_size": 1
-    }
-  },
   "7": {
     "class_type": "ModelSamplingAuraFlow",
     "inputs": {
