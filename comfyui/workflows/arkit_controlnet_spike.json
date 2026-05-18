@@ -2,21 +2,21 @@
   "1": {
     "class_type": "UNETLoader",
     "inputs": {
-      "unet_name": "FLUX1\\flux1-dev-fp8.safetensors",
+      "unet_name": "FLUX1/flux1-dev-fp8.safetensors",
       "weight_dtype": "default"
     }
   },
   "2": {
     "class_type": "DualCLIPLoader",
     "inputs": {
-      "clip_name1": "t5\\t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name1": "t5/t5xxl_fp8_e4m3fn.safetensors",
       "clip_name2": "clip_l.safetensors",
       "type": "flux"
     }
   },
   "3": {
     "class_type": "VAELoader",
-    "inputs": {"vae_name": "FLUX1\\ae.safetensors"}
+    "inputs": {"vae_name": "FLUX1/ae.safetensors"}
   },
   "4": {
     "class_type": "EmptyLatentImage",
