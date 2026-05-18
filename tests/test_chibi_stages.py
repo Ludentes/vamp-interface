@@ -36,3 +36,27 @@ def test_head_block_lowers_box_residual():
     box = fit_box(v)
     assert box_residual(out, box, 8.0) < box_residual(v, box, 8.0)
     assert out.shape == v.shape
+
+
+@needs_flame
+def test_proportion_remap_moves_eye_line_toward_half():
+    from chibi.stages.proportion_remap import proportion_remap, RemapParams
+    from chibi.landmarks import landmark_lines
+    v, f = _flame_mesh()
+    out = proportion_remap(v, RemapParams())
+    base_eye = float(landmark_lines(v)["eye"])
+    chibi_eye = float(landmark_lines(out)["eye"])
+    # realistic eye ~0.48; chibi target 0.50 -> moves toward 0.5
+    assert abs(chibi_eye - 0.50) < abs(base_eye - 0.50)
+    assert out.shape == v.shape
+
+
+@needs_flame
+def test_proportion_remap_is_monotone_in_y():
+    from chibi.stages.proportion_remap import proportion_remap, RemapParams
+    v, f = _flame_mesh()
+    out = proportion_remap(v, RemapParams())
+    order_in = torch.argsort(v[:, 1])
+    y_out_sorted = out[order_in, 1]
+    # monotone remap: sorting by input y keeps output y non-decreasing
+    assert (y_out_sorted[1:] - y_out_sorted[:-1] >= -1e-6).all()
