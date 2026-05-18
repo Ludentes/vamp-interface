@@ -1,14 +1,14 @@
 {
-  "1":  {"class_type": "UNETLoader", "inputs": {"unet_name": "FLUX1/flux1-krea-dev_fp8_scaled.safetensors", "weight_dtype": "default"}},
-  "2":  {"class_type": "DualCLIPLoader", "inputs": {"clip_name1": "t5/t5xxl_fp8_e4m3fn.safetensors", "clip_name2": "clip_l.safetensors", "type": "flux", "device": "default"}},
-  "3":  {"class_type": "VAELoader", "inputs": {"vae_name": "FLUX1/ae.safetensors"}},
+  "1":  {"class_type": "UNETLoader", "inputs": {"unet_name": "FLUX1\\flux1-krea-dev_fp8_scaled.safetensors", "weight_dtype": "default"}},
+  "2":  {"class_type": "DualCLIPLoader", "inputs": {"clip_name1": "t5\\t5xxl_fp8_e4m3fn.safetensors", "clip_name2": "clip_l.safetensors", "type": "flux", "device": "default"}},
+  "3":  {"class_type": "VAELoader", "inputs": {"vae_name": "FLUX1\\ae.safetensors"}},
   "4":  {"class_type": "CLIPTextEncodeFlux", "inputs": {"clip": ["2", 0], "clip_l": "$$POSITIVE_PROMPT", "t5xxl": "$$POSITIVE_PROMPT", "guidance": 3.5}},
   "5":  {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": "$$NEGATIVE_PROMPT"}},
   "6":  {"class_type": "LoadImage", "inputs": {"image": "$$CANNY_FILENAME"}},
-  "7":  {"class_type": "ControlNetLoader", "inputs": {"control_net_name": "FLUX.1-dev-Controlnet-Canny/diffusion_pytorch_model.safetensors"}},
+  "7":  {"class_type": "ControlNetLoader", "inputs": {"control_net_name": "FLUX.1-dev-Controlnet-Canny\\diffusion_pytorch_model.safetensors"}},
   "8":  {"class_type": "ControlNetApplyAdvanced", "inputs": {"positive": ["4", 0], "negative": ["5", 0], "control_net": ["7", 0], "image": ["6", 0], "strength": "$$CN_STRENGTH", "start_percent": "$$CN_START", "end_percent": "$$CN_END", "vae": ["3", 0]}},
   "9":  {"class_type": "EmptyLatentImage", "inputs": {"width": 864, "height": 1152, "batch_size": 1}},
-  "10": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["8", 0], "negative": ["8", 1], "latent_image": ["9", 0], "seed": "$$SEED", "steps": 20, "cfg": 1.0, "sampler_name": "euler", "scheduler": "beta", "denoise": 1.0}},
+  "10": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["8", 0], "negative": ["8", 1], "latent_image": ["9", 0], "seed": "$$SEED", "steps": "$$STEPS", "cfg": 1.0, "sampler_name": "$$SAMPLER", "scheduler": "$$SCHEDULER", "denoise": 1.0}},
   "11": {"class_type": "VAEDecode", "inputs": {"samples": ["10", 0], "vae": ["3", 0]}},
   "12": {"class_type": "SaveImage", "inputs": {"images": ["11", 0], "filename_prefix": "$$OUTPUT_PREFIX"}}
 }

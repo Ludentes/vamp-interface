@@ -51,53 +51,84 @@ STYLE_SUFFIX = (", traditional khokhloma painting, rosy painted cheeks, "
                 "hand-painted detail")
 PROMPT = BASE_PROMPT + STYLE_SUFFIX
 
-# Canny doll-form structure schedule -- shared by every Canny arm.
-CN_STRENGTH = 0.5
-CN_START, CN_END = 0.0, 0.5
-SEEDS_PER_ARM = 2
+# Canny doll-form structure schedule. cn_start is fixed (structure must lead
+# from step 0); cn_strength and cn_end are swept. Z-Image has no Canny arm.
+CN_START = 0.0
+CN_STRENGTHS = [0.4, 0.6]
+CN_ENDS = [0.4, 0.6]
+SEEDS_PER_CELL = 2
 
 # Bake-off arms. Each names a workflow file in --workflow-dir, whether it
-# consumes the Canny template, and the nodes the harness asserts on so a
-# re-exported (renumbered) workflow fails loud rather than mis-injecting.
+# consumes the Canny template, the nodes the harness asserts on (so a
+# re-exported / renumbered workflow fails loud), and its per-arm sweep axes:
+#   steps    -- step counts meaningful for that model family
+#   samplers -- (sampler_name, scheduler) pairs valid for that family
 ARMS: dict[str, dict] = {
     "flux_krea": {
         "workflow": "matryoshka_flux_krea.api.json",
         "has_canny": True,
         "schedule": {"8": "ControlNetApplyAdvanced", "10": "KSampler"},
+        "steps": [8, 15, 20],
+        "samplers": [("euler", "beta"), ("dpmpp_2m", "sgm_uniform")],
     },
     "flux_schnell": {
         "workflow": "matryoshka_flux_schnell.api.json",
         "has_canny": True,
         "schedule": {"6": "ControlNetApplyAdvanced", "8": "KSampler"},
+        "steps": [2, 4, 8],
+        "samplers": [("euler", "simple"), ("euler", "beta")],
     },
     "sdxl_lightning": {
         "workflow": "matryoshka_sdxl_lightning.api.json",
         "has_canny": True,
         "schedule": {"7": "ControlNetApplyAdvanced", "9": "KSampler"},
+        "steps": [4, 8],
+        "samplers": [("euler", "sgm_uniform"), ("dpmpp_sde", "sgm_uniform")],
     },
     "zimage_turbo": {
         "workflow": "matryoshka_zimage_turbo.api.json",
         "has_canny": False,  # no Z-Image Canny CN -> prompt-only arm
         "schedule": {"7": "ModelSamplingAuraFlow", "8": "KSampler"},
+        "steps": [6, 8, 12],
+        "samplers": [("res_multistep", "simple"), ("euler", "simple")],
     },
 }
 
 
 def build_grid(arms: list[str]) -> list[dict]:
+    """Per-arm cartesian product over steps x sampler x (Canny cn_strength x
+    cn_end) x seeds. Z-Image carries no Canny axes. cell index drives the
+    seed so the grid is deterministic and reproducible."""
     rows: list[dict] = []
     cell = 0
     for arm in arms:
-        for _ in range(SEEDS_PER_ARM):
-            seed = 73_000_000 + cell * 7919
-            stem = f"{arm}_seed{seed}"
-            rows.append({
-                "render": f"{stem}.png", "stem": stem, "arm": arm,
-                "seed": seed, "has_canny": ARMS[arm]["has_canny"],
-                "workflow": ARMS[arm]["workflow"], "prompt": PROMPT,
-                "cn_strength": CN_STRENGTH, "cn_start": CN_START,
-                "cn_end": CN_END, "workflow_version": WORKFLOW_VERSION,
-            })
-            cell += 1
+        cfg = ARMS[arm]
+        cn_s_list = CN_STRENGTHS if cfg["has_canny"] else [None]
+        cn_e_list = CN_ENDS if cfg["has_canny"] else [None]
+        for steps in cfg["steps"]:
+            for sampler, scheduler in cfg["samplers"]:
+                for cn_s in cn_s_list:
+                    for cn_e in cn_e_list:
+                        for _ in range(SEEDS_PER_CELL):
+                            seed = 73_000_000 + cell * 7919
+                            parts = [arm, f"st{steps:02d}", sampler, scheduler]
+                            if cfg["has_canny"]:
+                                assert cn_s is not None and cn_e is not None
+                                parts += [f"cs{int(cn_s * 100):03d}",
+                                          f"ce{int(cn_e * 100):03d}"]
+                            parts.append(f"seed{seed}")
+                            stem = "_".join(parts)
+                            rows.append({
+                                "render": f"{stem}.png", "stem": stem,
+                                "arm": arm, "steps": steps, "sampler": sampler,
+                                "scheduler": scheduler, "cn_strength": cn_s,
+                                "cn_start": CN_START if cfg["has_canny"] else None,
+                                "cn_end": cn_e, "has_canny": cfg["has_canny"],
+                                "seed": seed, "prompt": PROMPT,
+                                "workflow": cfg["workflow"],
+                                "workflow_version": WORKFLOW_VERSION,
+                            })
+                            cell += 1
     return rows
 
 
@@ -106,12 +137,16 @@ def build_workflow(template: dict, cell: dict, output_prefix: str) -> dict:
         "$$POSITIVE_PROMPT": cell["prompt"],
         "$$NEGATIVE_PROMPT": NEGATIVE_PROMPT,
         "$$SEED": int(cell["seed"]),
-        "$$CANNY_FILENAME": CANNY_TEMPLATE,
-        "$$CN_STRENGTH": float(cell["cn_strength"]),
-        "$$CN_START": float(cell["cn_start"]),
-        "$$CN_END": float(cell["cn_end"]),
+        "$$STEPS": int(cell["steps"]),
+        "$$SAMPLER": cell["sampler"],
+        "$$SCHEDULER": cell["scheduler"],
         "$$OUTPUT_PREFIX": output_prefix,
     }
+    if cell["has_canny"]:
+        subs["$$CANNY_FILENAME"] = CANNY_TEMPLATE
+        subs["$$CN_STRENGTH"] = float(cell["cn_strength"])
+        subs["$$CN_START"] = float(cell["cn_start"])
+        subs["$$CN_END"] = float(cell["cn_end"])
 
     def _sub(node: Any) -> Any:
         if isinstance(node, dict):
@@ -294,7 +329,14 @@ def main() -> int:
         else:
             failed += 1
 
-    pd.DataFrame(results).to_parquet(args.manifest, index=False)
+    # Merge into any existing manifest so split runs (e.g. the Z-Image arm
+    # finishing after its checkpoint download) accumulate rather than clobber.
+    df_new = pd.DataFrame(results)
+    if args.manifest.exists():
+        df_old = pd.read_parquet(args.manifest)
+        df_old = df_old[~df_old["render"].isin(df_new["render"])]
+        df_new = pd.concat([df_old, df_new], ignore_index=True)
+    df_new.to_parquet(args.manifest, index=False)
     print(f"[bakeoff] complete: {done} done, {skipped} skipped, {failed} failed "
           f"in {(time.time()-t0)/60:.1f} min -> manifest {args.manifest}")
     return 0
