@@ -10,6 +10,7 @@ from arkit_controlnet.eval_spike import (
     bs_vector,
     expr_cos,
     face_landmarks_xy,
+    face_landmarks_xyz,
 )
 
 FIXTURE = Path("tests/arkit_controlnet/fixtures/face.png")  # any clear single-face photo
@@ -44,3 +45,13 @@ def test_face_landmarks_xy_returns_478_points_in_unit_square():
     lm = face_landmarks_xy(FIXTURE)
     assert lm.shape == (478, 2)
     assert lm.min() >= -0.5 and lm.max() <= 1.5  # normalized, small slop off-frame
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="needs a face fixture image")
+def test_face_landmarks_xyz_returns_478_points_with_xy_matching_2d():
+    xyz = face_landmarks_xyz(FIXTURE)
+    assert xyz.shape == (478, 3)
+    # x,y columns are exactly the 2D accessor's output
+    np.testing.assert_allclose(xyz[:, :2], face_landmarks_xy(FIXTURE))
+    # z is a real depth signal, not a constant
+    assert xyz[:, 2].std() > 0.0

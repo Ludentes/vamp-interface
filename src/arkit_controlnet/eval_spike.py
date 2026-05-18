@@ -126,3 +126,19 @@ def face_landmarks_xy(image_path: Path) -> np.ndarray:
     if not res.face_landmarks:
         raise ValueError(f"no face detected in {image_path}")
     return np.array([[p.x, p.y] for p in res.face_landmarks[0]], dtype=np.float64)
+
+
+def face_landmarks_xyz(image_path: Path) -> np.ndarray:
+    """(478, 3) MediaPipe face landmarks: normalized [0,1] (x, y) plus raw
+    head-centred relative depth z (more negative = closer to the camera).
+
+    Raises ValueError if no face is detected — callers select among several
+    candidates, so a hard failure is correct here.
+    """
+    arr = cv2.cvtColor(_imread(image_path), cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=arr)
+    res = _get_landmarker().detect(mp_image)
+    if not res.face_landmarks:
+        raise ValueError(f"no face detected in {image_path}")
+    return np.array([[p.x, p.y, p.z] for p in res.face_landmarks[0]],
+                    dtype=np.float64)
