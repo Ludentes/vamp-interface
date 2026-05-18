@@ -48,6 +48,8 @@ git commit -m "docs(chibi): record Koban licensing decision"
 
 The Koban `.blend` cannot be parsed by Python directly; export to OBJ via headless Blender. `scripts/koban_prep.py` runs *inside* Blender (`blender -b --python`). `koban_asset.py` loads the exported artifacts for the rest of the pipeline.
 
+**Canonical source = `Koban Chibi Base Mesh VRM export.blend`** (verified 2026-05-18). The base `Koban Chibi Base Mesh 1.0.blend` mesh has a degenerate UV layer (only 53 UV coords, the body unmapped) — useless for texture baking. The VRM-export `.blend` has the same `Chibi Base Mesh` object (5662 verts, 10980 tris) with a proper active UV unwrap (`UVMap`, 32940 loops, spanning x∈[0,0.5] y∈[0,0.672] — left-half, symmetry-mirrored) AND all 61 shape keys including the full camelCase ARKit-52. Export from this file.
+
 - [ ] **Step 1: Write the Blender export script**
 
 `scripts/koban_prep.py` — note the conda site-packages append (Blender omits it; see `/tmp/inspect_mesh.py` precedent):
@@ -82,10 +84,10 @@ print(f"[koban_prep] exported koban.obj + arkit_keys.json to {outdir}")
 - [ ] **Step 2: Run the export**
 
 ```bash
-blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh 1.0.blend" \
+blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh VRM export.blend" \
   --python scripts/koban_prep.py -- exp_output/chibi_meshes/koban_canonical
 ```
-Expected: `koban_canonical/koban.obj` and `arkit_keys.json` created; stdout `[koban_prep] exported ...`.
+Expected: `koban_canonical/koban.obj` and `arkit_keys.json` created; stdout `[koban_prep] exported ...`. The OBJ exporter writes the *active* UV layer (`UVMap`) — confirm it is active before export.
 
 - [ ] **Step 3: Write the failing test for `koban_asset.py`**
 
@@ -240,7 +242,7 @@ for label, keys in tests.items():
 - [ ] **Step 2: Run it**
 
 ```bash
-blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh 1.0.blend" \
+blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh VRM export.blend" \
   --python scripts/koban_rig_test.py -- exp_output/chibi_meshes/renders/rig_test
 ```
 Expected: 4 PNGs. **Inspect them.** Acceptance: blink closes both eyes, jawOpen drops the jaw, smile raises mouth corners, no torn/exploded geometry.
@@ -722,7 +724,7 @@ for label, keys in clip:
 - [ ] **Step 2: Run the verify render**
 
 ```bash
-blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh 1.0.blend" \
+blender -b "exp_output/chibi_meshes/koban/Koban Chibi Base Mesh VRM export.blend" \
   --python scripts/koban_drive_render.py -- \
   exp_output/chibi_meshes/renders/s1_spike/texture.png \
   exp_output/chibi_meshes/renders/drive_verify
