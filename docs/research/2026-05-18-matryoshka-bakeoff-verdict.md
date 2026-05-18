@@ -43,12 +43,31 @@ checkpoint). Everything else pays a 65–86 s one-time cold load.
   flux_krea 8-step (~12 s) for visibly lower fidelity.
 - **sdxl_lightning** — fastest, but renders a flat 2D *illustration*, not a
   photoreal object, and still paints big black doll-eyes (confirms the
-  eye-problem is **not** FLUX-specific — it is a matryoshka-prior artifact). The
-  illustration look is wrong for a swap pipeline: inswapper expects a
-  photoreal-ish face region.
+  eye-problem is **not** FLUX-specific — it is a matryoshka-prior artifact).
 - **zimage_turbo** — clean, coherent, photoreal-ish single doll at every step
   count tested (6/8/12), even though it is **prompt-only** (no Canny ControlNet
   exists for Z-Image). 6-step / 7.2 s is the sweet spot.
+
+## Swap test (2026-05-18, follow-up)
+
+The first verdict rejected sdxl_lightning on the assumption that flat
+illustration output is "unsuitable for face-swap input". That was tested
+directly — `scripts/matryoshka_bakeoff_swap_test.py` runs the full swap_core
+pipeline (MediaPipe kps → eye-collapse → inswapper_128) on representative
+zimage / sdxl dolls; see `swap_test.png` and `swap_zoom.png`.
+
+**The swap works on both arms.** SCRFD never sees the painted doll face on
+either arm (every cell falls back to MediaPipe `forced` mode — same as the
+PuLID pipeline), the eye-collapse fires, and inswapper plants a real identity
+face in the doll's face region. So "unsuitable for swap" was wrong.
+
+What remains is an *aesthetic* difference, not a mechanical failure:
+- **zimage_turbo** — photoreal doll body, so the swapped photoreal face blends
+  into a consistent material; the result reads as one object.
+- **sdxl_lightning** — flat-illustration doll body, so a photoreal swapped face
+  sits inside a 2D-illustration figure: a visible style seam. Acceptable if the
+  product wants an illustrated doll with a photo face; jarring if it wants a
+  coherent photoreal object.
 
 ## Verdict
 
@@ -61,8 +80,10 @@ photoreal single doll. It loses Canny silhouette control, but a *generic* doll
 does not need pose locking; the prompt alone holds the matryoshka form.
 
 flux_schnell is rejected: only usable at 8 steps, where it is no faster than
-the baseline and lower quality. sdxl_lightning is rejected on quality despite
-the 3 s speed: flat illustration output is unsuitable for face-swap input.
+the baseline and lower quality. sdxl_lightning is **viable** — the swap works
+and at 3 s it is the speed floor — but it produces an illustrated doll with a
+photo face rather than a coherent photoreal object. Keep it as the fast/stylized
+option; Z-Image is the default for a photoreal result.
 
 Open follow-up: confirm inswapper identity transfer succeeds on a Z-Image
 6-step doll (the swap stage was assumed, not yet tested end-to-end on this arm).
