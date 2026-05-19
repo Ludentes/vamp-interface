@@ -48,7 +48,7 @@ def test_deform_jawopen_drops_lower_lip():
     template = load_flame_assets().v_template
     moved = deform(mediapipe_to_basis_vector(mp))
     dy = (moved[lips, 1] - template[lips, 1]).mean()
-    assert abs(dy) > 1e-4, f"jawOpen barely moved the lips (dy={dy})"
+    assert dy < -1e-4, f"jawOpen did not drop the lips downward (dy={dy})"
 
 
 def test_mediapipe_to_basis_vector_full_permutation():
