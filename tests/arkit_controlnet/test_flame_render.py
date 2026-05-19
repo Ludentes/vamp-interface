@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from arkit_controlnet.flame_render import (
     BASIS_CHANNEL_NAMES, deform, load_flame_assets, mediapipe_to_basis_vector,
+    render,
 )
 from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
 
@@ -61,3 +62,27 @@ def test_mediapipe_to_basis_vector_full_permutation():
         j = BASIS_CHANNEL_NAMES.index(name)
         assert vec[j] == float(i + 1), f"{name} mis-placed"
         assert np.count_nonzero(vec) == 1
+
+
+def test_render_neutral_fills_bbox():
+    verts = deform(np.zeros(52))
+    R = np.eye(3)
+    bbox = (0.5, 0.45, 0.4, 0.5)   # cx, cy, w, h — normalized
+    img = render(verts, R, bbox, modality="normals", H=512, W=512)
+    assert img.shape == (512, 512, 3) and img.dtype == np.uint8
+    # the face occupies roughly the requested bbox region, not the whole frame
+    nonblack = (img.sum(axis=2) > 10)
+    ys, xs = np.where(nonblack)
+    assert nonblack.mean() > 0.02, "render is nearly empty"
+    cx = xs.mean() / 512
+    assert abs(cx - 0.5) < 0.12, f"face not centred at bbox cx (got {cx:.3f})"
+
+
+def test_render_degenerate_bbox_raises():
+    verts = deform(np.zeros(52))
+    try:
+        render(verts, np.eye(3), (0.5, 0.5, 0.0, 0.5), modality="normals",
+               H=256, W=256)
+        assert False, "expected ValueError on zero-width bbox"
+    except ValueError:
+        pass
