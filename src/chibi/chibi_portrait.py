@@ -30,10 +30,12 @@ the pipeline actually consumes; it is never silently ignored.
 """
 from __future__ import annotations
 
+import copy
 import json
 import sys
 import uuid
 from pathlib import Path
+from typing import Any
 
 import requests
 
@@ -90,8 +92,6 @@ def _build_workflow(template: dict, *, identity_filename: str,
     identity + canny pair (no grid). The EmptyLatentImage node is forced to
     1024x1024 so output size is honored regardless of the template's literal.
     """
-    import copy
-
     subs = {
         "$$IDENTITY_FILENAME": identity_filename,
         "$$CANNY_FILENAME": canny_filename,
@@ -107,7 +107,7 @@ def _build_workflow(template: dict, *, identity_filename: str,
         "$$OUTPUT_PREFIX": output_prefix,
     }
 
-    def _sub(node):
+    def _sub(node: Any) -> Any:
         if isinstance(node, dict):
             return {k: _sub(v) for k, v in node.items() if not k.startswith("_")}
         if isinstance(node, list):
@@ -128,7 +128,7 @@ def _build_workflow(template: dict, *, identity_filename: str,
     return wf
 
 
-def generate_portrait(anchor_id: str, identity_image, out_dir: str | Path,
+def generate_portrait(anchor_id: str, identity_image: str | Path, out_dir: str | Path,
                       seed: int, *,
                       canny_image: str | Path | None = None,
                       comfy_url: str = "http://127.0.0.1:8188",
@@ -168,6 +168,10 @@ def generate_portrait(anchor_id: str, identity_image, out_dir: str | Path,
     out.parent.mkdir(parents=True, exist_ok=True)
 
     identity_image = Path(identity_image)
+    if not identity_image.exists():
+        raise FileNotFoundError(f"identity image not found: {identity_image}")
+    # NOTE: the Canny PNG's existence is NOT verified here — it is
+    # staged/validated by the caller before generate_portrait is invoked.
     canny_filename = (Path(canny_image).name if canny_image is not None
                       else f"{identity_image.stem}_canny.png")
 
@@ -176,7 +180,7 @@ def generate_portrait(anchor_id: str, identity_image, out_dir: str | Path,
     for nid, cls in SCHEDULE_NODES.items():
         got = template.get(nid, {}).get("class_type")
         if got != cls:
-            raise SystemExit(
+            raise RuntimeError(
                 f"workflow node {nid} is {got!r}, expected {cls!r} — "
                 f"schedule/identity injection would target the wrong node")
 
@@ -189,10 +193,10 @@ def generate_portrait(anchor_id: str, identity_image, out_dir: str | Path,
         output_prefix=f"chibi_portrait/{anchor_id}",
     )
 
-    sess = requests.Session()
-    client_id = str(uuid.uuid4())
-    pid = queue(sess, comfy_url, wf, client_id)
-    entry = wait(sess, comfy_url, pid, timeout=timeout)
-    if not download(sess, comfy_url, entry, out):
-        raise RuntimeError(f"chibi portrait for {anchor_id!r}: no image in history")
+    with requests.Session() as sess:
+        client_id = str(uuid.uuid4())
+        pid = queue(sess, comfy_url, wf, client_id)
+        entry = wait(sess, comfy_url, pid, timeout=timeout)
+        if not download(sess, comfy_url, entry, out):
+            raise RuntimeError(f"chibi portrait for {anchor_id!r}: no image in history")
     return out
