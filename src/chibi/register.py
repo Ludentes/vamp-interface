@@ -26,7 +26,7 @@ class TPS:
         """Map (N,2) source points -> (N,2) target points."""
         d2 = ((pts[:, None, :] - self.ctrl[None, :, :]) ** 2).sum(-1)
         U = _tps_kernel(d2)                       # (N,K)
-        ones = torch.ones(pts.shape[0], 1)
+        ones = torch.ones(pts.shape[0], 1, dtype=pts.dtype, device=pts.device)
         P = torch.cat([ones, pts], dim=1)         # (N,3)
         return U @ self.w + P @ self.a
 
@@ -34,7 +34,8 @@ class TPS:
 def fit_tps(src: torch.Tensor, dst: torch.Tensor,
             reg: float = 0.0) -> TPS:
     """Fit a TPS mapping src (K,2) -> dst (K,2). `reg` relaxes exact
-    interpolation (0 = exact)."""
+    interpolation (0 = exact). Use `reg > 0` as an escape hatch when control
+    points are poorly conditioned (nearly collinear), which makes L near-singular."""
     src = src.to(torch.float64)
     dst = dst.to(torch.float64)
     K = src.shape[0]
@@ -46,7 +47,7 @@ def fit_tps(src: torch.Tensor, dst: torch.Tensor,
     bot = torch.cat([P.T, torch.zeros(3, 3, dtype=torch.float64)], dim=1)
     L = torch.cat([top, bot], dim=0)
     rhs = torch.cat([dst, torch.zeros(3, 2, dtype=torch.float64)], dim=0)
-    sol = torch.linalg.solve(L, rhs)
+    sol = torch.linalg.lstsq(L, rhs, driver="gelsd").solution
     return TPS(ctrl=src.to(torch.float32),
                w=sol[:K].to(torch.float32),
                a=sol[K:].to(torch.float32))
@@ -64,8 +65,11 @@ def warp_image(img: torch.Tensor, tps: TPS) -> torch.Tensor:
     grid_pts = torch.stack([xs.reshape(-1), ys.reshape(-1)], dim=1)  # (HW,2)
     # invert tps by fixed-point: p_{n+1} = p_n - (tps(p_n) - target)
     p = grid_pts.clone()
-    for _ in range(20):
-        p = p - (tps(p) - grid_pts)
+    for _ in range(50):
+        residual = tps(p) - grid_pts
+        p = p - residual
+        if residual.abs().max() < 0.5:   # sub-pixel convergence
+            break
     nx = p[:, 0] / (W - 1) * 2 - 1
     ny = p[:, 1] / (H - 1) * 2 - 1
     samp = torch.stack([nx, ny], dim=1).reshape(1, H, W, 2)

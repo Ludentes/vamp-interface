@@ -19,3 +19,11 @@ def test_warp_image_shape_preserved():
     tps = fit_tps(src, dst)
     out = warp_image(img, tps)
     assert out.shape == img.shape
+
+def test_warp_image_near_identity():
+    img = torch.rand(64, 64, 3)
+    src = torch.tensor([[16., 16.], [48., 16.], [16., 48.], [48., 48.]])
+    tps = fit_tps(src, src)          # exact identity
+    out = warp_image(img, tps)
+    assert out.shape == img.shape
+    assert torch.allclose(out, img, atol=1e-3)
