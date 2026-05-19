@@ -20,6 +20,14 @@ S2 (rig drives), S3 (no double-shading).
 Gumroad asset with no explicit license file; the user confirmed its use is fine
 for this local research project. No mesh swap needed.
 
+**Spike S2 — Koban ARKit-52 rig drives cleanly (PASS, 2026-05-18).** Drove
+`eyeBlinkLeft/Right`, `jawOpen`, `mouthSmileLeft/Right` to 1.0 on the `Chibi
+Base Mesh` and rendered front views (`scripts/koban_rig_test.py`). Blink closes
+both eyes fully, jawOpen drops the jaw (tongue/teeth visible), smile raises the
+mouth corners — no torn or exploded geometry. The native shape-key rig is
+sound; the pipeline can drive identity-baked textures via it without retarget.
+Renders: `exp_output/chibi_meshes/renders/rig_test/rig_{neutral,blink,jawOpen,smile}.png`.
+
 **Chibi-on-splats is concluded dead (2026-05-15).** Chibi is too large a deformation for a baked Gaussian-splat representation — appearance is glued to verts at fixed density, so chibi-magnitude stretch always rescatters it (blur/smear/leak), and the vertex-space fit loss cannot see that failure. The secant-basis and neck-pancake fixes shipped on `chibi-diff-leak-fix` but the representation limit is not a fixable bug. **Pivot: bake LAM avatar → FLAME-UV-textured mesh, chibi as ordinary mesh deformation.** Splats→mesh research at `2026-05-15-splats-to-mesh-conversion.md`.
 
 **`ChibiField` scale-and-slide is superseded (2026-05-17).** The mesh pivot worked (v3 UV-texture bake ships), and a radial-oscillation bug that folded the head into a wasp-waist was found and fixed (curvature penalty). But the deeper finding stands: `ChibiField` only *slides* feature lines and *scales* regions — it cannot reshape the skull into a block, round the eyes, delete the nose bridge, or flatten facial relief, and landmark targets cannot detect any of those misses. Output reads as a warped realistic face, not a chibi. **Redesign: a staged re-priming pipeline** (head→block, proportion remap, relief flatten, feature primitives), each stage blending toward an explicit chibi *target primitive* and gated by its own geometric metric. Design at `2026-05-17-chibi-geometry-redesign-design.md`.
