@@ -21,7 +21,13 @@ OUT_DIR = Path("output/flame_assets")
 def _install_chumpy_shim() -> None:
     """Make `import chumpy` resolve to a stub whose Ch objects unpickle as
     plain ndarrays. flame2023.pkl only needs the array values, not chumpy's
-    autodiff graph."""
+    autodiff graph.
+
+    WARNING: this permanently patches the process-global `numpy` module,
+    re-adding deprecated alias attributes (`np.bool`, `np.int`, ...) so the
+    pickle resolves. The patch is never restored. It is intended only for the
+    one-shot `build()` extraction; do not import this into long-lived code.
+    """
     for alias, real in [("bool", np.bool_), ("int", np.int_),
                          ("float", np.float64), ("object", np.object_),
                          ("str", np.str_), ("complex", np.complex128)]:
@@ -40,13 +46,16 @@ def _install_chumpy_shim() -> None:
 
         @property
         def r(self):
-            """chumpy stores the materialised value under `x` (the dterms
-            input). Walk the few known value attributes; fall back to dict."""
-            for attr in ("x", "_result", "_r"):
-                v = self.__dict__.get(attr)
-                if v is not None:
-                    return np.asarray(getattr(v, "r", v))
-            raise AttributeError("no value attribute on Ch stub")
+            """chumpy stores a leaf's materialised value under `x` (the
+            dterms input). Read that single documented attribute; if it is
+            absent the object is not a plain Ch leaf and we cannot recover
+            its value without the autodiff graph."""
+            if "x" not in self.__dict__:
+                raise AttributeError(
+                    "Ch stub has no `x` attribute — not a plain chumpy leaf; "
+                    f"available state keys: {sorted(self.__dict__)}")
+            x = self.__dict__["x"]
+            return np.asarray(getattr(x, "r", x))
 
     chumpy = types.ModuleType("chumpy")
     chumpy.Ch = Ch
@@ -71,6 +80,7 @@ def build() -> None:
         model = pickle.load(f, encoding="latin1")
 
     v_template = _to_array(model["v_template"]).astype(np.float32).reshape(-1, 3)
+    # 'f' is stored as a plain ndarray, not a chumpy Ch
     faces = np.asarray(model["f"]).astype(np.int32)
     assert v_template.shape == (5023, 3), v_template.shape
     assert faces.ndim == 2 and faces.shape[1] == 3, faces.shape
