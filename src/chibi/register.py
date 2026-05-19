@@ -59,8 +59,9 @@ def warp_image(img: torch.Tensor, tps: TPS) -> torch.Tensor:
     output pixel back through tps (tps is near-affine-invertible at the scales
     used; for the small non-rigid part we invert by fixed-point iteration)."""
     H, W, _ = img.shape
-    ys, xs = torch.meshgrid(torch.arange(H, dtype=torch.float32),
-                            torch.arange(W, dtype=torch.float32),
+    dev = img.device
+    ys, xs = torch.meshgrid(torch.arange(H, dtype=torch.float32, device=dev),
+                            torch.arange(W, dtype=torch.float32, device=dev),
                             indexing="ij")
     grid_pts = torch.stack([xs.reshape(-1), ys.reshape(-1)], dim=1)  # (HW,2)
     # invert tps by fixed-point: p_{n+1} = p_n - (tps(p_n) - target)
