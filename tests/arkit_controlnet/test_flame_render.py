@@ -1,6 +1,8 @@
+import pickle
+
 import numpy as np
 from arkit_controlnet.flame_render import (
-    BASIS_CHANNEL_NAMES, mediapipe_to_basis_vector,
+    BASIS_CHANNEL_NAMES, deform, load_flame_assets, mediapipe_to_basis_vector,
 )
 from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
 
@@ -26,3 +28,36 @@ def test_mediapipe_to_basis_vector_places_jawopen():
     j = BASIS_CHANNEL_NAMES.index("jawOpen")
     assert vec[j] == 1.0
     assert np.count_nonzero(vec) == 1
+
+
+def test_deform_neutral_is_template():
+    a = load_flame_assets()
+    out = deform(np.zeros(52))
+    assert np.allclose(out, a.v_template, atol=1e-6)
+    assert out.shape == (5023, 3)
+
+
+def test_deform_jawopen_drops_lower_lip():
+    """jawOpen must move the lower-lip vertices down (FLAME -Y is down)."""
+    with open("/home/newub/w/LAM/model_zoo/human_parametric_models/"
+              "flame_vhap/FLAME_masks.pkl", "rb") as f:
+        masks = pickle.load(f, encoding="latin1")
+    lips = np.asarray(masks["lips"]).ravel()
+    mp = {n: 0.0 for n in ARKIT_BLENDSHAPE_NAMES}
+    mp["jawOpen"] = 1.0
+    template = load_flame_assets().v_template
+    moved = deform(mediapipe_to_basis_vector(mp))
+    dy = (moved[lips, 1] - template[lips, 1]).mean()
+    assert abs(dy) > 1e-4, f"jawOpen barely moved the lips (dy={dy})"
+
+
+def test_mediapipe_to_basis_vector_full_permutation():
+    """Every MediaPipe expression name lands on its own basis channel."""
+    mp_expr = [n for n in ARKIT_BLENDSHAPE_NAMES if n != "_neutral"]
+    for i, name in enumerate(mp_expr):
+        mp = {n: 0.0 for n in ARKIT_BLENDSHAPE_NAMES}
+        mp[name] = float(i + 1)
+        vec = mediapipe_to_basis_vector(mp)
+        j = BASIS_CHANNEL_NAMES.index(name)
+        assert vec[j] == float(i + 1), f"{name} mis-placed"
+        assert np.count_nonzero(vec) == 1

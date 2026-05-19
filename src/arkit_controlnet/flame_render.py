@@ -4,6 +4,7 @@ Pure geometry + rasterization: deform the FLAME template by 52 ARKit
 blendshapes, pose it, and flat-shade it to a control image. No photo I/O, no
 MediaPipe. See docs/superpowers/specs/2026-05-18-cfm-render-cache-design.md.
 """
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -31,3 +32,48 @@ def mediapipe_to_basis_vector(mp_blendshapes: dict[str, float]) -> np.ndarray:
     for name, basis_idx in _MP_TO_BASIS.items():
         vec[basis_idx] = float(mp_blendshapes.get(name, 0.0))
     return vec
+
+
+_ASSETS_DIR = Path("output/flame_assets")
+
+
+@dataclass
+class FlameAssets:
+    v_template: np.ndarray   # (5023, 3) float32
+    faces: np.ndarray        # (n_faces, 3) int32
+    arkit_basis: np.ndarray  # (52, 5023, 3) float64
+
+
+_assets: FlameAssets | None = None
+
+
+def load_flame_assets() -> FlameAssets:
+    """Load and module-cache the FLAME template, faces, and ARKit basis."""
+    global _assets
+    if _assets is None:
+        npz = _ASSETS_DIR / "flame_base.npz"
+        basis = _ASSETS_DIR / "flame_arkit_bs.npy"
+        if not npz.exists() or not basis.exists():
+            raise FileNotFoundError(
+                f"{npz} / {basis} missing — run "
+                "`python -m arkit_controlnet.prep_flame_assets` first")
+        d = np.load(npz)
+        _assets = FlameAssets(v_template=d["v_template"], faces=d["faces"],
+                              arkit_basis=np.load(basis))
+    return _assets
+
+
+def deform(basis_coeffs: np.ndarray) -> np.ndarray:
+    """FLAME vertices for a 52-d basis-channel coefficient vector.
+
+    `basis_coeffs` must be ordered per BASIS_CHANNEL_NAMES (use
+    `mediapipe_to_basis_vector`). Returns (5023, 3) float32.
+    """
+    coeffs = np.asarray(basis_coeffs, dtype=np.float64)
+    if coeffs.shape != (52,):
+        raise ValueError(f"expected 52 coeffs, got {coeffs.shape}")
+    if not np.all(np.isfinite(coeffs)):
+        raise ValueError("non-finite blendshape coefficients")
+    a = load_flame_assets()
+    disp = np.einsum("k,kij->ij", coeffs, a.arkit_basis)
+    return (a.v_template + disp).astype(np.float32)
