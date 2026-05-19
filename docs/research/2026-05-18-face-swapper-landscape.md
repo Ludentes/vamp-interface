@@ -52,6 +52,7 @@ Notes:
 ## Dead / dormant / wrong-task — do not pursue
 
 - **GHOST** (ai-forever/sber-swap) — abandoned, last release Jan 2022, GAN-era.
+  Empirically falsified 2026-05-19 (0.536 id_cos — see bake-off below).
 - **GHOST-2.0** — Feb 2025, Apache-2.0, but it is **head-swap** (transfers whole
   head incl. hair) with a DECA/EMOCA/BlazeFace dependency chain — wrong tool.
 - **SimSwap** — 5.2k★ but dormant since 2021, CC-BY-NC-4.0. **SimSwap++** TPAMI
@@ -114,6 +115,18 @@ All four detect 100%.
   inswapper, 100% detection, photoreal output — but it averages the source
   toward a smoother prior and notably loses skin tone (clear in `collage.png`:
   dark-skinned sources come back markedly lighter). That costs ~0.07 id_cos.
+- **GHOST (sber-swap) — falsified (2026-05-19).** Tested after a survey of
+  swapper *training* code (HyperSwap ships training code but no resumable
+  checkpoint; GHOST-1 publishes generator+discriminator weights). Gated GHOST
+  before any training analysis: ran the released `G_unet_2blocks` AEI_Net
+  generator natively (vendored model code under torch 2.x, no GHOST env) on 5
+  CN-grid dolls — `scripts/ghost_gate.py`, `exp_output/ghost_gate/`. Result:
+  **0.536 mean id_cos** (0.40–0.68), vs 0.864 inswapper / 0.796 hyperswap_1c.
+  Output is correctly aligned and coherent but soft, low-detail, and
+  identity-weak — a 2022-era 224/256px GAN swapper — and washes skin tone
+  *harder* than HyperSwap. Not an integration bug (recipe + collage audited).
+  GHOST-2.0 not tested: it is head-swap, the wrong task. The training analysis
+  is moot — no swapper-training route is worth pursuing.
 - **The ~0.86 ceiling is target-side, confirmed.** A 2× higher-resolution
   swapper does *worse* on id_cos, not better. The limit is the small painted
   doll face as a swap target, not inswapper's 128px crop. Pushing the *metric*

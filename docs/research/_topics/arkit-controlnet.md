@@ -159,8 +159,21 @@ identity onto the small painted doll face; tested all latent conventions).
 The ~0.86 id_cos ceiling is target-side; pushing the *metric* further =
 generation-time injection (PuLID / InfiniteYou), not a bigger swapper.
 
+**GHOST falsified (2026-05-19).** Surveyed swapper *training* code (the user
+asked whether we could train/fine-tune a swapper on our data). Findings:
+HyperSwap ships training code but no resumable `.ckpt` — training = from
+scratch on VGGFace2, days-to-weeks, and our ~20 identities are far too few;
+GHOST-1 is the cleanest transparent training reference (publishes
+generator+discriminator weights, documents fine-tune-vs-scratch loss tuning);
+GHOST-2.0 is head-swap, wrong task. Gated GHOST-1 quality before any training
+analysis: ran its released AEI_Net generator natively on 5 CN-grid dolls
+(`scripts/ghost_gate.py`) → **0.536 mean id_cos**, soft and identity-weak.
+Falsified — no swapper-training route is worth pursuing; the ~0.86 ceiling is
+target-side and the lever stays generation-time identity injection.
+
 - `docs/research/2026-05-18-face-swapper-landscape.md` — survey + bake-off + decision.
 - `scripts/swapper_bakeoff.py` — harness; `scripts/swap_core.py` — `HyperSwap`, `DEFAULT_SWAPPER`.
+- `scripts/ghost_gate.py` — GHOST quick gate; `exp_output/ghost_gate/`.
 
 ## Related threads
 
