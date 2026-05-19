@@ -144,7 +144,18 @@ redistributable license, fidelity slightly below inswapper). Diffusion-grade:
 GHOST/GHOST-2 (abandoned / head-swap), SimSwap (dormant), DeepFaceLive
 (archived), DiffSwap (stale), image-DreamID (no weights).
 
-- `docs/research/2026-05-18-face-swapper-landscape.md` — full survey.
+**Bake-off ran (2026-05-18) — keep inswapper_128.** 20 identities × 3 backends,
+swap stage isolated (`scripts/swapper_bakeoff.py`). id_cos: inswapper_128
+**0.864**, hyperswap_1b 0.790, hyperswap_1a 0.743 — inswapper wins every
+identity. ReSwapper-256 falsified (cos ≈0.2, well-aligned but cannot carry
+identity onto the small painted doll face; tested all latent conventions).
+HyperSwap is coherent + 2× res but averages identity and loses skin tone. The
+~0.86 id_cos ceiling is target-side, not a swapper-resolution limit — a 2×
+higher-res swapper does worse. Pushing identity further = generation-time
+injection (PuLID / InfiniteYou), not a bigger swapper.
+
+- `docs/research/2026-05-18-face-swapper-landscape.md` — full survey + bake-off.
+- `scripts/swapper_bakeoff.py` — harness.
 
 ## Related threads
 

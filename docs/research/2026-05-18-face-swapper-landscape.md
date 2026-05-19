@@ -73,6 +73,42 @@ paste_back=True)` + ArcFace `normed_embedding`). **HyperSwap-256** and
 **ReSwapper-256** are the only two that slot in with just a different `.onnx`
 path. Everything else (REFace, DreamID-V, SimSwap, GHOST) needs a new adapter.
 
-If the swap is ever revisited, the cheap experiment is a `cn_grid_sweep`-style
-side-by-side of `inswapper_128` vs HyperSwap-256 vs ReSwapper-256 on the 20
-importer identities — same SCRFD-mode + id_cos metrics.
+## Bake-off results (2026-05-18)
+
+Ran the side-by-side. Harness `scripts/swapper_bakeoff.py`: the 20 best-cell
+doll renders (CN grid strength 0.90 / 6 steps) as fixed targets, each importer
+identity swapped onto its own doll with every backend. The detect / crop /
+upscale / collapse / feathered paste-back path (`swap_core.swap_identity`) is
+held constant — only the swapper object changes. Each backend is wrapped to the
+InSwapper `get(img, target, source, paste_back=True)` signature; HyperSwap is a
+faithful port of FaceFusion's hyperswap inference (arcface_128 warp template,
+[-1,1] norm, L2-normed source embedding, model-emitted mask). CPU swap.
+Artifacts in `exp_output/swapper_bakeoff/` (`results.jsonl`, `swaps/`,
+`collage.png`).
+
+| backend           | SCRFD default | id_cos mean | min   | max   | swap_s |
+|-------------------|--------------:|------------:|------:|------:|-------:|
+| **inswapper_128** | 100%          | **0.864**   | 0.795 | 0.919 | 1.53   |
+| hyperswap_1b_256  | 100%          | 0.790       | 0.704 | 0.878 | 1.15   |
+| hyperswap_1a_256  | 100%          | 0.743       | 0.611 | 0.854 | 1.12   |
+
+**Verdict: keep `inswapper_128`.** It wins identity decisively — 0.864 vs 0.790
+(1b) vs 0.743 (1a), and wins on every one of the 20 identities. All three
+detect 100%. HyperSwap is ~25% faster *on the swap op* (1.15 s vs 1.53 s), but
+the swap is not the pipeline bottleneck — generation is — so that buys nothing.
+
+- **ReSwapper-256 — falsified.** Loaded clean (emap present, INSwapper-contract,
+  output well-aligned and coherent), but does not carry identity onto the small
+  painted doll face: ArcFace cos ≈0.2 on the recognition model, ≈0.38 via the
+  SCRFD-redetect path — vs 0.86 for inswapper. Tested all three source-latent
+  conventions (emap, raw-normed, emapᵀ); emap is correct and still the worst-
+  performing backend by far. Not an integration bug — the reimplementation is
+  simply too weak here. Dropped from the run.
+- **HyperSwap is coherent but washes identity.** 2× the resolution of
+  inswapper, 100% detection, photoreal output — but it averages the source
+  toward a smoother prior and notably loses skin tone (clear in `collage.png`:
+  dark-skinned sources come back markedly lighter). That costs ~0.07 id_cos.
+- **The ~0.86 ceiling is target-side, confirmed.** A 2× higher-resolution
+  swapper does *worse*, not better. The limit is the small painted doll face
+  as a swap target, not inswapper's 128px crop. Pushing identity further means
+  generation-time injection (PuLID / InfiniteYou), not a bigger swapper.
