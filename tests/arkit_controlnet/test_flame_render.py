@@ -67,15 +67,22 @@ def test_mediapipe_to_basis_vector_full_permutation():
 def test_render_neutral_fills_bbox():
     verts = deform(np.zeros(52))
     R = np.eye(3)
-    bbox = (0.5, 0.45, 0.4, 0.5)   # cx, cy, w, h — normalized
-    img = render(verts, R, bbox, modality="normals", H=512, W=512)
+    bcx, bcy, bw, bh = 0.5, 0.45, 0.4, 0.5   # cx, cy, w, h — normalized
+    img = render(verts, R, (bcx, bcy, bw, bh), modality="normals", H=512, W=512)
     assert img.shape == (512, 512, 3) and img.dtype == np.uint8
-    # the face occupies roughly the requested bbox region, not the whole frame
     nonblack = (img.sum(axis=2) > 10)
     ys, xs = np.where(nonblack)
     assert nonblack.mean() > 0.02, "render is nearly empty"
-    cx = xs.mean() / 512
-    assert abs(cx - 0.5) < 0.12, f"face not centred at bbox cx (got {cx:.3f})"
+    # centroid sits at the bbox centre on both axes
+    cx, cy = xs.mean() / 512, ys.mean() / 512
+    assert abs(cx - bcx) < 0.12, f"face not centred at bbox cx (got {cx:.3f})"
+    assert abs(cy - bcy) < 0.12, f"face not centred at bbox cy (got {cy:.3f})"
+    # the face stays inside the requested bbox (isotropic fit, small margin)
+    margin = 0.04
+    assert xs.min() / 512 >= bcx - bw / 2 - margin, "face overflows bbox left"
+    assert xs.max() / 512 <= bcx + bw / 2 + margin, "face overflows bbox right"
+    assert ys.min() / 512 >= bcy - bh / 2 - margin, "face overflows bbox top"
+    assert ys.max() / 512 <= bcy + bh / 2 + margin, "face overflows bbox bottom"
 
 
 def test_render_degenerate_bbox_raises():

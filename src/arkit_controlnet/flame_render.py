@@ -103,6 +103,10 @@ def render(verts: np.ndarray, rotation: np.ndarray,
     if bw <= 0 or bh <= 0:
         raise ValueError(f"degenerate bbox {bbox}")
 
+    verts = np.asarray(verts, dtype=np.float64)
+    if verts.ndim != 2 or verts.shape[1] != 3:
+        raise ValueError(f"expected (N, 3) verts, got {verts.shape}")
+
     a = load_flame_assets()
     faces = a.faces
     vr = verts @ np.asarray(rotation, dtype=np.float64).T   # rotate into camera
