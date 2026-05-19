@@ -122,10 +122,14 @@ def main() -> None:
     print(f"[chibi_identity] portrait: {png}")
 
     # --- Stage 2: landmark detection + canonical subset --------------------
+    print("[chibi_identity] stage 2: insightface landmark detection")
     port_lmk_all = detect_portrait_landmarks(png)       # (106,2)
+    assert port_lmk_all.shape[0] == 106, (
+        f"expected 106 landmarks, got {port_lmk_all.shape[0]}")
     port_lmk = port_lmk_all[if106_idx]                  # (K,2) — matched order
 
     # --- Stage 3: TPS registration portrait -> canonical -------------------
+    print("[chibi_identity] stage 3: TPS registration + warp")
     tps = fit_tps(port_lmk, canon_lmk)
     portrait = torch.tensor(
         np.asarray(imageio.imread(png))[..., :3] / 255.0,
@@ -135,11 +139,13 @@ def main() -> None:
                     (warped.clamp(0, 1) * 255).round().to(torch.uint8).numpy())
 
     # --- Stage 4: single-view UV bake --------------------------------------
+    print("[chibi_identity] stage 4: single-view UV bake")
     tex = bake_portrait_to_uv(koban, warped, view, tex_size=args.tex_size)
     imageio.imwrite(out / "texture.png",
                     (tex.clamp(0, 1) * 255).round().to(torch.uint8).numpy())
 
     # --- Stage 5: textured turntable render --------------------------------
+    print("[chibi_identity] stage 5: textured turntable render")
     tmesh = TexturedMesh(verts=koban.verts, faces=koban.faces,
                          uv=koban.uv, uv_faces=koban.uv_faces, texture=tex)
     frames = render_textured(tmesh, AZIMS, device=args.device)  # (T,H,W,3) u8
