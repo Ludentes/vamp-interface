@@ -29,6 +29,10 @@ _landmarker = None
 def _get_landmarker():
     global _landmarker
     if _landmarker is None:
+        if not _MP_MODEL.exists():
+            raise FileNotFoundError(
+                f"{_MP_MODEL} missing — download the MediaPipe face_landmarker "
+                f"model to that path")
         opts = mp_vision.FaceLandmarkerOptions(
             base_options=mp_python.BaseOptions(model_asset_path=str(_MP_MODEL)),
             output_facial_transformation_matrixes=True,
@@ -38,7 +42,9 @@ def _get_landmarker():
     return _landmarker
 
 
-def pose_from_image(rgb: np.ndarray):
+def pose_from_image(
+    rgb: np.ndarray,
+) -> tuple[np.ndarray, tuple[float, float, float, float], bool]:
     """(rotation 3x3, bbox (cx,cy,w,h) normalized, detected bool) for an RGB array.
 
     Non-detection returns (eye(3), (0,0,0,0), False)."""
@@ -71,39 +77,42 @@ def build() -> None:
     shards = sorted(glob.glob(SHARD_GLOB))
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    done: set[str] = set()
+    # Read the existing cache once into an in-memory accumulator; never re-read
+    # OUT inside the loop (re-read + re-concat per shard is O(n^2) over shards).
+    all_rows: list[dict] = []
     if OUT.exists():
-        done = set(pd.read_parquet(OUT, columns=["image_sha256"])["image_sha256"])
+        all_rows = pd.read_parquet(OUT).to_dict("records")
+    done: set[str] = {row["image_sha256"] for row in all_rows}
 
     for shard_idx, group in idx.groupby("shard_idx"):
         todo = group[~group["image_sha256"].isin(done)]
         if todo.empty:
             continue
+        # shard_idx indexes into the same sorted(glob.glob(SHARD_GLOB)) ordering
+        # that build_ffhq_index.py used to assign it.
         df = pd.read_parquet(shards[shard_idx], columns=["image"])
-        rows = []
         for _, r in todo.iterrows():
             cell = df["image"].iloc[r["row_idx"]]
             rgb = np.asarray(Image.open(io.BytesIO(cell["bytes"])).convert("RGB"))
             rot, bbox, detected = pose_from_image(rgb)
-            rows.append({
+            all_rows.append({
                 "image_sha256": r["image_sha256"],
                 "rotation": rot.ravel().tolist(),
                 "bbox_cx": bbox[0], "bbox_cy": bbox[1],
                 "bbox_w": bbox[2], "bbox_h": bbox[3],
                 "pose_detected": detected,
             })
-        # flush after every shard so a crash loses at most one shard
-        new = pd.DataFrame(rows)
-        if OUT.exists():
-            new = pd.concat([pd.read_parquet(OUT), new], ignore_index=True)
-        _write_atomic(new)
+        # flush the full accumulator after every shard so a crash loses at most
+        # one shard
+        _write_atomic(pd.DataFrame(all_rows))
         done.update(todo["image_sha256"])
-        print(f"shard {shard_idx} done ({len(todo)} images); cache now {len(new)} rows")
+        print(f"shard {shard_idx} done ({len(todo)} images); "
+              f"cache now {len(all_rows)} rows")
 
-    if not OUT.exists():
+    if not all_rows:
         print("pose cache: nothing to do")
         return
-    final = pd.read_parquet(OUT)
+    final = pd.DataFrame(all_rows)
     print(f"pose cache complete: {len(final)} rows; detected "
           f"{int(final['pose_detected'].sum())}/{len(final)}")
 

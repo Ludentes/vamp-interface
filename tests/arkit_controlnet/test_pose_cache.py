@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from arkit_controlnet.build_pose_cache import pose_from_image
 
 
@@ -6,7 +7,10 @@ def test_pose_from_image_on_a_known_face():
     """A materialized FFHQ portrait yields a rotation and a plausible bbox."""
     import glob
     from PIL import Image
-    png = sorted(glob.glob("output/ffhq_images/*.png"))[0]
+    pngs = sorted(glob.glob("output/ffhq_images/*.png"))
+    if not pngs:
+        pytest.skip("no materialized FFHQ images")
+    png = pngs[0]
     arr = np.asarray(Image.open(png).convert("RGB"))
     rot, bbox, detected = pose_from_image(arr)
     assert detected is True
