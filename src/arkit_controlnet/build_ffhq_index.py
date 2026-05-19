@@ -12,6 +12,7 @@ matches reverse_index 200/200 on the first shard.
 """
 import glob
 import hashlib
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -54,7 +55,9 @@ def build() -> None:
     new = pd.DataFrame(rows)
     if OUT.exists():
         new = pd.concat([pd.read_parquet(OUT), new], ignore_index=True)
-    new.to_parquet(OUT)
+    tmp = OUT.with_name(OUT.name + ".tmp")
+    new.to_parquet(tmp)
+    os.replace(tmp, OUT)
     print(f"wrote {len(new)} rows to {OUT}")
 
 

@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 from arkit_controlnet.build_ffhq_index import canonical_sha, SHARD_GLOB
 
