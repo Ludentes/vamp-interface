@@ -5,6 +5,7 @@ FLAME mesh from its blendshapes + cached pose, alpha-overlays it on the photo,
 and writes a collage. Run:
     PYTHONPATH=src /home/newub/miniconda3/bin/python -m arkit_controlnet.verify_flame_render
 """
+import glob
 import io
 from pathlib import Path
 
@@ -22,7 +23,6 @@ _EXPR_COLS = [f"bs_{n}" for n in ARKIT_BLENDSHAPE_NAMES if n != "_neutral"]
 
 
 def main() -> None:
-    import glob
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     ri = pd.read_parquet("output/reverse_index/reverse_index.parquet",
                          columns=["image_sha256", "source", "bs_detected",
@@ -49,6 +49,7 @@ def main() -> None:
         rot = np.array(pose["rotation"], dtype=np.float64).reshape(3, 3)
         bbox = (pose["bbox_cx"], pose["bbox_cy"], pose["bbox_w"], pose["bbox_h"])
 
+        # _neutral is intentionally included but ignored: mediapipe_to_basis_vector drops it, and the .get(..., 0.0) default covers the un-selected bs__neutral column.
         mp_bs = {n: float(row.get(f"bs_{n}", 0.0)) for n in ARKIT_BLENDSHAPE_NAMES}
         verts = deform(mediapipe_to_basis_vector(mp_bs))
         ctrl = render(verts, rot, bbox, modality="normals", H=H, W=W)

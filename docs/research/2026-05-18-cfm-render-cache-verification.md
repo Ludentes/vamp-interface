@@ -78,9 +78,21 @@ The one consistent imperfection is a small **vertical offset / scale mismatch**:
 on several rows the mesh sits a touch high and slightly oversized, so the chin
 overhangs the photo chin. This is a calibration nicety in the bbox→render
 mapping, not a correctness failure — the mesh still lands on the right facial
-features and tracks pose and expression. Fixable later by tightening the
-bbox-to-camera fit; it does not block use of the render-cache as a CFM control
-signal.
+features and tracks pose and expression. It does not block use of the
+render-cache as a CFM control signal.
+
+### Root cause of the offset / scale mismatch
+
+The rendered mesh reads oversized and sits high because `render()` fits the
+extent of *all 5023 FLAME vertices* — the entire head including the skull
+crown — isotropically into the pose-cache bbox, but that bbox is the MediaPipe
+**478 face-landmark** extent, which covers only the face front. The whole head
+is therefore scaled down to make the skull fit a face-only box, pushing the
+face region too large and too high. The fix (deferred to the CFM-run work, not
+this cache spec): in `render()`, fit a face-region FLAME vertex subset's extent
+to the bbox instead of the full-mesh extent — or expand the cached bbox to a
+head-extent estimate. This does not block CFM use as a coarse spatial control
+signal; it is a calibration refinement.
 
 ## Collage
 
