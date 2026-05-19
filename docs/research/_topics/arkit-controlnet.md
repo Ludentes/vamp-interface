@@ -131,6 +131,21 @@ face ceiling, not a CN limit; micro-sweep strength past 0.90 to confirm.
 - `docs/research/2026-05-18-matryoshka-cn-grid-sweep.md` — results + verdict.
 - `scripts/cn_grid_sweep.py` — harness (remote ComfyUI, `/upload/image` API).
 
+## Face-swapper landscape — inswapper alternatives (2026-05-18)
+
+Options survey for the swap stage (current `inswapper_128` result is fine; this
+is a menu, not a pivot). **`inswapper_256/512` are not real weights** —
+DeepInsight never released them. Only two newer swappers slot into
+`swap_core`'s InSwapper ONNX contract without a loader rewrite:
+**HyperSwap-256** (FaceFusion Labs, 2025, alive, drop-in ONNX, 2× res — but
+non-commercial research license) and **ReSwapper-256** (AGPL-3.0, clean
+redistributable license, fidelity slightly below inswapper). Diffusion-grade:
+**REFace** (WACV 2025, heavy SD env, non-commercial). Dead/wrong-task:
+GHOST/GHOST-2 (abandoned / head-swap), SimSwap (dormant), DeepFaceLive
+(archived), DiffSwap (stale), image-DreamID (no weights).
+
+- `docs/research/2026-05-18-face-swapper-landscape.md` — full survey.
+
 ## Related threads
 
 - `_topics/arc-distill.md` — ArcFace-in-FLUX-latent distillation; the
