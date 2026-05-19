@@ -15,7 +15,7 @@ import torch
 @dataclass
 class View:
     """w2c: (4,4) float32 world->camera matrix (3DGS/COLMAP convention,
-    row-vector: p_cam_h = p_world_h @ w2c). fov_rad: symmetric vertical+
+    row-vector: p_cam_h = p_world_h @ w2c.T). fov_rad: symmetric vertical+
     horizontal FoV in radians (square image). image_size: pixels per side."""
     w2c: torch.Tensor
     fov_rad: float

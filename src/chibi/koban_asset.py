@@ -4,11 +4,10 @@ the ARKit-52 verification list.
 Canonical source: exp_output/chibi_meshes/koban/Koban Chibi Base Mesh VRM export.blend
 Mesh: 5662 verts, 10980 triangle polys.
 
-NOTE ON UV LAYOUT: The Koban OBJ exports Blender's 'UVMap' layer, which is
-degenerate for most of the mesh body (only 53 unique UV coords; 32440/32940
-loops sit at (0,0)). Only 176/10980 polys have any non-zero UV.
-This is the raw UV layout from the asset prior to baking. UV baking (Task 5)
-will replace it with a full-coverage FLAME-UV layout.
+NOTE ON UV LAYOUT: The Koban OBJ exports a koban_prep.py-generated 'UVMap'
+layer. The face island (ARKit-displaced verts) is packed into [0, 0.95]²;
+all body loops collapse to the single texel (0.98, 0.98). UV baking (Task 5)
+will replace this with a full-coverage FLAME-UV layout.
 
 NOTE ON FACES: The Blender OBJ exporter writes triangle faces (3 vertices per
 f-line) for this mesh. The fan-triangulation path in load_koban handles both
@@ -151,10 +150,15 @@ def load_koban_landmarks(
       { "landmarks": [
           { "vertex_idx": int,   # 0-based OBJ vertex index
             "label": str,        # anatomical name
-            "insightface_106": int  # matching IF-106 index
+            "insightface_106": int,  # matching IF-106 index
+            "pos_world": [x, y, z]   # raw OBJ world-space position
           }, ...
         ]
       }
+
+    pos_world values are in raw OBJ space (head at Y~3.9). A centroid.json
+    file (written by koban_prep.py) stores the face-vert centroid; we subtract
+    it to recentre before projecting through the origin-centred View.
     """
     import json
     data = json.loads((Path(canon_dir) / "landmarks.json").read_text())
@@ -165,12 +169,31 @@ def load_koban_landmarks(
             [e["insightface_106"] for e in entries], dtype=torch.int64
         )
 
-    # Project vertex positions through the frontal view
-    km = load_koban(canon_dir)
+    # Load centroid and recentre: pos_world is in raw OBJ space; the frontal
+    # View expects the mesh recentred on the origin.
+    centroid_path = Path(canon_dir) / "centroid.json"
+    centroid_data = json.loads(centroid_path.read_text())
+    centroid = torch.tensor(centroid_data["centroid"], dtype=torch.float32)
+
+    pts = torch.tensor(
+        [e["pos_world"] for e in entries], dtype=torch.float32
+    )  # (K,3) raw OBJ space
+    pts = pts - centroid  # recentre to origin
+
     view = load_koban_view(canon_dir)
-    v_idx = [e["vertex_idx"] for e in entries]
-    pts = km.verts[v_idx]  # (K,3)
-    return _project_verts(pts, view)
+    px = _project_verts(pts, view)  # (K,2)
+
+    # Sanity-check: all projected pixels must fall within the image
+    size = view.image_size
+    if not (px.ge(0).all() and px.le(size).all()):
+        bad = [(float(px[i, 0]), float(px[i, 1])) for i in range(px.shape[0])
+               if float(px[i, 0]) < 0 or float(px[i, 0]) > size
+               or float(px[i, 1]) < 0 or float(px[i, 1]) > size]
+        raise ValueError(
+            f"load_koban_landmarks: {len(bad)} landmark(s) projected outside "
+            f"[0, {size}]: {bad[:4]}"
+        )
+    return px
 
 
 # ---------------------------------------------------------------------------
@@ -181,16 +204,23 @@ def _project_verts(pts: torch.Tensor, view: View) -> torch.Tensor:
     """Project (K,3) world-space points through a View to (K,2) pixel coords.
 
     Uses the 3DGS row-vector convention stored in View.w2c:
-        p_cam_h = p_world_h @ w2c
+        p_cam_h = p_world_h @ w2c.T
+    (w2c stores the matrix column-major; transposing gives the row-vector form.)
     Then perspective-divides and maps NDC to pixel space (top-left origin).
     """
     K = pts.shape[0]
     ones = torch.ones(K, 1, dtype=pts.dtype)
     pts_h = torch.cat([pts, ones], dim=1)            # (K,4)
-    p_cam_h = pts_h @ view.w2c.T                     # (K,4) row-vec convention: x @ M^T = (M @ x^T)^T
-    # Actually w2c convention: p_cam_h = p_world_h @ w2c means each row is
-    # transformed. With row-vector convention row @ w2c gives camera-space row.
+    p_cam_h = pts_h @ view.w2c.T                     # (K,4)  p_world_h @ w2c.T
     p_cam = p_cam_h[:, :3] / p_cam_h[:, 3:4]        # (K,3) perspective divide
+
+    if (p_cam[:, 2] <= 0).any():
+        n_behind = int((p_cam[:, 2] <= 0).sum())
+        raise ValueError(
+            f"_project_verts: {n_behind} point(s) are behind the camera "
+            f"(cam-Z <= 0). Check that the mesh is recentred and the camera "
+            f"is in front of it."
+        )
 
     # Perspective projection: fx = fy = 1/tan(fov/2), principal point = (0,0)
     f = 1.0 / math.tan(view.fov_rad / 2.0)

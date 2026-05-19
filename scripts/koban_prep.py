@@ -2,9 +2,9 @@
 Generates a frontal-projection UV unwrap for the Koban chibi mesh (it ships
 none), exports it to OBJ, and dumps the shape-key names to arkit_keys.json."""
 import sys, os, json
-sys.path.append("/home/newub/miniconda3/lib/python3.12/site-packages")
 import bpy
 
+# Must stay in sync with src/chibi/koban_asset.py:ARKIT_52
 # The 52 ARKit blendshape names — used to derive the face-region mask.
 ARKIT_52 = (
     "eyeBlinkLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft",
@@ -52,6 +52,9 @@ face_poly = {p.index for p in me.polygons
 
 # --- frontal bbox of face verts (x = left-right, z = up; y = depth) ---
 fvi = [i for i in range(nv) if is_face_vert[i]]
+# fvi_set used later to compute the OBJ-space centroid after export
+fvi_set = set(fvi)
+
 xs = [me.vertices[i].co.x for i in fvi]
 zs = [me.vertices[i].co.z for i in fvi]
 xmin, zmin = min(xs), min(zs)
@@ -78,9 +81,35 @@ me.update()
 bpy.ops.object.select_all(action="DESELECT")
 obj.select_set(True)
 bpy.context.view_layer.objects.active = obj
-bpy.ops.wm.obj_export(filepath=os.path.join(outdir, "koban.obj"),
+obj_path = os.path.join(outdir, "koban.obj")
+bpy.ops.wm.obj_export(filepath=obj_path,
                       export_selected_objects=True, export_uv=True,
                       export_normals=True, export_materials=False,
                       apply_modifiers=False)
+
+# Compute face-vert centroid from the exported OBJ (correct OBJ coordinate space).
+# Blender's internal vertex.co is in Blender's Z-up space; the OBJ exporter
+# applies a coordinate transform, so we must read back OBJ positions, not use
+# vertex.co directly. Blender vertex order is preserved in OBJ output.
+obj_verts = []
+with open(obj_path) as fh:
+    for line in fh:
+        if line.startswith("v "):
+            parts = line.split()
+            obj_verts.append((float(parts[1]), float(parts[2]), float(parts[3])))
+
+face_verts_obj = [obj_verts[i] for i in fvi_set if i < len(obj_verts)]
+n_fv = len(face_verts_obj)
+cx = sum(p[0] for p in face_verts_obj) / n_fv
+cy = sum(p[1] for p in face_verts_obj) / n_fv
+cz = sum(p[2] for p in face_verts_obj) / n_fv
+
+with open(os.path.join(outdir, "centroid.json"), "w") as f:
+    json.dump({"centroid": [round(cx, 6), round(cy, 6), round(cz, 6)],
+               "_meta": {"source": "mean of is_face_vert vertices in OBJ world space "
+                                   "(read back from exported OBJ)",
+                         "n_face_verts": n_fv}}, f, indent=2)
+
 print(f"[koban_prep] face polys {len(face_poly)}/{len(me.polygons)}; "
-      f"exported koban.obj + arkit_keys.json to {outdir}")
+      f"centroid {cx:.3f},{cy:.3f},{cz:.3f}; "
+      f"exported koban.obj + arkit_keys.json + centroid.json to {outdir}")

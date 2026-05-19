@@ -1,0 +1,11 @@
+{
+  "centroid": [
+    0.000748,
+    3.251821,
+    0.67765
+  ],
+  "_meta": {
+    "source": "mean of is_face_vert vertices in OBJ world space (read back from exported OBJ)",
+    "n_face_verts": 1933
+  }
+}
