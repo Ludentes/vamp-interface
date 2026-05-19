@@ -103,6 +103,7 @@ def make_backends():
         "inswapper_128": load_swapper(INSWAPPER),
         "hyperswap_1a_256": HyperSwap(f"{WEIGHTS}/hyperswap_1a_256.onnx"),
         "hyperswap_1b_256": HyperSwap(f"{WEIGHTS}/hyperswap_1b_256.onnx"),
+        "hyperswap_1c_256": HyperSwap(f"{WEIGHTS}/hyperswap_1c_256.onnx"),
     }
 
 

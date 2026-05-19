@@ -89,13 +89,20 @@ Artifacts in `exp_output/swapper_bakeoff/` (`results.jsonl`, `swaps/`,
 | backend           | SCRFD default | id_cos mean | min   | max   | swap_s |
 |-------------------|--------------:|------------:|------:|------:|-------:|
 | **inswapper_128** | 100%          | **0.864**   | 0.795 | 0.919 | 1.53   |
+| hyperswap_1c_256  | 100%          | 0.796       | 0.718 | 0.889 | 1.59   |
 | hyperswap_1b_256  | 100%          | 0.790       | 0.704 | 0.878 | 1.15   |
 | hyperswap_1a_256  | 100%          | 0.743       | 0.611 | 0.854 | 1.12   |
 
-**Verdict: keep `inswapper_128`.** It wins identity decisively — 0.864 vs 0.790
-(1b) vs 0.743 (1a), and wins on every one of the 20 identities. All three
-detect 100%. HyperSwap is ~25% faster *on the swap op* (1.15 s vs 1.53 s), but
-the swap is not the pipeline bottleneck — generation is — so that buys nothing.
+**Verdict: keep `inswapper_128`.** It wins identity decisively — 0.864 vs 0.796
+(1c) vs 0.790 (1b) vs 0.743 (1a), and wins on every one of the 20 identities.
+All four detect 100%. HyperSwap is faster *on the swap op* for 1a/1b, but the
+swap is not the pipeline bottleneck — generation is — so that buys nothing.
+
+- **HyperSwap quality tier (1a → 1b → 1c) does not buy identity.** 1c is the
+  max-realism tier and is only +0.006 id_cos over 1b (within noise) while being
+  ~40% slower. The tier improves sharpness/realism, not ArcFace similarity — the
+  skin-tone wash that caps HyperSwap is a model-family trait, not a tier knob.
+  1b is the best HyperSwap pick: same identity as 1c, fastest of the usable two.
 
 - **ReSwapper-256 — falsified.** Loaded clean (emap present, INSwapper-contract,
   output well-aligned and coherent), but does not carry identity onto the small
