@@ -109,6 +109,28 @@ black doll-eyes, confirming that artifact is not FLUX-specific).
 - `docs/research/2026-05-18-matryoshka-bakeoff-verdict.md` — results + verdict.
 - `docs/superpowers/specs/2026-05-18-matryoshka-fast-model-bakeoff-design.md` — design.
 
+## Matryoshka one-shot ControlNet — grid sweep (2026-05-18)
+
+Follow-on. The painted matryoshka face is oversized (folk-art proportions) and
+does not overlay a realistic face — which is why every refine / composite /
+latent-mask approach failed. **Fix: one-shot generation** — Z-Image Turbo
+txt2img + `Z-Image-Turbo-Fun-Controlnet-Union` driven by a Canny of the
+per-job swap identity, so a correctly-proportioned realistic face is baked in
+at generation time; `inswapper` then swaps onto a face it can detect. The CN
+loads via `ModelPatchLoader` → `ZImageFunControlnet` (stock `ControlNetLoader`
+rejects the `videox_fun` format); both nodes are native to ComfyUI ≥ 0.18.
+
+Grid sweep over 20 identities × CN strength {0.5, 0.7, 0.9} × steps {6, 8} on
+the Windows 3090 — 120 cells, 0 failed, 27.9 min. **Verdict: strength 0.90,
+6 steps** — 100% SCRFD `default` across all 20 identities, id_cos 0.864 mean
+(0.795 worst), fastest. CN strength is the dominant axis (monotone on every
+metric; 0.50 is the only setting that drops cells to MediaPipe `forced`);
+steps barely matter. Open: id_cos plateaus ~0.86 — the swap-onto-small-painted-
+face ceiling, not a CN limit; micro-sweep strength past 0.90 to confirm.
+
+- `docs/research/2026-05-18-matryoshka-cn-grid-sweep.md` — results + verdict.
+- `scripts/cn_grid_sweep.py` — harness (remote ComfyUI, `/upload/image` API).
+
 ## Related threads
 
 - `_topics/arc-distill.md` — ArcFace-in-FLUX-latent distillation; the
