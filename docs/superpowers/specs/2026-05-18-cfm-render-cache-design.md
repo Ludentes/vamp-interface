@@ -101,9 +101,16 @@ Only the MediaPipe matrix's **rotation** is reused; its translation/scale live
 in MediaPipe's metric space and do not transfer. In-plane placement and scale
 come entirely from the 2D bbox fit — robust across coordinate systems.
 
+### `src/arkit_controlnet/build_ffhq_index.py`
+
+Builds `output/ffhq_index/ffhq_sha_index.parquet` (see *Corpus* above): the
+`image_sha256 → (shard_idx, row_idx)` join key. Resumable per shard. Run once
+before the pose cache.
+
 ### `src/arkit_controlnet/build_pose_cache.py`
 
-Batch MediaPipe FaceLandmarker over the source images → `pose_cache.parquet` at
+Batch MediaPipe FaceLandmarker over the FFHQ images — read from the parquet
+shards via `ffhq_sha_index` — → `pose_cache.parquet` at
 `output/flame_pose_cache/`. One row per image:
 
 - `image_sha256`
@@ -119,24 +126,48 @@ Resumable: skip any `image_sha256` already present in the parquet (per
 ## Data flow
 
 ```
-photo  ─MediaPipe─▶  rotation + bbox  ─────────────┐
-                          (pose_cache.parquet)     │
-reverse_index.bs_* ─▶ arkit52 ─deform─▶ verts ──────┼─▶ render() ─▶ control image
-flame_base.npz + flame_arkit_bs.npy ────────────────┘     (live, in CFM dataloader)
+FFHQ parquet shards ─sha256─▶ ffhq_sha_index.parquet
+        │                            │
+        └─image bytes────────────────┤
+                                     ▼
+                         MediaPipe ─▶ rotation + bbox  ─────────┐
+                                       (pose_cache.parquet)     │
+reverse_index.bs_* ─▶ arkit52 ─deform─▶ verts ──────────────────┼─▶ render() ─▶ control image
+flame_base.npz + flame_arkit_bs.npy ────────────────────────────┘   (live, in CFM dataloader)
 ```
 
-The CFM dataloader (future spec) joins `reverse_index` to `pose_cache` on
-`image_sha256`, drops `pose_detected == False`, and calls `render()` per item.
+The CFM dataloader (future spec) joins `reverse_index` → `pose_cache` →
+`ffhq_sha_index` on `image_sha256`, drops `pose_detected == False`, reads the
+photo from the shard, and calls `render()` per item.
 
-## Corpus-size finding — blocks the CFM run, not this spec
+## Corpus — full FFHQ-70k, read from the parquet shards
 
-`reverse_index.parquet` has 79,116 rows, but `output/ffhq_images/` holds only
-**2,725** PNGs. The remaining rows are `source` ∈ {grid_*, atom, …} whose images
-are not materialized on disk. A `(photo, FLAME-render)` pair needs the photo, so
-the CFM corpus is currently 2,725, not 79k. The pose cache is therefore scoped
-to images on disk (2,725 today). Materializing or regenerating the other
-sources' images is a separate data task and a prerequisite for a full-scale CFM
-run — flagged here, owned by the CFM spec.
+`reverse_index.parquet` has 79,116 rows: 70,000 `source == ffhq` (69,928 with
+`bs_detected`), plus ~9k synthetic rows (`flux_corpus_v3`,
+`flux_solver_a_grid_squint`) that the CFM run does not use. Only 2,725 FFHQ
+PNGs are materialized under `output/ffhq_images/`, but the **full FFHQ-70000**
+dataset is on the Seagate drive at
+`/media/newub/Seagate Hub/arc_distill/ffhq_parquet/` — 190 HuggingFace parquet
+shards, 90 GB, images embedded as an `image` column.
+
+So the CFM corpus is ~69,928 `(photo, render)` pairs. The photos are **read
+from the parquet shards** — decoding 70k images to PNG would cost ~100 GB of
+disk for no benefit, and both the pose-cache build and the future CFM dataloader
+can iterate the shards directly.
+
+`reverse_index` keys rows on `image_sha256`; the FFHQ parquet has no sha. One
+prerequisite, built once:
+
+### `output/ffhq_index/ffhq_sha_index.parquet`
+
+Iterate the 190 shards, decode each image, compute `image_sha256`, record
+`(image_sha256, shard_idx, row_idx)`. This is the join key from `reverse_index`
+to the actual image bytes. The build also **verifies the sha convention**: the
+2,725 already-materialized PNGs are named by sha — confirm that hashing a shard
+image reproduces a sha that exists in `reverse_index` (i.e. the sha is of the
+image bytes the project standardized on). If the conventions differ — e.g. the
+PNGs were re-encoded before hashing — the index build resolves it (hash the
+re-encoded form) before any pose-cache work proceeds. Resumable per shard.
 
 ## Error handling
 
@@ -167,6 +198,6 @@ run — flagged here, owned by the CFM spec.
 ## Out of scope
 
 The CFM training run, the InfuseNet control-encoder modification, the dataloader
-itself, SPMS pair mining, and materializing non-FFHQ corpus images. This spec
-ends at: a pose cache exists, and `render()` produces an aligned control image
-from a row's blendshapes.
+itself, and SPMS pair mining. This spec ends at: the FFHQ sha-index and the pose
+cache exist, and `render()` produces an aligned control image from a row's
+blendshapes.
