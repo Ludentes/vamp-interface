@@ -72,6 +72,33 @@ slot, stacked depth CN) are now falsified. **No free cheese — proceed
 directly to the CFM run.** Doc:
 `docs/research/2026-05-18-arkit-depth-controlnet-spike-verdict.md`.
 
+## CFM render-cache built and verified (2026-05-18)
+
+The training-pair render-cache for the CFM route is built. The corpus already
+held `(photo, ArcFace, 52-d ARKit)` triples; the missing FLAME render of each
+coefficient vector now has its supporting infrastructure:
+
+- **FFHQ sha-index** — `output/ffhq_index/ffhq_sha_index.parquet` maps each
+  `image_sha256` to its `(shard_idx, row_idx)` in the FFHQ parquet shards, so a
+  row can be turned back into its photo.
+- **MediaPipe pose cache** — `output/flame_pose_cache/pose_cache.parquet`, one
+  head pose (rotation matrix + bbox) per FFHQ row. Detection rate **69928 /
+  70000**; pose / blendshape detection agreement **1.000** (the two detection
+  passes never disagree, so `bs_detected` is a safe proxy for pose).
+- **`flame_render.py`** — `deform(basis_coeffs)` deforms the FLAME base mesh by
+  an ARKit basis vector; `render(verts, rotation, bbox, modality)` rasterises a
+  posed control image (normals / depth / flat).
+
+Verified by eyeball collage (`verify_flame_render.py` → 8 FFHQ rows, calm vs
+expressive): pose tracks the photo head, the calm/expressive expression split
+is obvious, and the normal-map render is *not* inside-out — no `order` flip
+needed. One known minor imperfection: a small vertical offset / scale mismatch
+in the bbox→render fit (mesh sits slightly high on some rows); a calibration
+nicety, not a correctness failure, and it does not block CFM use.
+
+- `docs/research/2026-05-18-cfm-render-cache-verification.md` — verification, per-row notes, collage.
+- `docs/superpowers/specs/2026-05-18-cfm-render-cache-design.md` — design spec.
+
 ## Open questions
 
 - SPMS data: mine ArcFace-near / blendshape-far pairs from `reverse_index`, or
