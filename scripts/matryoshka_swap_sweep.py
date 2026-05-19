@@ -37,7 +37,8 @@ from matryoshka_sweep import (
     queue,
     wait,
 )
-from swap_core import detect_source, load_swapper, make_face_app, swap_identity
+from swap_core import (DEFAULT_SWAPPER, detect_source, load_swapper,
+                        make_face_app, swap_identity)
 
 WORKFLOW_VERSION = "matryoshka_swap_2026-05-16"
 
@@ -111,7 +112,7 @@ def _preflight(args, grid) -> dict:
             raise SystemExit(f"missing anchor PNG: "
                              f"{args.id_dir / (anchor + '.png')}")
     if not Path(args.swapper).exists():
-        raise SystemExit(f"inswapper model not found: {args.swapper}")
+        raise SystemExit(f"swapper model not found: {args.swapper}")
     if not args.template.exists():
         raise SystemExit(f"doll template not found: {args.template}")
     try:
@@ -129,8 +130,10 @@ def main() -> int:
     ap.add_argument("--id-dir", type=Path, default=Path("identities_flux"))
     ap.add_argument("--template", type=Path,
                     default=Path("refs/matryoshka/template_canny.png"))
-    ap.add_argument("--swapper", required=True,
-                    help="path to inswapper_128.onnx")
+    ap.add_argument("--swapper", default=DEFAULT_SWAPPER,
+                    help="path to the swapper ONNX (default: HyperSwap 1c; "
+                         "a 'hyperswap' filename loads HyperSwap, else "
+                         "inswapper)")
     ap.add_argument("--out", type=Path, default=Path("refs_matryoshka"))
     ap.add_argument("--comfy-input-dir", type=Path, default=None)
     ap.add_argument("--limit", type=int, default=0,

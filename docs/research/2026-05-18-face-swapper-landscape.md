@@ -93,16 +93,15 @@ Artifacts in `exp_output/swapper_bakeoff/` (`results.jsonl`, `swaps/`,
 | hyperswap_1b_256  | 100%          | 0.790       | 0.704 | 0.878 | 1.15   |
 | hyperswap_1a_256  | 100%          | 0.743       | 0.611 | 0.854 | 1.12   |
 
-**Verdict: keep `inswapper_128`.** It wins identity decisively — 0.864 vs 0.796
-(1c) vs 0.790 (1b) vs 0.743 (1a), and wins on every one of the 20 identities.
-All four detect 100%. HyperSwap is faster *on the swap op* for 1a/1b, but the
-swap is not the pipeline bottleneck — generation is — so that buys nothing.
+**Metric verdict (ArcFace id_cos): `inswapper_128`.** It wins identity — 0.864
+vs 0.796 (1c) vs 0.790 (1b) vs 0.743 (1a), on every one of the 20 identities.
+All four detect 100%.
 
-- **HyperSwap quality tier (1a → 1b → 1c) does not buy identity.** 1c is the
-  max-realism tier and is only +0.006 id_cos over 1b (within noise) while being
-  ~40% slower. The tier improves sharpness/realism, not ArcFace similarity — the
-  skin-tone wash that caps HyperSwap is a model-family trait, not a tier knob.
-  1b is the best HyperSwap pick: same identity as 1c, fastest of the usable two.
+- **HyperSwap quality tier (1a → 1b → 1c) does not buy *identity*.** 1c is the
+  max-realism tier and is only +0.006 id_cos over 1b (within noise). The tier
+  improves sharpness/realism, not ArcFace similarity — the skin-tone wash that
+  caps HyperSwap on the metric is a model-family trait, not a tier knob. But
+  1c's visual output *is* the sharpest of the family at 256px (2× inswapper).
 
 - **ReSwapper-256 — falsified.** Loaded clean (emap present, INSwapper-contract,
   output well-aligned and coherent), but does not carry identity onto the small
@@ -116,6 +115,30 @@ swap is not the pipeline bottleneck — generation is — so that buys nothing.
   toward a smoother prior and notably loses skin tone (clear in `collage.png`:
   dark-skinned sources come back markedly lighter). That costs ~0.07 id_cos.
 - **The ~0.86 ceiling is target-side, confirmed.** A 2× higher-resolution
-  swapper does *worse*, not better. The limit is the small painted doll face
-  as a swap target, not inswapper's 128px crop. Pushing identity further means
-  generation-time injection (PuLID / InfiniteYou), not a bigger swapper.
+  swapper does *worse* on id_cos, not better. The limit is the small painted
+  doll face as a swap target, not inswapper's 128px crop. Pushing the *metric*
+  further means generation-time injection (PuLID / InfiniteYou), not a bigger
+  swapper.
+
+## Decision (2026-05-18): adopt HyperSwap 1c as the pipeline default
+
+Despite the lower id_cos, **HyperSwap 1c is now the default swap backend**
+(`swap_core.DEFAULT_SWAPPER`). The call: id_cos is a proxy, and on visual
+inspection of the swaps 1c is the better result — sharper, 256px (2× inswapper),
+more photoreal on the doll face. The ~0.07 id_cos gap reflects HyperSwap's
+skin-tone averaging, a known and accepted trait, not a broken swap; every 1c
+swap detects and reads as the right person. For a visualisation pipeline whose
+output is *looked at*, render quality on the doll outweighs a proxy metric.
+
+The swap op is CPU-only and not the pipeline bottleneck (generation is ~7 s on
+GPU), so 1c's ~0.44 s/image over 1b costs nothing in wall time.
+
+`inswapper_128` remains fully supported — `load_swapper()` dispatches on the
+model filename, so passing an `inswapper_128.onnx` path still loads it (the
+bake-off harness relies on this for A/B). 1b is the faster HyperSwap tier if
+the ~0.44 s ever matters; on identity 1b ≈ 1c.
+
+Wiring: `HyperSwap` class + `DEFAULT_SWAPPER` live in `scripts/swap_core.py`;
+`load_swapper(model_path=None)` defaults to `hyperswap_1c_256.onnx` (staged at
+`~/w/ComfyUI/models/insightface/` next to inswapper). `matryoshka_swap_sweep.py`
+and `matryoshka_bakeoff_swap_test.py` default `--swapper` to it.

@@ -1,9 +1,14 @@
 """Detect-and-swap core for the matryoshka identity pipeline.
 
-No sweep knowledge. PuLID generates a generic doll; this module detects the
-doll's painted face (insightface SCRFD, MediaPipe fallback) and swaps a real
-identity onto it with inswapper_128. CPU-only -- the swap never contends
-with ComfyUI for GPU VRAM.
+No sweep knowledge. The generator produces a generic doll; this module detects
+the doll's painted face (insightface SCRFD, MediaPipe fallback) and swaps a
+real identity onto it. CPU-only -- the swap never contends with ComfyUI for
+GPU VRAM.
+
+The default swapper is HyperSwap 1c (FaceFusion Labs, 256px) -- chosen over
+inswapper_128 in the 2026-05-18 swap-stage bake-off
+(`docs/research/2026-05-18-face-swapper-landscape.md`). load_swapper still
+loads inswapper_128 if handed that path, so the bake-off harness can A/B them.
 """
 from __future__ import annotations
 
@@ -11,6 +16,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import onnxruntime as ort
 
 from face_restore import restore_face
 
@@ -19,6 +25,17 @@ _CPU = ["CPUExecutionProvider"]
 # MediaPipe Tasks-API face model -- shipped next to this file (the legacy
 # mediapipe.solutions API is absent from current wheels).
 _LANDMARKER_TASK = Path(__file__).with_name("face_landmarker.task")
+
+# Default identity swapper -- HyperSwap 1c, staged next to inswapper_128.
+DEFAULT_SWAPPER = str(Path("~/w/ComfyUI/models/insightface/"
+                           "hyperswap_1c_256.onnx").expanduser())
+
+# FaceFusion WARP_TEMPLATE_SET['arcface_128'] -- normalised 5-point template
+# (eyeL, eyeR, nose, mouthL, mouthR), scaled by crop size at warp time.
+_ARCFACE_128 = np.array([
+    [0.36167656, 0.40387734], [0.63696719, 0.40235469],
+    [0.50019687, 0.56044219], [0.38710391, 0.72160547],
+    [0.61507734, 0.72034453]], dtype=np.float32)
 
 
 def make_face_app():
@@ -31,10 +48,68 @@ def make_face_app():
     return app
 
 
-def load_swapper(model_path):
-    """inswapper_128 swapper model, CPU only."""
+def load_swapper(model_path=None):
+    """Identity swapper, CPU only. Defaults to HyperSwap 1c (DEFAULT_SWAPPER).
+
+    Dispatches on the model filename: a 'hyperswap' file loads as a HyperSwap
+    (FaceFusion port); anything else loads as an InsightFace INSwapper-contract
+    model (inswapper_128). Both expose the same
+    `get(img, target_face, source_face, paste_back=True)` signature, so
+    swap_identity is agnostic to which backend it holds.
+    """
+    path = model_path or DEFAULT_SWAPPER
+    if "hyperswap" in Path(path).name.lower():
+        return HyperSwap(path)
     from insightface.model_zoo import get_model
-    return get_model(model_path, download=False, providers=_CPU)
+    return get_model(path, download=False, providers=_CPU)
+
+
+class HyperSwap:
+    """FaceFusion hyperswap_*_256 swapper behind the INSwapper.get signature.
+
+    Port of facefusion/processors/modules/face_swapper/core.py: warp the
+    target face to a 256 crop via the arcface_128 template, feed it
+    [-1,1]-normalised alongside the L2-normalised ArcFace source embedding,
+    de-normalise the output, and paste it back through the model's own mask.
+    face_swapper_weight is left at its default 0.5 -> embedding balance is a
+    no-op, so it is omitted.
+    """
+
+    def __init__(self, onnx_path):
+        self.sess = ort.InferenceSession(onnx_path, providers=_CPU)
+        self.size = 256
+
+    def get(self, img, target_face, source_face, paste_back=True):
+        kps = np.asarray(target_face.kps, dtype=np.float32)
+        tmpl = _ARCFACE_128 * self.size
+        affine = cv2.estimateAffinePartial2D(
+            kps, tmpl, method=cv2.RANSAC, ransacReprojThreshold=100)[0]
+        crop = cv2.warpAffine(img, affine, (self.size, self.size),
+                              borderMode=cv2.BORDER_REPLICATE,
+                              flags=cv2.INTER_AREA)
+
+        blob = crop[:, :, ::-1].astype(np.float32) / 255.0     # BGR->RGB, 0..1
+        blob = (blob - 0.5) / 0.5                               # -> [-1, 1]
+        blob = blob.transpose(2, 0, 1)[None]
+        src = source_face.normed_embedding.reshape(1, -1).astype(np.float32)
+
+        out, mask = self.sess.run(None, {"source": src, "target": blob})
+        out = out[0].transpose(1, 2, 0)                         # CHW -> HWC
+        out = np.clip(out * 0.5 + 0.5, 0, 1)[:, :, ::-1] * 255  # RGB->BGR
+        out = out.astype(np.float32)
+        face_mask = np.clip(mask[0, 0], 0, 1).astype(np.float32)
+
+        if not paste_back:
+            return out.astype(np.uint8)
+
+        inv = cv2.invertAffineTransform(affine)
+        h, w = img.shape[:2]
+        warped = cv2.warpAffine(out, inv, (w, h),
+                                borderMode=cv2.BORDER_REPLICATE)
+        warped_mask = cv2.warpAffine(face_mask, inv, (w, h))[..., None]
+        warped_mask = np.clip(warped_mask, 0, 1)
+        blended = warped * warped_mask + img.astype(np.float32) * (1 - warped_mask)
+        return np.clip(blended, 0, 255).astype(np.uint8)
 
 
 def detect_source(app, img_bgr):
@@ -218,13 +293,19 @@ def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
     """Swap source_face's identity onto the doll's painted face.
 
     The doll face is a small patch of a large image -- too few pixels for
-    SCRFD to detect or for inswapper to align well. So the face region is
+    SCRFD to detect or for the swapper to align well. So the face region is
     cropped, upscaled to 512 px, and the detect/collapse/swap/restore
     pipeline runs on that isolated high-res crop; the restored crop is then
-    feathered back into a copy of the doll.
+    feathered back into a copy of the doll. Backend-agnostic: `swapper` is
+    whatever load_swapper returned (HyperSwap 1c by default, or inswapper).
 
     When collapse is True the doll's oversized painted eyes are shrunk to
-    folk-art dots before the swap (inswapper preserves target eye geometry).
+    folk-art dots before the swap. The collapse step was introduced because
+    inswapper is identity-only and carries the target's eye geometry through
+    unchanged; it is kept on for HyperSwap too -- the 2026-05-18 swap bake-off
+    measured HyperSwap *with* collapse on (id_cos 0.796), so it stays on to
+    match that measured configuration. It is at worst redundant if the
+    backend regenerates eyes, never harmful.
 
     restore (GFPGAN over the swapped crop) defaults False: the swap-test A/B
     measured GFPGAN *lowering* median identity cosine 0.773 -> 0.525 -- it

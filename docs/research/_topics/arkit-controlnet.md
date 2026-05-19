@@ -144,20 +144,23 @@ redistributable license, fidelity slightly below inswapper). Diffusion-grade:
 GHOST/GHOST-2 (abandoned / head-swap), SimSwap (dormant), DeepFaceLive
 (archived), DiffSwap (stale), image-DreamID (no weights).
 
-**Bake-off ran (2026-05-18) — keep inswapper_128.** 20 identities × 4 backends,
-swap stage isolated (`scripts/swapper_bakeoff.py`). id_cos: inswapper_128
-**0.864**, hyperswap_1c 0.796, hyperswap_1b 0.790, hyperswap_1a 0.743 —
-inswapper wins every identity. The HyperSwap quality tier (1a→1b→1c) does not
-buy identity: 1c is +0.006 over 1b (noise), ~40% slower. ReSwapper-256
-falsified (cos ≈0.2, well-aligned but cannot carry identity onto the small
-painted doll face; tested all latent conventions). HyperSwap is coherent + 2×
-res but averages identity and loses skin tone. The
-~0.86 id_cos ceiling is target-side, not a swapper-resolution limit — a 2×
-higher-res swapper does worse. Pushing identity further = generation-time
-injection (PuLID / InfiniteYou), not a bigger swapper.
+**Bake-off ran (2026-05-18) → adopted HyperSwap 1c as the default swapper.**
+20 identities × 4 backends, swap stage isolated (`scripts/swapper_bakeoff.py`).
+id_cos: inswapper_128 **0.864**, hyperswap_1c 0.796, hyperswap_1b 0.790,
+hyperswap_1a 0.743 — inswapper wins the *metric* on every identity. But on
+visual inspection HyperSwap 1c is the better swap (sharper, 256px = 2×
+inswapper, photoreal); the ~0.07 id_cos gap is HyperSwap's accepted skin-tone
+averaging, not a broken swap. **Decision: HyperSwap 1c is now
+`swap_core.DEFAULT_SWAPPER`**; `load_swapper()` dispatches on filename so
+inswapper still loads via an explicit path. The HyperSwap tier (1a→1b→1c)
+does not change identity (1c +0.006 over 1b, noise); 1c is picked for visual
+quality. ReSwapper-256 falsified (cos ≈0.2 — well-aligned but cannot carry
+identity onto the small painted doll face; tested all latent conventions).
+The ~0.86 id_cos ceiling is target-side; pushing the *metric* further =
+generation-time injection (PuLID / InfiniteYou), not a bigger swapper.
 
-- `docs/research/2026-05-18-face-swapper-landscape.md` — full survey + bake-off.
-- `scripts/swapper_bakeoff.py` — harness.
+- `docs/research/2026-05-18-face-swapper-landscape.md` — survey + bake-off + decision.
+- `scripts/swapper_bakeoff.py` — harness; `scripts/swap_core.py` — `HyperSwap`, `DEFAULT_SWAPPER`.
 
 ## Related threads
 

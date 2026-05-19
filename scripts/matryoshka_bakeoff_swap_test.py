@@ -23,8 +23,9 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from swap_core import (crop_and_upscale, detect_source, load_swapper,
-                        make_face_app, mediapipe_kps_bbox, swap_identity)
+from swap_core import (DEFAULT_SWAPPER, crop_and_upscale, detect_source,
+                        load_swapper, make_face_app, mediapipe_kps_bbox,
+                        swap_identity)
 
 # representative renders per arm: one per step count, first sampler/seed
 ARM_RENDERS = {
@@ -116,7 +117,8 @@ def main() -> int:
     ap.add_argument("--root", type=Path, default=Path("exp_output/matryoshka_bakeoff"))
     ap.add_argument("--identities", type=Path,
                     default=Path("data/importer/identities"))
-    ap.add_argument("--swapper", type=Path, required=True)
+    ap.add_argument("--swapper", type=Path, default=Path(DEFAULT_SWAPPER),
+                    help="swapper ONNX (default: HyperSwap 1c)")
     ap.add_argument("--ids", nargs="+", default=["id_03", "id_11"])
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--refined-root", type=Path, default=None,
