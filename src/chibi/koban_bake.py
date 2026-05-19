@@ -36,6 +36,9 @@ def _koban_vt2v(faces: torch.Tensor, uv_faces: torch.Tensor,
     fv = faces.reshape(-1).to(torch.int64)
     fvt = uv_faces.reshape(-1).to(torch.int64)
     vt2v[fvt] = fv
+    written = torch.zeros(n_uv, dtype=torch.bool)
+    written[fvt] = True
+    assert written.all(), f"{int((~written).sum())} uv-vertices unreferenced by faces"
     return vt2v
 
 
@@ -63,7 +66,7 @@ def skin_fallback(texture: torch.Tensor, seen: torch.Tensor) -> torch.Tensor:
     if seen.any():
         med = texture[seen].median(dim=0).values
     else:
-        med = torch.tensor([0.5, 0.5, 0.5])
+        med = texture.new_full((3,), 0.5)
     out[~seen] = med
     return out
 
