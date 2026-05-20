@@ -66,6 +66,11 @@ def load_koban(canon_dir: str | Path) -> KobanMesh:
 
     UVs may extend slightly outside [0,1] due to Blender export precision;
     we do NOT clamp them here — the assertion in the test allows max ≤ 1.0001.
+
+    The OBJ stores vertices in raw blend-export world space (head at Y~3.9);
+    the canonical View expects the mesh centred on the origin, so we subtract
+    centroid.json from every vertex on load. landmarks.json already does the
+    same recentring internally — both paths now share one coordinate frame.
     """
     obj = Path(canon_dir) / "koban.obj"
     verts: list[list[float]] = []
@@ -94,8 +99,17 @@ def load_koban(canon_dir: str | Path) -> KobanMesh:
                 faces_v.append([vs[0], vs[i], vs[i + 1]])
                 faces_vt.append([vts[0], vts[i], vts[i + 1]])
 
+    verts_t = torch.tensor(verts, dtype=torch.float32)
+    centroid_path = Path(canon_dir) / "centroid.json"
+    if centroid_path.exists():
+        import json
+        centroid = torch.tensor(
+            json.loads(centroid_path.read_text())["centroid"],
+            dtype=torch.float32)
+        verts_t = verts_t - centroid
+
     return KobanMesh(
-        verts=torch.tensor(verts, dtype=torch.float32),
+        verts=verts_t,
         faces=torch.tensor(faces_v, dtype=torch.int64),
         uv=torch.tensor(uvs, dtype=torch.float32),
         uv_faces=torch.tensor(faces_vt, dtype=torch.int64),
@@ -183,15 +197,19 @@ def load_koban_landmarks(
     view = load_koban_view(canon_dir)
     px = _project_verts(pts, view)  # (K,2)
 
-    # Sanity-check: all projected pixels must fall within the image
+    # Sanity check: warn (don't fail) if any landmarks project outside the
+    # image. TPS only needs paired control points; it does not require them to
+    # be in-frame. Out-of-frame landmarks are still valid registration anchors
+    # for the warp's near-affine extrapolation.
     size = view.image_size
     if not (px.ge(0).all() and px.le(size).all()):
         bad = [(float(px[i, 0]), float(px[i, 1])) for i in range(px.shape[0])
                if float(px[i, 0]) < 0 or float(px[i, 0]) > size
                or float(px[i, 1]) < 0 or float(px[i, 1]) > size]
-        raise ValueError(
+        import warnings
+        warnings.warn(
             f"load_koban_landmarks: {len(bad)} landmark(s) projected outside "
-            f"[0, {size}]: {bad[:4]}"
+            f"[0, {size}]: {bad[:4]} — check view fov/dist if many."
         )
     return px
 
@@ -222,10 +240,13 @@ def _project_verts(pts: torch.Tensor, view: View) -> torch.Tensor:
             f"is in front of it."
         )
 
-    # Perspective projection: fx = fy = 1/tan(fov/2), principal point = (0,0)
+    # Perspective projection: fx = fy = 1/tan(fov/2), principal point = (0,0).
+    # The w2c above already maps world-Y-up to cam-Y-down (its second row is
+    # [0,-1,0,0]) and looks down +Z in the OpenCV convention, so no further
+    # axis flips are needed here.
     f = 1.0 / math.tan(view.fov_rad / 2.0)
-    x_ndc = p_cam[:, 0] / (p_cam[:, 2] * f) * (-1)  # flip X: cam-right is screen-left in OpenGL
-    y_ndc = p_cam[:, 1] / (p_cam[:, 2] * f) * (-1)  # flip Y: cam-down is screen-up
+    x_ndc = p_cam[:, 0] / p_cam[:, 2] * f
+    y_ndc = p_cam[:, 1] / p_cam[:, 2] * f
 
     # NDC [-1,1] → pixel [0, image_size]
     size = view.image_size

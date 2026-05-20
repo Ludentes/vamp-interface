@@ -106,7 +106,15 @@ def train(
     step = 0
     if ckpt.exists():
         state = torch.load(ckpt, map_location="cpu")
-        model.infusenet.load_state_dict(state["infusenet"], strict=False)
+        missing, unexpected = model.infusenet.load_state_dict(
+            state["infusenet"], strict=False)
+        if unexpected:
+            raise RuntimeError(
+                f"resume: unexpected keys in checkpoint — LoRA layout drift? "
+                f"{unexpected[:5]}{'...' if len(unexpected) > 5 else ''}")
+        if missing:
+            print(f"[resume] {len(missing)} frozen-base keys not in ckpt "
+                  f"(expected for strict=False on partial save)")
         opt.load_state_dict(state["opt"])
         step = state["step"]
         print(f"[resume] step={step}")

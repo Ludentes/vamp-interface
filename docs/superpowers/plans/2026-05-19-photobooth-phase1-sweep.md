@@ -2,6 +2,60 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Spike addendum (2026-05-20) — READ FIRST
+
+A local spike (see spec addendum + `scripts/photobooth_spike*.py`) invalidated
+three axes and two helper modules. **The plan body below is partially stale;
+follow this addendum for axis list, module list, scorer fields, and target
+host.**
+
+**Module list (post-addendum):**
+
+| Path | Responsibility | Status |
+|---|---|---|
+| `scripts/photobooth_sweep/__init__.py` | package marker | keep |
+| `scripts/photobooth_sweep/axes.py` | LHS sampler + manifest writer | keep, **6 axes not 8** |
+| `scripts/photobooth_sweep/preprocess.py` | canny presets + depth (DepthAnythingV2Preprocessor via remote node) | keep |
+| `scripts/photobooth_sweep/refine.py` | whole-image low-denoise refine via remote ComfyUI | keep, **no face mask** |
+| `scripts/photobooth_sweep/scorer.py` | id_cos / det_mode / det_score / clip_style / face_frac / wall_clock | keep, **drop lab_delta_ab** |
+| `scripts/photobooth_sweep/driver.py` | main loop, resume, append parquet, **save all intermediates per cell** | keep |
+| `scripts/photobooth_sweep/README.md` | how to run / resume | keep |
+| `comfyui/workflows/photobooth_zimage_cn.api.json` | parametric Z-Image Turbo + Fun-CN | **already authored** during spike — reuse |
+| `comfyui/workflows/photobooth_zimage_refine.api.json` | parametric img2img refine | keep |
+| `scripts/photobooth_sweep/color_match.py` | — | **DELETE — do not implement** |
+| `scripts/photobooth_sweep/features.py` | — | **DELETE — do not implement** |
+
+**6 live axes (was 8):**
+
+| # | Axis | Type | Values |
+|---|---|---|---|
+| 1 | `face_pixel_budget` | categorical (3) | `tight_1024` / `med_1024` / `tight_768` |
+| 2 | `cn_condition` | categorical (2) | `canny` / `depth` |
+| 3 | `cn_strength` | continuous | `[0.80, 1.00]` |
+| 4 | `canny_preset` | categorical (3) | `soft` / `default` / `aggressive` (null when `cn_condition == depth`) |
+| 5 | `refine_denoise` | categorical (3) | `0.00` / `0.15` / `0.30` |
+| 6 | `demo_inject` | categorical (2) | `off` / `on` |
+
+**Scorer fields (was 5, now 6 including wall):** `id_cos`, `det_mode`,
+`det_score`, `clip_style`, `face_frac`, `wall_clock`. No skin-mask path.
+
+**Refine pass:** whole-image low-denoise (denoise ≤ 0.30). Workflow JSON is a
+single KSampler with VAEEncode of the swap result, no `SetLatentNoiseMask`.
+Drop Task 7's mask-loading + `ImageToMask` + `SetLatentNoiseMask` nodes.
+
+**Driver requirement (added):** per-cell directory at
+`exp_output/photobooth_phase1/<cell_id>/` containing `ctrl.png`, `render.png`,
+`swap.png`, `refined.png`. Append cell row to `scores.parquet` at the end of
+the cell.
+
+**Target host:** the spike showed local 5090 finishes a cell in ~6 s; running
+Phase 1 (160 cells) on the **local box** completes in ~16 min. Use the shard
+only for parallel Phase 2 runs, not Phase 1.
+
+**Cells already validated by the spike:** baseline canny @ cn_strength=0.85,
+steps=6, 1024², default canny preset across all 4 phase-1 photos (`id_00`,
+`id_11`, `id_16`, `id_01`). HyperSwap id_cos: 0.819 / 0.808 / 0.694 / 0.741.
+
 **Goal:** Implement and run the Phase 1 photobooth-pipeline sweep: 4 stratified source photos × 40 LHS configs over 8 axes on the Windows 3090 shard, producing `manifest.parquet` + `scores.parquet` for axis pruning.
 
 **Architecture:** New module `scripts/photobooth_sweep/` with one file per responsibility (axes, color_match, features, refine, scorer, driver). Two parametric ComfyUI workflow JSONs. Driver talks to remote ComfyUI over HTTP (the cn_grid_sweep pattern), resumable per cell via append-only parquet. Swap stage held constant on `swap_core.swap_identity` with HyperSwap-1c.

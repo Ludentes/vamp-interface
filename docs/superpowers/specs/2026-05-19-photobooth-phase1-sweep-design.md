@@ -5,6 +5,79 @@ topic: arkit-controlnet
 
 # Photobooth Phase 1 sweep — adaptive pipeline characterization
 
+## Spike addendum (2026-05-20)
+
+Local spike on 4 phase-1 photos invalidated three axes and one helper module.
+The original design below is preserved for audit trail; **the current shape of
+the sweep is what this addendum says**. See `exp_output/photobooth_spike/` for
+the artifacts and `scripts/photobooth_spike*.py` for the probe code.
+
+**Removed axes (3):**
+- `cn_condition == "canny+depth"` channel-packed composite — `ZImageFunControlnet`
+  takes a single 3-channel `image` input and VAE-encodes it as conditioning; the
+  model was not trained on packed-channel RGB, so the composite is garbage in.
+  Two valid options were considered: (a) collapse to 2-way `{canny, depth}`,
+  (b) chain two `ZImageFunControlnet` patches. Adopted **(a)** for Phase 1;
+  (b) deferred to a possible Phase-2 follow-up.
+- `cn_start_percent` — node has no `start_percent`/`end_percent` input; model
+  patch applies throughout sampling. Two-sampler emulation is too costly for a
+  pilot sweep. Dropped.
+- `color_match` (Lab transfer / Reinhard) — Δab numerically halved (16→9 etc.)
+  but visually the output looks hue-shifted without restored shading. User
+  call: drop. Removes `color_match.py` and the demographic-bias risk of the
+  Lab gate on darker-skin source photos.
+
+**Removed scorer / module:**
+- `lab_delta_ab` — depended on the skin mask + color-match axis; both gone.
+- `features.py` — was building skin masks for the two now-removed paths; the
+  scorer's remaining metrics (`id_cos`, `clip_style`, `face_frac`) need no
+  mask. Module deleted from the plan.
+
+**Live axes after addendum (5 categorical + 1 continuous = 6):**
+
+| # | Axis | Type | Values |
+|---|---|---|---|
+| 1 | `face_pixel_budget` | categorical (3) | `tight_1024` / `med_1024` / `tight_768` |
+| 2 | `cn_condition` | categorical (2) | `canny` / `depth` |
+| 3 | `cn_strength` | continuous | [0.80, 1.00] |
+| 4 | `canny_preset` | categorical (3) | `soft` / `default` / `aggressive` (null when `cn_condition == depth`) |
+| 5 | `refine_denoise` | categorical (3) | `0.00` / `0.15` / `0.30` |
+| 6 | `demo_inject` | categorical (2) | `off` / `on` (`"a {age_bin}-year-old {race} {gender} face, "` prepended to prompt) |
+
+**Live scoring metrics:**
+- `id_cos` — insightface buffalo_l recognition (mirror of cn_grid_sweep)
+- `det_mode` — `default` / `forced` / `failed` from `swap_core.swap_identity`
+- `det_score` — SCRFD confidence on the swapped crop
+- `clip_style` — open_clip ViT-B/32 cosine vs anchor doll image
+- `face_frac` — face bbox area / render area
+- `wall_clock` — render+swap+refine seconds
+
+**Refine pass simplification:** whole-image low-denoise refine (no face mask).
+At denoise ≤ 0.30 the matryoshka body is stable; the pass tightens face detail
+and heals swap seams via the model rather than via Lab math.
+
+**Driver requirement (added):** persist all per-cell intermediates —
+`ctrl/render/swap/refined` — under `exp_output/photobooth_phase1/<cell_id>/`
+for per-stage debugging.
+
+**Validated spike numbers (2026-05-20, single warm config: cn_strength=0.85,
+steps=6, 1024², canny default):**
+
+| photo | id_cos | det_mode | det_score | render wall |
+|---|---|---|---|---|
+| id_00 (Black F) | 0.819 | default | 0.72 | 4.5 s |
+| id_11 (E.Asian F) | 0.808 | default | 0.71 | 4.5 s |
+| id_16 (Mid-East M) | 0.694 | default | 0.59 | 4.5 s |
+| id_01 (White F, sunglasses) | 0.741 | default | 0.63 | 4.6 s |
+
+Per-photo id-floor spread is real (0.694–0.819), confirming the adaptive
+per-photo lookup (Phase 2 goal) has signal to exploit. 1024² render +
+HyperSwap clears the cn_grid bake-off baseline of 0.796 on the clean photos.
+
+**Compute budget after addendum:** ~6 s/cell (render+swap+refine on local
+5090) × 160 cells = ~16 min wall. Comfortably fits the original budget;
+the freed time absorbs a denser LHS or a quick re-sample at the winner.
+
 ## Purpose
 
 Characterize the parameter response surface for the matryoshka photobooth
