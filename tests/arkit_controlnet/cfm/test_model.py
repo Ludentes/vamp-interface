@@ -16,6 +16,16 @@ def test_build_model_has_only_lora_and_stems_trainable(model):
     assert len(trainable) > 0
     for n, _ in trainable:
         assert ("lora_" in n) or ("x_embedder" in n), f"unexpected trainable: {n}"
+    # Both stems must have at least one trainable param (positive check; the
+    # substring whitelist above would silently pass if a stem went missing).
+    assert any("controlnet_x_embedder" in n and p.requires_grad
+               for n, p in model.infusenet.named_parameters()), \
+        "controlnet_x_embedder has no trainable params"
+    # x_embedder check must exclude the controlnet_x_embedder substring match.
+    assert any(("x_embedder" in n) and ("controlnet_x_embedder" not in n)
+               and p.requires_grad
+               for n, p in model.infusenet.named_parameters()), \
+        "x_embedder has no trainable params"
     for n, p in model.flux.named_parameters():
         assert not p.requires_grad, f"FLUX param {n} unexpectedly trainable"
 

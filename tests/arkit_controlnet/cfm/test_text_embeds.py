@@ -1,14 +1,14 @@
-import os
+import pytest
 import torch
 from arkit_controlnet.cfm.text_embeds import build_text_embeds, FIXED_PROMPT
-
-OUT = "output/cfm_precompute/text_embeds.pt"
 
 
 def test_fixed_prompt_is_one_string():
     assert isinstance(FIXED_PROMPT, str) and len(FIXED_PROMPT) > 10
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
 def test_build_text_embeds_writes_expected_shapes(tmp_path):
     target = tmp_path / "text_embeds.pt"
     build_text_embeds(out_path=str(target))

@@ -109,9 +109,12 @@ def build_model(
         mod = getattr(infusenet, name, None)
         if mod is None and hasattr(infusenet, "base_model"):
             mod = getattr(infusenet.base_model.model, name, None)
-        if mod is not None:
-            for p in mod.parameters():
-                p.requires_grad = True
+        if mod is None:
+            raise RuntimeError(
+                f"could not locate {name!r} on InfuseNet — peft/diffusers "
+                f"layout may have changed; fix build_model() before training")
+        for p in mod.parameters():
+            p.requires_grad = True
 
     trainable_params = [p for p in infusenet.parameters() if p.requires_grad]
     return CfmModel(flux=flux, infusenet=infusenet,
