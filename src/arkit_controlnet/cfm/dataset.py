@@ -48,6 +48,15 @@ class CfmPairDataset(Dataset):
                 .merge(idx, on="image_sha256", how="inner")
                 .sort_values("image_sha256")
                 .reset_index(drop=True))
+        missing = [c for c in BS_COLUMNS if c not in df.columns]
+        if missing:
+            raise RuntimeError(
+                f"reverse_index missing blendshape columns: {missing[:5]}...")
+        meta_path = self.precompute_dir / "meta.parquet"
+        if meta_path.exists():
+            meta = pd.read_parquet(meta_path)
+            ok = meta[meta.vae_ok & meta.id_ok][["image_sha256"]]
+            df = df.merge(ok, on="image_sha256", how="inner").reset_index(drop=True)
         buckets = df.image_sha256.apply(_hash_bucket).to_numpy()
         cutoff = max(1, round(eval_size * 1000 / len(df)))
         is_eval = buckets < cutoff
