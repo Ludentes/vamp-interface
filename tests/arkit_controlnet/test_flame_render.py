@@ -65,24 +65,74 @@ def test_mediapipe_to_basis_vector_full_permutation():
 
 
 def test_render_neutral_fills_bbox():
+    """The FLAME face region (not the whole skull) sits inside the bbox.
+
+    With face-region-fit, the rendered canvas legitimately contains skull
+    pixels above the bbox (forehead, crown). The test invariant moves from
+    `every non-black pixel is inside the bbox` (which encoded the old
+    whole-skull-fit bug) to `the projected face-region vertices fill the
+    bbox`.
+    """
+    from arkit_controlnet.flame_render import _project, load_flame_assets
     verts = deform(np.zeros(52))
     R = np.eye(3)
-    bcx, bcy, bw, bh = 0.5, 0.45, 0.4, 0.5   # cx, cy, w, h — normalized
-    img = render(verts, R, (bcx, bcy, bw, bh), modality="normals", H=512, W=512)
-    assert img.shape == (512, 512, 3) and img.dtype == np.uint8
-    nonblack = (img.sum(axis=2) > 10)
-    ys, xs = np.where(nonblack)
-    assert nonblack.mean() > 0.02, "render is nearly empty"
-    # centroid sits at the bbox centre on both axes
-    cx, cy = xs.mean() / 512, ys.mean() / 512
-    assert abs(cx - bcx) < 0.12, f"face not centred at bbox cx (got {cx:.3f})"
-    assert abs(cy - bcy) < 0.12, f"face not centred at bbox cy (got {cy:.3f})"
-    # the face stays inside the requested bbox (isotropic fit, small margin)
-    margin = 0.04
-    assert xs.min() / 512 >= bcx - bw / 2 - margin, "face overflows bbox left"
-    assert xs.max() / 512 <= bcx + bw / 2 + margin, "face overflows bbox right"
-    assert ys.min() / 512 >= bcy - bh / 2 - margin, "face overflows bbox top"
-    assert ys.max() / 512 <= bcy + bh / 2 + margin, "face overflows bbox bottom"
+    bcx, bcy, bw, bh = 0.5, 0.45, 0.4, 0.5
+    H = W = 512
+    img = render(verts, R, (bcx, bcy, bw, bh), modality="normals", H=H, W=W)
+    assert img.shape == (H, W, 3) and img.dtype == np.uint8
+    assert (img.sum(axis=2) > 10).mean() > 0.02, "render is nearly empty"
+
+    # Face-region verts sit inside the bbox (isotropic fit fills one axis).
+    a = load_flame_assets()
+    px = _project(verts, R, (bcx, bcy, bw, bh), H, W)
+    face_px = px[a.face_region_idx]
+    margin = 2.0   # pixels
+    assert face_px[:, 0].min() >= (bcx - bw / 2) * W - margin
+    assert face_px[:, 0].max() <= (bcx + bw / 2) * W + margin
+    assert face_px[:, 1].min() >= (bcy - bh / 2) * H - margin
+    assert face_px[:, 1].max() <= (bcy + bh / 2) * H + margin
+
+    # Face-region centroid sits near the bbox centre.
+    fcx, fcy = face_px.mean(axis=0) / np.array([W, H])
+    assert abs(fcx - bcx) < 0.02, f"face cx={fcx:.3f}, bbox cx={bcx}"
+    assert abs(fcy - bcy) < 0.02, f"face cy={fcy:.3f}, bbox cy={bcy}"
+
+
+def test_face_region_idx_loaded():
+    """Assets carry the FLAME face-region vertex index list."""
+    from arkit_controlnet.flame_render import load_flame_assets
+    a = load_flame_assets()
+    assert a.face_region_idx.shape == (1787,)
+    assert a.face_region_idx.dtype == np.int32
+    assert a.face_region_idx.min() >= 0
+    assert a.face_region_idx.max() < 5023
+
+
+def test_projection_fits_face_region_to_bbox():
+    """The face-region vertices — not the whole skull — fill the bbox.
+
+    Isotropic fit: one axis (the limiting one) spans the bbox exactly; the
+    other spans <= bbox. Both must fit within the bbox.
+    """
+    from arkit_controlnet.flame_render import (
+        load_flame_assets, deform, _project)
+    a = load_flame_assets()
+    verts = deform(np.zeros(52))
+    bbox = (0.5, 0.5, 0.4, 0.5)          # cx, cy, w, h normalized
+    H = W = 512
+    px = _project(verts, np.eye(3), bbox, H, W)
+    face_px = px[a.face_region_idx]
+    lo, hi = face_px.min(axis=0), face_px.max(axis=0)
+    span_x, span_y = hi - lo
+    bbox_w_px, bbox_h_px = bbox[2] * W, bbox[3] * H
+    fill_x, fill_y = span_x / bbox_w_px, span_y / bbox_h_px
+    # one axis fills exactly (within 1%); both fit within the bbox
+    assert max(fill_x, fill_y) > 0.99 and max(fill_x, fill_y) <= 1.001, \
+        f"limiting axis should fill bbox exactly: fill_x={fill_x:.3f}, fill_y={fill_y:.3f}"
+    assert min(fill_x, fill_y) <= 1.001, \
+        f"other axis must fit in bbox: fill_x={fill_x:.3f}, fill_y={fill_y:.3f}"
+    # the full skull extends ABOVE the face box (no longer squashed in)
+    assert px[:, 1].min() < lo[1]
 
 
 def test_render_degenerate_bbox_raises():

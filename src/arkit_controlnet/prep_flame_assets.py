@@ -15,6 +15,7 @@ import numpy as np
 LAM = Path("/home/newub/w/LAM/model_zoo/human_parametric_models")
 FLAME_PKL = LAM / "flame_vhap" / "flame2023.pkl"
 BASIS_SRC = LAM / "flame_assets" / "flame_arkit_bs.npy"
+MASKS_SRC = LAM / "flame_assets" / "flame" / "FLAME_masks.pkl"
 OUT_DIR = Path("output/flame_assets")
 
 
@@ -85,11 +86,19 @@ def build() -> None:
     assert v_template.shape == (5023, 3), v_template.shape
     assert faces.ndim == 2 and faces.shape[1] == 3, faces.shape
 
+    with open(MASKS_SRC, "rb") as mf:
+        masks = pickle.load(mf, encoding="latin1")
+    face_region_idx = np.asarray(masks["face"], dtype=np.int32)
+    assert face_region_idx.ndim == 1 and face_region_idx.max() < 5023, \
+        face_region_idx.shape
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    np.savez(OUT_DIR / "flame_base.npz", v_template=v_template, faces=faces)
+    np.savez(OUT_DIR / "flame_base.npz", v_template=v_template, faces=faces,
+             face_region_idx=face_region_idx)
     shutil.copy(BASIS_SRC, OUT_DIR / "flame_arkit_bs.npy")
     print(f"wrote {OUT_DIR / 'flame_base.npz'} — {len(v_template)} verts, "
-          f"{len(faces)} faces; copied basis")
+          f"{len(faces)} faces, {len(face_region_idx)} face-region verts; "
+          f"copied basis")
 
 
 if __name__ == "__main__":

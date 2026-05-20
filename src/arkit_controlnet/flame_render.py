@@ -42,6 +42,7 @@ class FlameAssets:
     v_template: np.ndarray   # (5023, 3) float32
     faces: np.ndarray        # (n_faces, 3) int32
     arkit_basis: np.ndarray  # (52, 5023, 3) float64
+    face_region_idx: np.ndarray  # (1787,) int32 — FLAME `face` mask vertex idx
 
 
 _assets: FlameAssets | None = None
@@ -59,7 +60,8 @@ def load_flame_assets() -> FlameAssets:
                 "`python -m arkit_controlnet.prep_flame_assets` first")
         d = np.load(npz)
         _assets = FlameAssets(v_template=d["v_template"], faces=d["faces"],
-                              arkit_basis=np.load(basis))
+                              arkit_basis=np.load(basis),
+                              face_region_idx=d["face_region_idx"])
     return _assets
 
 
@@ -87,6 +89,31 @@ def _face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
     return n / np.clip(norm, 1e-12, None)
 
 
+def _project(verts: np.ndarray, rotation: np.ndarray,
+             bbox: tuple[float, float, float, float],
+             H: int, W: int) -> np.ndarray:
+    """Rotate, orthographically project, and isotropically fit FLAME verts to
+    the face bbox. The fit uses only the FLAME `face`-region vertices, so the
+    photo's face box maps to the mesh face — not to the whole skull. Returns
+    (N, 2) float pixel coordinates for every input vertex.
+    """
+    cx, cy, bw, bh = bbox
+    verts = np.asarray(verts, dtype=np.float64)
+    vr = verts @ np.asarray(rotation, dtype=np.float64).T
+    xy = vr[:, :2].copy()
+    xy[:, 1] *= -1.0                       # FLAME +Y up -> image +Y down
+
+    a = load_flame_assets()
+    face_xy = xy[a.face_region_idx]        # fit the face region, not the skull
+    lo, hi = face_xy.min(axis=0), face_xy.max(axis=0)
+    extent = np.maximum(hi - lo, 1e-9)
+    scale = min(bw * W / extent[0], bh * H / extent[1])
+    px = (xy - (lo + hi) / 2) * scale
+    px[:, 0] += cx * W
+    px[:, 1] += cy * H
+    return px
+
+
 def render(verts: np.ndarray, rotation: np.ndarray,
            bbox: tuple[float, float, float, float],
            modality: str = "normals", H: int = 512, W: int = 512) -> np.ndarray:
@@ -99,7 +126,7 @@ def render(verts: np.ndarray, rotation: np.ndarray,
     """
     if modality != "normals":
         raise ValueError(f"unsupported modality {modality!r}")
-    cx, cy, bw, bh = bbox
+    bw, bh = bbox[2], bbox[3]
     if bw <= 0 or bh <= 0:
         raise ValueError(f"degenerate bbox {bbox}")
 
@@ -110,17 +137,7 @@ def render(verts: np.ndarray, rotation: np.ndarray,
     a = load_flame_assets()
     faces = a.faces
     vr = verts @ np.asarray(rotation, dtype=np.float64).T   # rotate into camera
-
-    # orthographic projection: x,y to pixels; fit mesh xy-extent into the bbox
-    xy = vr[:, :2].copy()
-    xy[:, 1] *= -1.0                       # FLAME +Y up -> image +Y down
-    lo, hi = xy.min(axis=0), xy.max(axis=0)
-    extent = np.maximum(hi - lo, 1e-9)
-    scale = min(bw * W / extent[0], bh * H / extent[1])    # isotropic, fits box
-    px = (xy - (lo + hi) / 2) * scale
-    px[:, 0] += cx * W
-    px[:, 1] += cy * H
-    pts = px.astype(np.int32)
+    pts = _project(verts, rotation, bbox, H, W).astype(np.int32)
 
     normals = _face_normals(vr, faces)
     shade = ((normals * 0.5 + 0.5) * 255).astype(np.uint8)   # (n_faces, 3) RGB

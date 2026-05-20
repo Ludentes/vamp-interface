@@ -94,6 +94,18 @@ to the bbox instead of the full-mesh extent — or expand the cached bbox to a
 head-extent estimate. This does not block CFM use as a coarse spatial control
 signal; it is a calibration refinement.
 
+**Update (2026-05-20):** fixed. `prep_flame_assets.py` now loads the FLAME
+`face`-region vertex mask (1787 verts) from `FLAME_masks.pkl` and writes it to
+`flame_base.npz` as `face_region_idx`. `flame_render.py` carries that index on
+the `FlameAssets` dataclass; the new `_project()` helper performs the isotropic
+fit over the face-region subset only, so the face fills the bbox while the
+skull legitimately extends above it. Unit-test invariants confirm the geometry
+(`test_projection_fits_face_region_to_bbox`: one axis fills bbox exactly, both
+axes fit, and `px[:, 1].min() < face_lo[1]` — i.e. the full skull extends above
+the face box). A fresh visual collage still needs the
+`arkit_controlnet.verify_flame_render` script fixed first (pre-existing
+`IndexError` on empty `shards`, out of scope for this commit).
+
 ## Collage
 
 ![collage](../../exp_output/flame_render_check/collage.png)
