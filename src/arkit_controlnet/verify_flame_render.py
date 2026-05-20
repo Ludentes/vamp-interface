@@ -22,7 +22,7 @@ import pandas as pd
 from PIL import Image
 
 from arkit_controlnet.build_ffhq_index import SHARD_GLOB
-from arkit_controlnet.build_pose_cache import pose_from_image, _get_landmarker
+from arkit_controlnet.build_pose_cache import _get_landmarker
 from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
 from arkit_controlnet.flame_render import (
     _face_normals, deform, load_flame_assets, mediapipe_to_basis_vector,
@@ -99,7 +99,13 @@ def main() -> None:
         mp_bs = {n: float(row.get(f"bs_{n}", 0.0)) for n in ARKIT_BLENDSHAPE_NAMES}
         verts = deform(mediapipe_to_basis_vector(mp_bs))
 
-        mp_lm = _mp_landmarks_px(photo)
+        # Prefer cached landmarks; fall back to live MediaPipe for pose caches
+        # that predate the landmarks_xy schema.
+        if "landmarks_xy" in pose.index:
+            mp_lm = (np.array(pose["landmarks_xy"], dtype=np.float64)
+                     .reshape(478, 2) * np.array([W, H]))
+        else:
+            mp_lm = _mp_landmarks_px(photo)
         if mp_lm is None:
             ctrl = np.zeros((H, W, 3), dtype=np.uint8)
         else:
