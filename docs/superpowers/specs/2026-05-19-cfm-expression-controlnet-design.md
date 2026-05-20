@@ -1,6 +1,7 @@
 ---
-status: live
+status: superseded
 topic: arkit-controlnet
+superseded_by: 2026-05-20-cfm-training-run-design.md
 ---
 
 # CFM expression-ControlNet training run — design
