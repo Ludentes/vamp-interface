@@ -99,6 +99,30 @@ nicety, not a correctness failure, and it does not block CFM use.
 - `docs/research/2026-05-18-cfm-render-cache-verification.md` — verification, per-row notes, collage.
 - `docs/superpowers/specs/2026-05-18-cfm-render-cache-design.md` — design spec.
 
+## Trainable-InfuseNet feasibility spike — GO (2026-05-19)
+
+GATING spike for the CFM training-run plan: prove a bf16 InfuseNet runs
+forward+backward through frozen FLUX with non-zero gradient on the RTX 5090.
+
+**Verdict: GO.** One CFM step landed at `loss=447.30`, `grad_norm=8.81`,
+`peak_vram=30.7 GB` with gradient checkpointing on the FLUX trunk + InfuseNet.
+
+Key finding: the bf16 weights at
+`data/infiniteyou_dl_bf16/infu_flux_v1.0/sim_stage1/InfuseNetModel/` are a
+**diffusers `FluxControlNetModel`** — load via `FluxControlNetModel.from_pretrained(...)`,
+forward returns `(controlnet_block_samples, controlnet_single_block_samples)`
+that FLUX's standard `forward(..., controlnet_block_samples=..., controlnet_single_block_samples=...)`
+accepts directly. **No custom pipeline porting required.** The 8 identity
+tokens from the InfiniteYou Resampler concatenate to the T5 sequence.
+
+Trainable surface: peft LoRA (r=8) on InfuseNet's 4 double + 10 single
+DiT-copy blocks (~4.5 M params) plus the `x_embedder` + `controlnet_x_embedder`
+control-image input stems (~0.4 M). Krea-bf16 used as base for the spike;
+real run should use FLUX.1-dev bf16 (the trunk InfuseNet was trained against).
+
+- `docs/research/2026-05-19-trainable-infusenet-spike-verdict.md` — full verdict + concrete API.
+- `src/arkit_controlnet/cfm/spike_trainable_infusenet.py` — reproducible spike.
+
 ## Open questions
 
 - SPMS data: mine ArcFace-near / blendshape-far pairs from `reverse_index`, or
