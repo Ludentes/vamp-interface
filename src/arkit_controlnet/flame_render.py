@@ -149,3 +149,31 @@ def render(verts: np.ndarray, rotation: np.ndarray,
         col = (int(shade[i, 2]), int(shade[i, 1]), int(shade[i, 0]))  # cv2 BGR
         cv2.fillConvexPoly(canvas, pts[tri], col, lineType=cv2.LINE_8)
     return canvas
+
+
+def render_landmark_aligned(verts: np.ndarray, rotation: np.ndarray,
+                            mp_landmarks_px: np.ndarray,
+                            H: int = 512, W: int = 512) -> np.ndarray:
+    """Landmark-anchored sibling of `render()`.
+
+    Uses `landmark_align.aligned_pixels` (2D similarity transform over 6
+    MediaPipe-478 <-> FLAME iBUG-70 pairs) for per-vertex 2D positions, then
+    runs the same painter's-order normals rasterizer as `render()`. Prefer
+    this over `render()` when MediaPipe landmarks for the photo are known.
+    """
+    from arkit_controlnet.landmark_align import aligned_pixels
+    a = load_flame_assets()
+    R = np.asarray(rotation, dtype=np.float64)
+    vr = verts.astype(np.float64) @ R.T
+    pts = aligned_pixels(verts, R, mp_landmarks_px, a.faces).astype(np.int32)
+
+    normals = _face_normals(vr, a.faces)
+    shade = ((normals * 0.5 + 0.5) * 255).astype(np.uint8)
+    order = np.argsort(vr[a.faces, 2].mean(axis=1))
+
+    canvas = np.zeros((H, W, 3), dtype=np.uint8)
+    for i in order:
+        tri = a.faces[i]
+        col = (int(shade[i, 2]), int(shade[i, 1]), int(shade[i, 0]))  # BGR
+        cv2.fillConvexPoly(canvas, pts[tri], col, lineType=cv2.LINE_8)
+    return canvas

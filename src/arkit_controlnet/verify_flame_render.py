@@ -25,9 +25,8 @@ from arkit_controlnet.build_ffhq_index import SHARD_GLOB
 from arkit_controlnet.build_pose_cache import _get_landmarker
 from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
 from arkit_controlnet.flame_render import (
-    _face_normals, deform, load_flame_assets, mediapipe_to_basis_vector,
+    deform, mediapipe_to_basis_vector, render_landmark_aligned,
 )
-from arkit_controlnet.landmark_align import aligned_pixels
 import mediapipe as mp
 
 OUT_DIR = Path("exp_output/flame_render_check")
@@ -45,26 +44,6 @@ def _mp_landmarks_px(rgb: np.ndarray) -> np.ndarray | None:
     lm = np.array([[p.x * W, p.y * H] for p in res.face_landmarks[0]],
                   dtype=np.float64)
     return lm
-
-
-def _render_aligned(verts: np.ndarray, rotation: np.ndarray,
-                    mp_landmarks_px: np.ndarray, H: int, W: int) -> np.ndarray:
-    """Rasterize FLAME normals with landmark-anchored 2D alignment."""
-    a = load_flame_assets()
-    R = np.asarray(rotation, dtype=np.float64)
-    vr = verts.astype(np.float64) @ R.T
-    pts = aligned_pixels(verts, R, mp_landmarks_px, a.faces).astype(np.int32)
-
-    normals = _face_normals(vr, a.faces)
-    shade = ((normals * 0.5 + 0.5) * 255).astype(np.uint8)
-    order = np.argsort(vr[a.faces, 2].mean(axis=1))
-
-    canvas = np.zeros((H, W, 3), dtype=np.uint8)
-    for i in order:
-        tri = a.faces[i]
-        col = (int(shade[i, 2]), int(shade[i, 1]), int(shade[i, 0]))  # BGR
-        cv2.fillConvexPoly(canvas, pts[tri], col, lineType=cv2.LINE_8)
-    return canvas
 
 
 def main() -> None:
@@ -109,7 +88,7 @@ def main() -> None:
         if mp_lm is None:
             ctrl = np.zeros((H, W, 3), dtype=np.uint8)
         else:
-            ctrl = _render_aligned(verts, rot, mp_lm, H, W)
+            ctrl = render_landmark_aligned(verts, rot, mp_lm, H, W)
 
         mask = (ctrl.sum(axis=2) > 10)[:, :, None]
         overlay = np.where(mask, (0.5 * photo + 0.5 * ctrl).astype(np.uint8),

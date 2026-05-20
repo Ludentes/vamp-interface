@@ -135,6 +135,25 @@ def test_projection_fits_face_region_to_bbox():
     assert px[:, 1].min() < lo[1]
 
 
+def test_render_landmark_aligned_signature():
+    """render_landmark_aligned takes verts, rotation, landmarks_px, H, W."""
+    from arkit_controlnet.flame_render import (
+        deform, render_landmark_aligned)
+    verts = deform(np.zeros(52))
+    R = np.eye(3)
+    H = W = 256
+    lm = np.full((478, 2), 128.0, dtype=np.float64)
+    lm[1] = [128, 140]
+    lm[33] = [110, 130]
+    lm[263] = [146, 130]
+    lm[61] = [118, 150]
+    lm[291] = [138, 150]
+    lm[152] = [128, 165]
+    out = render_landmark_aligned(verts, R, lm, H=H, W=W)
+    assert out.shape == (H, W, 3) and out.dtype == np.uint8
+    assert (out.sum(axis=2) > 10).mean() > 0.02
+
+
 def test_render_degenerate_bbox_raises():
     verts = deform(np.zeros(52))
     try:
