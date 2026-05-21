@@ -27,6 +27,14 @@ from PIL import Image
 
 from arkit_controlnet.build_ffhq_index import SHARD_GLOB
 from arkit_controlnet.cfm.resampler import Resampler
+from arkit_controlnet.flame_render import (
+    BASIS_CHANNEL_NAMES, deform, mediapipe_to_basis_vector,
+    render_landmark_aligned, render,
+)
+from arkit_controlnet.eval_spike import ARKIT_BLENDSHAPE_NAMES
+
+CTRL_SIZE = 512
+BS_COLUMNS = [f"bs_{n}" for n in BASIS_CHANNEL_NAMES if n != "tongueOut"]
 
 POSE_CACHE = Path("output/flame_pose_cache/pose_cache.parquet")
 REVERSE_INDEX = Path("output/reverse_index/reverse_index.parquet")
@@ -103,13 +111,25 @@ def _load_vae(device: torch.device):
     return vae
 
 
-def _load_arcface():
+def _load_face_detector():
     from insightface.app import FaceAnalysis
-    app = FaceAnalysis(name="buffalo_l", providers=["CUDAExecutionProvider"])
+    app = FaceAnalysis(
+        name="buffalo_l",
+        providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+    )
     # det_size matches our 512² face crop (default 640 misses faces on
     # tightly-framed crops).
     app.prepare(ctx_id=0, det_size=(512, 512))
     return app
+
+
+def _load_arcface_recognition(device: torch.device):
+    # InfiniteYou's resampler was trained against facexlib IR-SE-50 ArcFace
+    # over 5-pt-aligned 112² norm_crop input. buffalo_l's normed_embedding
+    # lives in an orthogonal subspace — wrong recognition head silently
+    # produces junk id_tokens. See feedback-infiniteyou-arcface-recipe.
+    from facexlib.recognition import init_recognition_model
+    return init_recognition_model("arcface", device=str(device))
 
 
 def _load_resampler(device: torch.device):
@@ -165,12 +185,14 @@ def _build_work_table(shas: list[str] | None) -> pd.DataFrame:
     pc = pd.read_parquet(
         POSE_CACHE,
         columns=["image_sha256", "bbox_cx", "bbox_cy", "bbox_w", "bbox_h",
-                 "pose_detected"],
+                 "rotation", "landmarks_xy", "pose_detected"],
     )
     pc = pc[pc.pose_detected].drop(columns=["pose_detected"])
 
-    ri = pd.read_parquet(REVERSE_INDEX, columns=["image_sha256"])
-    pc = pc.merge(ri.drop_duplicates("image_sha256"), on="image_sha256", how="inner")
+    ri = pd.read_parquet(REVERSE_INDEX)
+    ri_cols = ["image_sha256"] + [c for c in BS_COLUMNS if c in ri.columns]
+    ri = ri[ri_cols].drop_duplicates("image_sha256")
+    pc = pc.merge(ri, on="image_sha256", how="inner")
 
     idx = pd.read_parquet(FFHQ_SHA_INDEX)
     # Tolerate column name variants.
@@ -201,16 +223,20 @@ def run(shas: list[str] | None = None, out_dir: str = "output/cfm_precompute") -
     out = Path(out_dir)
     pl_dir = out / "photo_latents"
     it_dir = out / "id_tokens"
+    cl_dir = out / "ctrl_latents"
     pl_dir.mkdir(parents=True, exist_ok=True)
     it_dir.mkdir(parents=True, exist_ok=True)
+    cl_dir.mkdir(parents=True, exist_ok=True)
     meta_path = out / "meta.parquet"
 
     if meta_path.exists():
         meta_existing = pd.read_parquet(meta_path)
+        if "ctrl_ok" not in meta_existing.columns:
+            meta_existing["ctrl_ok"] = False
         seen = set(meta_existing.image_sha256.tolist())
     else:
         meta_existing = pd.DataFrame(
-            columns=["image_sha256", "id_ok", "pl_ok"]
+            columns=["image_sha256", "id_ok", "pl_ok", "ctrl_ok"]
         )
         seen = set()
 
@@ -221,7 +247,8 @@ def run(shas: list[str] | None = None, out_dir: str = "output/cfm_precompute") -
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     vae = _load_vae(device)
-    arcface = _load_arcface()
+    detector = _load_face_detector()
+    arcface = _load_arcface_recognition(device)
     resampler = _load_resampler(device)
 
     new_rows: list[dict] = []
@@ -237,8 +264,10 @@ def run(shas: list[str] | None = None, out_dir: str = "output/cfm_precompute") -
             done += 1
             pl_path = pl_dir / f"{sha}.pt"
             it_path = it_dir / f"{sha}.pt"
+            cl_path = cl_dir / f"{sha}.pt"
 
-            if pl_path.exists() and it_path.exists() and sha in seen:
+            if (pl_path.exists() and it_path.exists() and cl_path.exists()
+                    and sha in seen):
                 continue
 
             cell = df["image"].iloc[int(row.row_idx)]
@@ -260,26 +289,58 @@ def run(shas: list[str] | None = None, out_dir: str = "output/cfm_precompute") -
 
             id_ok = it_path.exists()
             if not id_ok:
+                from insightface.utils import face_align
                 bgr = crop[:, :, ::-1].copy()
-                faces = arcface.get(bgr)
+                faces = detector.get(bgr)
                 if len(faces) == 0:
                     id_ok = False
                 else:
-                    emb = faces[0].normed_embedding.astype(np.float32)  # (512,)
+                    face = sorted(
+                        faces,
+                        key=lambda f: (f.bbox[2]-f.bbox[0])*(f.bbox[3]-f.bbox[1]),
+                    )[-1]
+                    aligned = face_align.norm_crop(
+                        bgr, landmark=np.array(face.kps), image_size=112,
+                    )
+                    x = (
+                        torch.from_numpy(aligned).unsqueeze(0)
+                        .permute(0, 3, 1, 2).float() / 255.0
+                    )
+                    x = (2 * x - 1).to(device).contiguous()
                     with torch.no_grad():
-                        emb_t = (
-                            torch.from_numpy(emb)
-                            .to(device, dtype=torch.bfloat16)
-                            .view(1, 1, 512)
-                        )
+                        emb = arcface(x)  # (1, 512), float32
+                        emb_t = emb.to(dtype=torch.bfloat16).view(1, 1, 512)
                         tokens = resampler(emb_t)[0]  # (8, 4096)
                     _atomic_torch_save(
                         tokens.to("cpu", dtype=torch.bfloat16), it_path
                     )
                     id_ok = True
 
+            ctrl_ok = cl_path.exists()
+            if not ctrl_ok:
+                bs = {n: 0.0 for n in ARKIT_BLENDSHAPE_NAMES}
+                for n in (n for n in ARKIT_BLENDSHAPE_NAMES if n != "tongueOut"):
+                    bs[n] = float(row.get(f"bs_{n}", 0.0))
+                arkit52 = mediapipe_to_basis_vector(bs)
+                verts = deform(arkit52)
+                rot = np.array(row.rotation, dtype=np.float64).reshape(3, 3)
+                try:
+                    lm_norm = np.array(row.landmarks_xy, dtype=np.float64).reshape(478, 2)
+                    lm_px = lm_norm * np.array([CTRL_SIZE, CTRL_SIZE])
+                    ctrl_rgb = render_landmark_aligned(
+                        verts, rot, lm_px, H=CTRL_SIZE, W=CTRL_SIZE)
+                except Exception:
+                    ctrl_rgb = render(
+                        verts, rot,
+                        (row.bbox_cx, row.bbox_cy, row.bbox_w, row.bbox_h),
+                        H=CTRL_SIZE, W=CTRL_SIZE)
+                ctrl_lat = _encode_photo_latent(vae, ctrl_rgb, device)
+                _atomic_torch_save(ctrl_lat.to("cpu", dtype=torch.bfloat16), cl_path)
+                ctrl_ok = True
+
             new_rows.append(
-                {"image_sha256": sha, "id_ok": bool(id_ok), "pl_ok": bool(pl_ok)}
+                {"image_sha256": sha, "id_ok": bool(id_ok),
+                 "pl_ok": bool(pl_ok), "ctrl_ok": bool(ctrl_ok)}
             )
             processed_since_flush += 1
             if processed_since_flush >= FLUSH_EVERY:
