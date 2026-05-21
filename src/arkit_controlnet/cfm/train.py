@@ -39,24 +39,6 @@ def _flux_sigma(rand_normal: torch.Tensor) -> torch.Tensor:
     return (SHIFT * t) / (1 + (SHIFT - 1) * t)
 
 
-def _build_vae(flux_hf_id: str, device: str, dtype: torch.dtype):
-    from diffusers import AutoencoderKL
-    vae = AutoencoderKL.from_pretrained(
-        flux_hf_id, subfolder="vae", torch_dtype=dtype
-    ).to(device).eval()
-    vae.requires_grad_(False)
-    return vae
-
-
-def _vae_encode(vae, x: torch.Tensor, dtype):
-    """`x` is float in [-1, 1] (B, 3, H, W). Returns (B, 16, H/8, W/8)."""
-    with torch.no_grad():
-        lat = vae.encode(x.to(vae.device, dtype)).latent_dist.sample()
-        sf = vae.config.scaling_factor
-        sh = getattr(vae.config, "shift_factor", 0.0)
-        return (lat - sh) * sf
-
-
 def train(
     out_dir: str,
     max_steps: int = 20000,
@@ -70,7 +52,6 @@ def train(
     seed: int = 0,
     dataset_filter_n: Optional[int] = None,
     text_embeds_path: str = "output/cfm_precompute/text_embeds.pt",
-    flux_hf_id: str = "black-forest-labs/FLUX.1-dev",
 ):
     torch.manual_seed(seed)
     out = Path(out_dir)
@@ -85,7 +66,6 @@ def train(
 
     device, dtype = "cuda", torch.bfloat16
     model = build_model()
-    vae = _build_vae(flux_hf_id, device, dtype)
     t5_seq, pooled_one = _load_text_embeds(text_embeds_path, device, dtype)
 
     ds = CfmPairDataset(split="train")
@@ -94,12 +74,11 @@ def train(
     loader = DataLoader(ds, batch_size=1, shuffle=True, num_workers=2,
                         pin_memory=True, drop_last=True, persistent_workers=True)
 
-    import bitsandbytes as bnb
-    opt = bnb.optim.AdamW8bit(model.trainable_params, lr=lr,
-                              weight_decay=0.01)
+    opt = torch.optim.AdamW(model.trainable_params, lr=lr, weight_decay=0.01)
 
     img_ids = prepare_latent_image_ids(LATENT_H, LATENT_W, device, dtype)
-    txt_ids = prepare_text_ids(8 + 512, device, dtype)
+    id_txt_ids = prepare_text_ids(8, device, dtype)
+    t5_txt_ids = prepare_text_ids(t5_seq.shape[1], device, dtype)
     guidance = torch.full((1,), 3.5, device=device, dtype=dtype)
 
     ckpt = out / "latest.pt"
@@ -129,8 +108,7 @@ def train(
 
             photo_latent = batch["photo_latent"].to(device, dtype)
             id_tokens = batch["id_tokens"].to(device, dtype)
-            ctrl = batch["control_rgb"].to(device, dtype)
-            ctrl_latent = _vae_encode(vae, ctrl, dtype)
+            ctrl_latent = batch["ctrl_latent"].to(device, dtype)
 
             z0 = photo_latent
             eps = torch.randn_like(z0)
@@ -139,16 +117,16 @@ def train(
             z_t = (1 - s) * z0 + s * eps
             target_packed = pack_latents(eps - z0)
             z_t_packed = pack_latents(z_t)
-            ctrl_packed = pack_latents(ctrl_latent)
-
-            eh = torch.cat([id_tokens, t5_seq.expand(1, -1, -1)], dim=1)
+            control_packed = pack_latents(ctrl_latent)
 
             warm_lr = lr * min(1.0, (step + 1) / max(1, warmup))
             for g in opt.param_groups:
                 g["lr"] = warm_lr
 
-            v_pred = velocity(model, z_t_packed, sigma, eh, pooled_one,
-                              txt_ids, img_ids, ctrl_packed, guidance)
+            v_pred = velocity(model, z_t_packed, sigma, id_tokens,
+                              t5_seq.expand(1, -1, -1), pooled_one,
+                              id_txt_ids, t5_txt_ids, img_ids,
+                              control_packed, guidance)
             loss = torch.nn.functional.mse_loss(
                 v_pred.float(), target_packed.float()) / grad_accum
             loss.backward()
@@ -174,7 +152,7 @@ def train(
                                 else eval_sparse_every)
                 if step % eval_cadence == 0:
                     from arkit_controlnet.cfm.eval import dump_samples
-                    dump_samples(model, step, out_dir=out_dir, vae=vae,
+                    dump_samples(model, step, out_dir=out_dir,
                                  text_embeds=(t5_seq, pooled_one))
 
     log_f.close()
