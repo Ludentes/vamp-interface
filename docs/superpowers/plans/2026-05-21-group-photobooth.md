@@ -4,9 +4,9 @@
 
 **Goal:** Turn a photo of 1-5 people into a matryoshka group portrait composited onto a chosen pre-rendered background.
 
-**Architecture:** Per-person YOLO + SAM2 detection/segmentation → existing single-face photobooth (Phase 3 heavy mix, `swap_weight=0.10`) for each face → rembg/INSPYRENET cutout of each doll → Pillow alpha-composite onto a background from `assets/backgrounds/` in painter's order. All new work runs CPU-side except the existing photobooth call, which already brokers GPU via the ComfyUI HTTP API.
+**Architecture:** YOLOv8 person detection + buffalo_l face detection run **in Python**; SAM2 body-mask prediction and INSPYRENET doll cutout run **as ComfyUI workflows** posted via HTTP so models stay hot across runs and can be node-swapped without code edits. The per-face photobooth (Phase 3 heavy mix, `swap_weight=0.10`) is called verbatim, also via HTTP. Pillow alpha-composite is in Python. All orchestration (loop over N persons, per-file resumable cache, letterbox + painter's-order math) is in Python.
 
-**Tech Stack:** Python 3.12, ultralytics YOLOv8, segment-anything-2 (PyTorch), rembg (INSPYRENET), Pillow, opencv-python, numpy, scipy. Reuses `scripts/photobooth_sweep/` and `scripts/swap_core.py` verbatim.
+**Tech Stack:** Python 3.12, ultralytics YOLOv8 (CPU), opencv-python, numpy, Pillow, requests. ComfyUI custom nodes: `kijai/ComfyUI-segment-anything-2` (SAM2) and `1038lab/ComfyUI-RMBG` (INSPYRENET). Reuses `scripts/photobooth_sweep/` and `scripts/swap_core.py` verbatim.
 
 **Spec:** `docs/superpowers/specs/2026-05-21-group-photobooth-pipeline-design.md`
 **Tooling research:** `docs/research/2026-05-21-comfyui-compositor-toolkit.md`
@@ -18,18 +18,23 @@
 ```
 scripts/group_photobooth/
   __init__.py           # exports Person, Placement, dataclasses
-  detect.py             # YOLOv8-person + SAM2 → list[Person]
-  silhouette.py         # rembg/INSPYRENET cutout → RGBA
+  comfy_io.py           # HTTP helper: upload image, post workflow, fetch output
+  detect.py             # YOLOv8-person + buffalo_l + ComfyUI-SAM2 → list[Person]
+  silhouette.py         # ComfyUI-INSPYRENET cutout → RGBA
   layout.py             # photo coords → background-canvas placements + painter z-order
   composite.py          # alpha blend + optional Lab match + drop shadow
   face_renderer.py      # thin wrapper around photobooth Phase-3 heavy mix
   driver.py             # CLI orchestrator, resumable per-person cache
+comfyui/workflows/
+  group_sam2_mask.api.json   # image + bbox → single-person body mask
+  group_cutout.api.json      # doll portrait → RGBA cutout
 assets/backgrounds/
   manifest.json         # array of {id, description, dims, palette_lab_mean, lighting_hint}
   blank_studio/bg.png   # shipped seed background
 tests/group_photobooth/
   __init__.py
   conftest.py           # shared fixtures (synthetic photo, background)
+  test_comfy_io.py
   test_detect.py
   test_silhouette.py
   test_layout.py
@@ -140,68 +145,296 @@ git commit -m "feat(group-photobooth): package skeleton + Person/Placement datac
 
 ---
 
-## Task 2: Detection — YOLOv8 person + SAM2 body mask
+## Task 2: ComfyUI custom nodes + workflow scaffolding
+
+**Files:**
+- Create: `comfyui/workflows/group_sam2_mask.api.json`
+- Create: `comfyui/workflows/group_cutout.api.json`
+- Create: `scripts/group_photobooth/comfy_io.py`
+- Create: `tests/group_photobooth/test_comfy_io.py`
+
+**Prerequisite: install custom nodes (one-time, on the ComfyUI machine).**
+
+```bash
+cd /home/newub/w/ComfyUI/custom_nodes/
+git clone https://github.com/kijai/ComfyUI-segment-anything-2
+git clone https://github.com/1038lab/ComfyUI-RMBG
+# Restart ComfyUI so the new nodes register. SAM2 + INSPYRENET model
+# weights auto-download to ComfyUI/models/sam2/ and ComfyUI/models/RMBG/
+# on first workflow run.
+```
+
+- [ ] **Step 1: Author `group_sam2_mask.api.json` in the ComfyUI UI**
+
+In the ComfyUI web UI, build a graph with these nodes:
+1. `LoadImage` (id `1`) — `image: "$$IMAGE"` (templated input filename)
+2. `(Down)load SAM2 Model` (Kijai) (id `2`) — `model: "sam2_hiera_base_plus.safetensors"`, `precision: "fp16"`, `device: "cuda"`
+3. `Sam2Segmentation` (id `3`) — `sam2_model: 2.0`, `image: 1.0`, `mask_or_coordinates: "$$BBOX_JSON"` (a JSON string like `[[x1,y1,x2,y2]]`), `keep_model_loaded: true`, `individual_objects: false`
+4. `MaskToImage` (id `4`) — `mask: 3.0`
+5. `SaveImage` (id `5`) — `images: 4.0`, `filename_prefix: "group_sam2"`
+
+Export via **Save (API Format)** to `comfyui/workflows/group_sam2_mask.api.json`. The `$$IMAGE` and `$$BBOX_JSON` literal strings will be substituted by `comfy_io.post_workflow` at call time.
+
+- [ ] **Step 2: Author `group_cutout.api.json` in the ComfyUI UI**
+
+In the ComfyUI web UI, build:
+1. `LoadImage` (id `1`) — `image: "$$IMAGE"`
+2. `RMBG (1038lab)` (id `2`) — `image: 1.0`, `model: "INSPYRENET"`, `sensitivity: 1.0`, `process_res: 1024`, `mask_blur: 0`, `mask_offset: 0`, `invert_output: false`, `refine_foreground: true`, `background: "Alpha"`
+3. `SaveImage` (id `3`) — `images: 2.0`, `filename_prefix: "group_cutout"`
+
+Export via **Save (API Format)** to `comfyui/workflows/group_cutout.api.json`. Verify the saved JSON references RGBA-capable output (PNG with alpha).
+
+- [ ] **Step 3: Write the failing test for the HTTP helper**
+
+`tests/group_photobooth/test_comfy_io.py`:
+```python
+import json
+from pathlib import Path
+
+from group_photobooth.comfy_io import substitute_template
+
+
+def test_substitute_replaces_string_placeholders():
+    tpl = {"nodes": {"1": {"inputs": {"image": "$$IMAGE",
+                                       "ignored": "no marker"}}}}
+    out = substitute_template(tpl, {"$$IMAGE": "photo_abc.png"})
+    assert out["nodes"]["1"]["inputs"]["image"] == "photo_abc.png"
+    assert out["nodes"]["1"]["inputs"]["ignored"] == "no marker"
+
+
+def test_substitute_replaces_inside_nested_lists():
+    tpl = {"nodes": {"3": {"inputs": {"mask_or_coordinates": "$$BBOX_JSON"}}}}
+    out = substitute_template(tpl, {"$$BBOX_JSON": "[[10,20,30,40]]"})
+    assert out["nodes"]["3"]["inputs"]["mask_or_coordinates"] == "[[10,20,30,40]]"
+
+
+def test_substitute_leaves_unknown_markers_alone():
+    tpl = {"x": "$$UNKNOWN"}
+    out = substitute_template(tpl, {"$$OTHER": "foo"})
+    assert out["x"] == "$$UNKNOWN"
+```
+
+- [ ] **Step 4: Run test to verify it fails**
+
+Run: `uv run --no-project pytest tests/group_photobooth/test_comfy_io.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'group_photobooth.comfy_io'`
+
+- [ ] **Step 5: Implement comfy_io.py**
+
+`scripts/group_photobooth/comfy_io.py`:
+```python
+"""HTTP helpers for posting workflows to a ComfyUI server.
+
+Mirrors the pattern used in scripts/photobooth_sweep/driver.py but
+generalized: any workflow can be posted by giving (path, substitutions,
+output_node_id) and gets back a numpy BGR (or BGRA) image.
+"""
+from __future__ import annotations
+
+import copy
+import io
+import json
+import time
+import uuid
+from pathlib import Path
+
+import cv2
+import numpy as np
+import requests
+
+ROOT = Path(__file__).resolve().parents[2]
+WORKFLOWS = ROOT / "comfyui" / "workflows"
+
+
+def substitute_template(workflow: dict, subs: dict[str, str]) -> dict:
+    """Walk a workflow JSON and replace every leaf string that matches
+    any key in `subs` exactly. Returns a deep copy; input unchanged."""
+    def walk(v):
+        if isinstance(v, dict):
+            return {k: walk(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [walk(x) for x in v]
+        if isinstance(v, str) and v in subs:
+            return subs[v]
+        return v
+    return walk(copy.deepcopy(workflow))
+
+
+def upload_image(comfy_url: str, bgr: np.ndarray, name: str | None = None) -> str:
+    """POST an image to ComfyUI /upload/image. Return the server filename."""
+    if name is None:
+        name = f"group_{uuid.uuid4().hex[:12]}.png"
+    ok, buf = cv2.imencode(".png", bgr)
+    if not ok:
+        raise RuntimeError("imencode failed")
+    files = {"image": (name, buf.tobytes(), "image/png")}
+    r = requests.post(f"{comfy_url}/upload/image",
+                      files=files, data={"overwrite": "1"})
+    r.raise_for_status()
+    return r.json()["name"]
+
+
+def post_workflow(comfy_url: str, workflow_path: Path,
+                  subs: dict[str, str], output_node_id: str,
+                  timeout_s: float = 120.0,
+                  unchanged: bool = False) -> np.ndarray:
+    """POST a substituted workflow, poll for completion, fetch the output
+    image from `output_node_id`. Returns BGR or BGRA numpy array depending
+    on the saved PNG channel count."""
+    with open(workflow_path) as f:
+        tpl = json.load(f)
+    wf = substitute_template(tpl, subs)
+    prompt_id = uuid.uuid4().hex
+    r = requests.post(f"{comfy_url}/prompt",
+                      json={"prompt": wf, "client_id": prompt_id})
+    r.raise_for_status()
+    pid = r.json()["prompt_id"]
+    t0 = time.time()
+    while time.time() - t0 < timeout_s:
+        time.sleep(0.5)
+        h = requests.get(f"{comfy_url}/history/{pid}").json()
+        if pid not in h:
+            continue
+        outputs = h[pid].get("outputs", {})
+        if output_node_id not in outputs:
+            continue
+        imgs = outputs[output_node_id].get("images", [])
+        if not imgs:
+            raise RuntimeError(f"workflow: node {output_node_id} produced no image")
+        meta = imgs[0]
+        fn = meta["filename"]
+        sub = meta.get("subfolder", "")
+        typ = meta.get("type", "output")
+        img_r = requests.get(f"{comfy_url}/view",
+                             params={"filename": fn, "subfolder": sub, "type": typ})
+        img_r.raise_for_status()
+        arr = np.frombuffer(img_r.content, np.uint8)
+        flag = cv2.IMREAD_UNCHANGED if unchanged else cv2.IMREAD_COLOR
+        out = cv2.imdecode(arr, flag)
+        if out is None:
+            raise RuntimeError("decoded empty image from /view")
+        return out
+    raise TimeoutError(f"workflow timed out after {timeout_s}s")
+```
+
+- [ ] **Step 6: Run test to verify it passes**
+
+Run: `uv run --no-project pytest tests/group_photobooth/test_comfy_io.py -v`
+Expected: 3 passed
+
+- [ ] **Step 7: Smoke-test workflow round-trips (gated on live ComfyUI)**
+
+`tests/group_photobooth/test_comfy_io_e2e.py`:
+```python
+import os
+from pathlib import Path
+
+import cv2
+import numpy as np
+import pytest
+
+from group_photobooth.comfy_io import (
+    WORKFLOWS, post_workflow, upload_image)
+
+COMFY_URL = os.environ.get("COMFY_URL")
+pytestmark = pytest.mark.skipif(not COMFY_URL,
+                                reason="set COMFY_URL=http://... to run")
+
+
+def test_sam2_workflow_returns_mask_image():
+    ROOT = Path(__file__).resolve().parents[2]
+    bgr = cv2.imread(str(ROOT / "data/importer/identities/id_00.png"))
+    name = upload_image(COMFY_URL, bgr, "test_sam2.png")
+    # Bbox covering most of the image.
+    h, w = bgr.shape[:2]
+    bbox_json = f"[[{w//8},{h//8},{w*7//8},{h*7//8}]]"
+    out = post_workflow(COMFY_URL, WORKFLOWS / "group_sam2_mask.api.json",
+                        subs={"$$IMAGE": name, "$$BBOX_JSON": bbox_json},
+                        output_node_id="5")
+    assert out is not None
+    assert out.shape[:2] == bgr.shape[:2]
+
+
+def test_cutout_workflow_returns_rgba():
+    ROOT = Path(__file__).resolve().parents[2]
+    portrait_p = ROOT / "exp_output/photobooth_phase3/cells/id_00__cfg004/refined.png"
+    if not portrait_p.exists():
+        pytest.skip(f"missing portrait fixture {portrait_p}")
+    bgr = cv2.imread(str(portrait_p))
+    name = upload_image(COMFY_URL, bgr, "test_cutout.png")
+    out = post_workflow(COMFY_URL, WORKFLOWS / "group_cutout.api.json",
+                        subs={"$$IMAGE": name},
+                        output_node_id="3", unchanged=True)
+    # RGBA expected.
+    assert out.shape[-1] == 4
+    assert out.shape[:2] == bgr.shape[:2]
+    alpha = out[..., 3]
+    assert (alpha > 0).any() and (alpha == 0).any()
+```
+
+Run: `COMFY_URL=http://127.0.0.1:8188 uv run --no-project pytest tests/group_photobooth/test_comfy_io_e2e.py -v -s`
+Expected: 2 passed (each ~5-15s including upload + first-time model load).
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add comfyui/workflows/group_sam2_mask.api.json \
+        comfyui/workflows/group_cutout.api.json \
+        scripts/group_photobooth/comfy_io.py \
+        tests/group_photobooth/test_comfy_io.py \
+        tests/group_photobooth/test_comfy_io_e2e.py
+git commit -m "feat(group-photobooth): ComfyUI workflows for SAM2 + cutout + HTTP helper"
+```
+
+---
+
+## Task 3: Detection — YOLOv8 + buffalo_l (Python) + SAM2 via ComfyUI
 
 **Files:**
 - Create: `scripts/group_photobooth/detect.py`
 - Create: `tests/group_photobooth/test_detect.py`
-- Create: `tests/group_photobooth/fixtures/synthetic_two_people.png`
+- Create: `tests/group_photobooth/fixtures/single_person.png`
 
 **Dependencies install (one-time, before tests):**
 ```bash
-uv pip install ultralytics opencv-python rembg "onnxruntime>=1.18"
-# SAM2 (Meta) — install via the kijai fork-compatible package:
-uv pip install "git+https://github.com/facebookresearch/segment-anything-2.git"
-```
-
-Auto-downloaded model weights cache to `~/.cache/ultralytics/` (YOLO) and `~/.cache/segment-anything-2/` (SAM2). Pre-download to avoid network calls in tests:
-```bash
+uv pip install ultralytics opencv-python requests
+# Pre-download YOLOv8n weights to ~/.cache/ultralytics/:
 uv run --no-project python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 ```
 
-- [ ] **Step 1: Create the synthetic two-person fixture**
+YOLO (CPU) and buffalo_l (already used by the photobooth via `swap_core.make_face_app()`) run in-process; SAM2 mask prediction is one HTTP call per person to ComfyUI using the workflow authored in Task 2.
 
-```python
-# scripts/group_photobooth/_make_fixtures.py (one-shot, do not commit)
-import cv2, numpy as np
-from pathlib import Path
-
-W, H = 800, 600
-img = np.full((H, W, 3), 200, np.uint8)  # light gray background
-# Two solid-color "people" silhouettes — actual YOLO+SAM2 will run on real
-# photos; the fixture only needs to exercise the function shapes.
-cv2.rectangle(img, (100, 150), (250, 550), (60, 80, 100), -1)
-cv2.rectangle(img, (450, 200), (600, 550), (80, 60, 100), -1)
-out = Path("tests/group_photobooth/fixtures/synthetic_two_people.png")
-out.parent.mkdir(parents=True, exist_ok=True)
-cv2.imwrite(str(out), img)
-```
-
-Run once: `uv run --no-project python scripts/group_photobooth/_make_fixtures.py` then delete the script.
-
-Note: YOLO will not detect rectangles as persons. The detection test uses a **real** photo. Copy one from existing assets:
+- [ ] **Step 1: Stage the fixture**
 
 ```bash
 cp data/importer/identities/id_00.png tests/group_photobooth/fixtures/single_person.png
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [ ] **Step 2: Write the failing test (gated on live ComfyUI for the SAM2 path)**
 
 `tests/group_photobooth/test_detect.py`:
 ```python
-import cv2
+import os
 from pathlib import Path
 
+import cv2
+import numpy as np
+import pytest
+
 from group_photobooth import Person
-from group_photobooth.detect import detect_people
 
 FIXTURES = Path(__file__).parent / "fixtures"
+COMFY_URL = os.environ.get("COMFY_URL")
+needs_comfy = pytest.mark.skipif(not COMFY_URL,
+                                 reason="set COMFY_URL=http://... to run")
 
 
+@needs_comfy
 def test_detect_single_person_returns_one_person():
+    from group_photobooth.detect import detect_people
     img = cv2.imread(str(FIXTURES / "single_person.png"))
     assert img is not None
-    persons = detect_people(img)
+    persons = detect_people(img, comfy_url=COMFY_URL)
     assert len(persons) == 1
     p = persons[0]
     assert isinstance(p, Person)
@@ -210,68 +443,82 @@ def test_detect_single_person_returns_one_person():
     assert 0 <= y1 < y2 <= img.shape[0]
     assert p.body_mask.shape == img.shape[:2]
     assert p.body_mask.dtype.name == "uint8"
-    # Mask must overlap the bbox region.
     crop = p.body_mask[y1:y2, x1:x2]
     assert (crop > 0).mean() > 0.10
+    assert p.face_bbox is not None
 
 
+@needs_comfy
 def test_detect_returns_empty_on_no_person():
-    # Solid gray image, no people.
-    img = (cv2.imread(str(FIXTURES / "single_person.png")) * 0 + 128).astype("uint8")
-    persons = detect_people(img)
+    from group_photobooth.detect import detect_people
+    img = np.full((400, 400, 3), 128, np.uint8)
+    persons = detect_people(img, comfy_url=COMFY_URL)
     assert persons == []
 ```
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `uv run --no-project pytest tests/group_photobooth/test_detect.py -v`
+Run: `COMFY_URL=http://127.0.0.1:8188 uv run --no-project pytest tests/group_photobooth/test_detect.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'group_photobooth.detect'`
 
 - [ ] **Step 4: Implement detect.py**
 
 `scripts/group_photobooth/detect.py`:
 ```python
-"""YOLOv8-person + SAM2 → per-person body mask + face bbox.
+"""YOLOv8-person (Python) + buffalo_l face (Python) + SAM2 mask (ComfyUI).
 
-Detection is CPU-fast (yolov8n ≈ 100 ms / 1024² on CPU). SAM2 mask
-prediction from a bbox prompt is ~1-5 s / image on CPU depending on size;
-we accept that for the offline group-photobooth.
+YOLO is fast on CPU (~100 ms / 1024² for yolov8n). buffalo_l is already a
+process-cached dependency via swap_core. SAM2 runs as a ComfyUI workflow
+so model weights stay loaded across calls — far cheaper than re-creating
+a Python SAM2Predictor per driver run.
 """
 from __future__ import annotations
 
+import sys
 from functools import lru_cache
+from json import dumps
+from pathlib import Path
 
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
 from group_photobooth import Person
+from group_photobooth.comfy_io import (
+    WORKFLOWS, post_workflow, upload_image)
+
+# Reach into scripts/ for buffalo_l (already used by photobooth).
+_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_ROOT / "scripts"))
 
 
 @lru_cache(maxsize=1)
-def _yolo():
-    # yolov8n is the smallest/fastest variant — sufficient for "person" class.
-    # Auto-downloads to ~/.cache/ultralytics/ on first use.
+def _yolo() -> YOLO:
     return YOLO("yolov8n.pt")
 
 
 @lru_cache(maxsize=1)
-def _sam2_predictor():
-    # SAM2 base-plus weights, CPU device. Set to None until first use to
-    # avoid the import cost when only YOLO is needed.
-    from sam2.build_sam import build_sam2
-    from sam2.sam2_image_predictor import SAM2ImagePredictor
+def _face_app():
+    from swap_core import make_face_app  # type: ignore
+    return make_face_app()
 
-    sam = build_sam2(
-        "configs/sam2/sam2_hiera_b+.yaml",
-        "facebook/sam2-hiera-base-plus",
-        device="cpu",
-    )
-    return SAM2ImagePredictor(sam)
+
+def _sam2_mask(comfy_url: str, image_name: str,
+               bbox: tuple[int, int, int, int]) -> np.ndarray:
+    """Call group_sam2_mask.api.json with the uploaded image and a single
+    bbox. Returns an HxW uint8 mask (0/255)."""
+    bbox_json = dumps([[int(bbox[0]), int(bbox[1]),
+                        int(bbox[2]), int(bbox[3])]])
+    mask_bgr = post_workflow(
+        comfy_url, WORKFLOWS / "group_sam2_mask.api.json",
+        subs={"$$IMAGE": image_name, "$$BBOX_JSON": bbox_json},
+        output_node_id="5")
+    # MaskToImage emits a 3-channel grayscale; collapse to single channel.
+    gray = cv2.cvtColor(mask_bgr, cv2.COLOR_BGR2GRAY) if mask_bgr.ndim == 3 else mask_bgr
+    return ((gray > 127).astype(np.uint8) * 255)
 
 
 def _detect_face_in_crop(crop_bgr: np.ndarray, app) -> tuple[int, int, int, int] | None:
-    """Run buffalo_l face detection on a body crop, return bbox in crop coords."""
     if crop_bgr.size == 0:
         return None
     rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
@@ -282,42 +529,33 @@ def _detect_face_in_crop(crop_bgr: np.ndarray, app) -> tuple[int, int, int, int]
     return tuple(int(v) for v in f.bbox)
 
 
-def detect_people(photo_bgr: np.ndarray, conf: float = 0.35,
+def detect_people(photo_bgr: np.ndarray, *,
+                  comfy_url: str,
+                  conf: float = 0.35,
                   iou: float = 0.45) -> list[Person]:
-    """Detect every person in `photo_bgr`, return body bbox + mask + face bbox.
-
-    Skips a detected person if no face is found inside their body bbox.
-    """
-    yolo = _yolo()
-    results = yolo.predict(photo_bgr, classes=[0], conf=conf, iou=iou,
-                           verbose=False)
+    """Detect every person in `photo_bgr`. SAM2 segmentation runs as a
+    ComfyUI workflow at `comfy_url`. Persons without a detectable face are
+    skipped (and logged)."""
+    results = _yolo().predict(photo_bgr, classes=[0], conf=conf, iou=iou,
+                              verbose=False)
+    if not results or results[0].boxes is None or len(results[0].boxes) == 0:
+        return []
+    app = _face_app()
+    # Upload the photo ONCE; reuse the server-side filename for every SAM2 call.
+    image_name = upload_image(comfy_url, photo_bgr)
     persons: list[Person] = []
-    if not results:
-        return persons
-    boxes = results[0].boxes
-    if boxes is None or len(boxes) == 0:
-        return persons
-
-    sam = _sam2_predictor()
-    rgb = cv2.cvtColor(photo_bgr, cv2.COLOR_BGR2RGB)
-    sam.set_image(rgb)
-
-    # Import here to keep buffalo_l init out of module-import time.
-    import sys, pathlib
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-    from swap_core import make_face_app  # type: ignore
-    app = make_face_app()
-
-    for box in boxes.xyxy.cpu().numpy().astype(int):
+    for box in results[0].boxes.xyxy.cpu().numpy().astype(int):
         x1, y1, x2, y2 = box.tolist()
-        masks, _, _ = sam.predict(box=np.array([x1, y1, x2, y2]),
-                                  multimask_output=False)
-        # SAM2 returns (1, H, W) float; threshold + uint8.
-        mask = (masks[0] > 0.5).astype(np.uint8) * 255
         crop = photo_bgr[y1:y2, x1:x2]
         face_local = _detect_face_in_crop(crop, app)
         if face_local is None:
+            print(f"[detect] skipping bbox ({x1},{y1},{x2},{y2}): no face")
             continue
+        mask = _sam2_mask(comfy_url, image_name, (x1, y1, x2, y2))
+        if mask.shape != photo_bgr.shape[:2]:
+            # Defensive: SAM2 workflow should preserve dims; resize if not.
+            mask = cv2.resize(mask, (photo_bgr.shape[1], photo_bgr.shape[0]),
+                              interpolation=cv2.INTER_NEAREST)
         fx1, fy1, fx2, fy2 = face_local
         face_bbox = (x1 + fx1, y1 + fy1, x1 + fx2, y1 + fy2)
         persons.append(Person(body_bbox=(x1, y1, x2, y2),
@@ -327,24 +565,31 @@ def detect_people(photo_bgr: np.ndarray, conf: float = 0.35,
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `uv run --no-project pytest tests/group_photobooth/test_detect.py -v`
-Expected: 2 passed (may take ~20s on first run due to model downloads)
+Run: `COMFY_URL=http://127.0.0.1:8188 uv run --no-project pytest tests/group_photobooth/test_detect.py -v -s`
+Expected: 2 passed (first run ~5-10s for YOLO + SAM2 cold start; subsequent runs are sub-second per detection).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Confirm skip behavior without ComfyUI**
+
+Run: `uv run --no-project pytest tests/group_photobooth/test_detect.py -v`
+Expected: 2 skipped
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/group_photobooth/detect.py tests/group_photobooth/test_detect.py tests/group_photobooth/fixtures/
-git commit -m "feat(group-photobooth): YOLOv8 + SAM2 person detection with face anchor"
+git commit -m "feat(group-photobooth): person detection (YOLO+buffalo_l Python, SAM2 via ComfyUI)"
 ```
 
 ---
 
-## Task 3: Silhouette — rembg/INSPYRENET cutout of doll portraits
+## Task 4: Silhouette — INSPYRENET cutout via ComfyUI
 
 **Files:**
 - Create: `scripts/group_photobooth/silhouette.py`
 - Create: `tests/group_photobooth/test_silhouette.py`
 - Create: `tests/group_photobooth/fixtures/doll_portrait.png`
+
+INSPYRENET (from `1038lab/ComfyUI-RMBG`) is the recommended model for human/portrait foreground per `docs/research/2026-05-21-comfyui-compositor-toolkit.md`. Running it as a ComfyUI workflow keeps weights resident across calls and lets the engineer swap the model (BiRefNet-portrait, BEN2, etc.) by editing the workflow JSON's node settings rather than the Python code.
 
 - [ ] **Step 1: Stage the fixture from a real photobooth output**
 
@@ -353,36 +598,41 @@ cp exp_output/photobooth_phase3/cells/id_00__cfg004/refined.png \
    tests/group_photobooth/fixtures/doll_portrait.png
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [ ] **Step 2: Write the failing test (gated on live ComfyUI)**
 
 `tests/group_photobooth/test_silhouette.py`:
 ```python
-import cv2
-import numpy as np
+import os
 from pathlib import Path
 
-from group_photobooth.silhouette import cutout
+import cv2
+import numpy as np
+import pytest
 
 FIXTURES = Path(__file__).parent / "fixtures"
+COMFY_URL = os.environ.get("COMFY_URL")
+needs_comfy = pytest.mark.skipif(not COMFY_URL,
+                                 reason="set COMFY_URL=http://... to run")
 
 
+@needs_comfy
 def test_cutout_returns_rgba_same_dims():
+    from group_photobooth.silhouette import cutout
     bgr = cv2.imread(str(FIXTURES / "doll_portrait.png"))
-    rgba = cutout(bgr)
+    rgba = cutout(bgr, comfy_url=COMFY_URL)
     assert rgba.shape == (bgr.shape[0], bgr.shape[1], 4)
     assert rgba.dtype == np.uint8
-    # Some alpha must be > 0 (the doll is there) and some must be 0 (bg cut).
     alpha = rgba[..., 3]
     assert (alpha > 0).any()
     assert (alpha == 0).any()
 
 
+@needs_comfy
 def test_cutout_idempotent_on_already_cut_input():
-    # Run twice — second run on the RGB channels of the first must produce
-    # a comparable foreground area (within 10% IoU).
+    from group_photobooth.silhouette import cutout
     bgr = cv2.imread(str(FIXTURES / "doll_portrait.png"))
-    rgba1 = cutout(bgr)
-    rgba2 = cutout(cv2.cvtColor(rgba1, cv2.COLOR_BGRA2BGR))
+    rgba1 = cutout(bgr, comfy_url=COMFY_URL)
+    rgba2 = cutout(cv2.cvtColor(rgba1, cv2.COLOR_BGRA2BGR), comfy_url=COMFY_URL)
     a1, a2 = rgba1[..., 3] > 128, rgba2[..., 3] > 128
     iou = (a1 & a2).sum() / max(1, (a1 | a2).sum())
     assert iou > 0.85
@@ -390,74 +640,65 @@ def test_cutout_idempotent_on_already_cut_input():
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `uv run --no-project pytest tests/group_photobooth/test_silhouette.py -v`
+Run: `COMFY_URL=http://127.0.0.1:8188 uv run --no-project pytest tests/group_photobooth/test_silhouette.py -v`
 Expected: FAIL with `ModuleNotFoundError`
 
 - [ ] **Step 4: Implement silhouette.py**
 
 `scripts/group_photobooth/silhouette.py`:
 ```python
-"""rembg cutout for doll portraits.
+"""Doll-portrait cutout via the group_cutout ComfyUI workflow.
 
-INSPYRENET is the recommended model for human-portrait foreground per
-docs/research/2026-05-21-comfyui-compositor-toolkit.md. For doll portraits
-(Z-Image renders against flat backgrounds) plain u2net is sufficient and
-~3× faster on CPU — we default to u2net and expose INSPYRENET via the
-`model` kwarg for callers who need matting-quality edges.
+The workflow uses 1038lab/ComfyUI-RMBG's INSPYRENET path. Swap to
+BiRefNet-portrait or BEN2 by editing the workflow JSON's RMBG node
+without touching this file.
 """
 from __future__ import annotations
 
-from functools import lru_cache
-
-import cv2
 import numpy as np
 
-
-@lru_cache(maxsize=2)
-def _session(model: str):
-    from rembg import new_session
-    return new_session(model)
+from group_photobooth.comfy_io import (
+    WORKFLOWS, post_workflow, upload_image)
 
 
-def cutout(bgr: np.ndarray, model: str = "u2net") -> np.ndarray:
-    """Cut foreground from `bgr`, return BGRA where alpha is the cutout mask.
+def cutout(bgr: np.ndarray, *, comfy_url: str) -> np.ndarray:
+    """Cut foreground from `bgr`, return a BGRA numpy array.
 
-    `model` is any rembg-supported model name. Defaults to "u2net" because
-    doll backgrounds are uniform. Use "isnet-general-use" or
-    "inspyrenet" (if installed) for matting-quality human portraits.
+    Posts `group_cutout.api.json` to ComfyUI. The workflow's SaveImage
+    node id is "3" and produces a 4-channel PNG.
     """
-    from rembg import remove
-
-    session = _session(model)
-    # rembg expects RGB or RGBA; pass RGB, get RGBA back.
-    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-    cut_rgba = remove(rgb, session=session)
-    # rembg returns numpy RGBA when given numpy input.
-    if cut_rgba.shape[-1] == 4:
-        bgra = cv2.cvtColor(cut_rgba, cv2.COLOR_RGBA2BGRA)
-    else:
-        # Defensive: synthesise an opaque alpha if rembg ever returns RGB.
-        bgr_out = cv2.cvtColor(cut_rgba, cv2.COLOR_RGB2BGR)
-        alpha = np.full(bgr_out.shape[:2], 255, np.uint8)
-        bgra = np.dstack([bgr_out, alpha])
-    return bgra
+    name = upload_image(comfy_url, bgr)
+    rgba = post_workflow(
+        comfy_url, WORKFLOWS / "group_cutout.api.json",
+        subs={"$$IMAGE": name},
+        output_node_id="3",
+        unchanged=True)
+    if rgba.ndim != 3 or rgba.shape[-1] != 4:
+        raise RuntimeError(
+            f"group_cutout workflow returned shape {rgba.shape}, expected (H,W,4)")
+    return rgba
 ```
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `uv run --no-project pytest tests/group_photobooth/test_silhouette.py -v`
+Run: `COMFY_URL=http://127.0.0.1:8188 uv run --no-project pytest tests/group_photobooth/test_silhouette.py -v -s`
 Expected: 2 passed
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Confirm skip behavior without ComfyUI**
+
+Run: `uv run --no-project pytest tests/group_photobooth/test_silhouette.py -v`
+Expected: 2 skipped
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/group_photobooth/silhouette.py tests/group_photobooth/test_silhouette.py tests/group_photobooth/fixtures/doll_portrait.png
-git commit -m "feat(group-photobooth): rembg cutout wrapper with u2net default"
+git commit -m "feat(group-photobooth): INSPYRENET cutout via ComfyUI workflow"
 ```
 
 ---
 
-## Task 4: Layout — photo coords → background-canvas placements
+## Task 5: Layout — photo coords → background-canvas placements
 
 **Files:**
 - Create: `scripts/group_photobooth/layout.py`
@@ -588,7 +829,7 @@ git commit -m "feat(group-photobooth): layout solver with letterbox + painter's 
 
 ---
 
-## Task 5: Composite — painter's-order alpha blend + optional polish
+## Task 6: Composite — painter's-order alpha blend + optional polish
 
 **Files:**
 - Create: `scripts/group_photobooth/composite.py`
@@ -788,7 +1029,7 @@ git commit -m "feat(group-photobooth): painter's-order composite + lab_match + d
 
 ---
 
-## Task 6: Background library + manifest
+## Task 7: Background library + manifest
 
 **Files:**
 - Create: `assets/backgrounds/manifest.json`
@@ -922,7 +1163,7 @@ git commit -m "feat(group-photobooth): background library + blank_studio seed"
 
 ---
 
-## Task 7: Face renderer — thin wrapper around Phase 3 heavy mix
+## Task 8: Face renderer — thin wrapper around Phase 3 heavy mix
 
 **Files:**
 - Create: `scripts/group_photobooth/face_renderer.py`
@@ -1048,7 +1289,7 @@ git commit -m "feat(group-photobooth): face_renderer wraps Phase 3 heavy mix"
 
 ---
 
-## Task 8: Driver — orchestrator with resumable per-person cache
+## Task 9: Driver — orchestrator with resumable per-person cache
 
 **Files:**
 - Create: `scripts/group_photobooth/driver.py`
@@ -1159,7 +1400,7 @@ def run(photo_path: Path, background_id: str, out_dir: Path,
     photo = cv2.imread(str(photo_path))
     if photo is None:
         raise FileNotFoundError(f"cannot read photo: {photo_path}")
-    persons = detect_people(photo)
+    persons = detect_people(photo, comfy_url=comfy_url)
     print(f"[group_photobooth] detected {len(persons)} person(s)")
     if not persons:
         bg, _meta = load_background(background_id)
@@ -1187,7 +1428,7 @@ def run(photo_path: Path, background_id: str, out_dir: Path,
             cv2.imwrite(str(doll_p), doll)
         if not rgba_p.exists():
             doll = cv2.imread(str(doll_p))
-            rgba = cutout(doll)
+            rgba = cutout(doll, comfy_url=comfy_url)
             cv2.imwrite(str(rgba_p), rgba)
         dolls_rgba.append(cv2.imread(str(rgba_p), cv2.IMREAD_UNCHANGED))
 
@@ -1251,7 +1492,7 @@ git commit -m "feat(group-photobooth): driver with resumable per-person cache + 
 
 ---
 
-## Task 9: End-to-end smoke tests (gated on live ComfyUI)
+## Task 10: End-to-end smoke tests (gated on live ComfyUI)
 
 **Files:**
 - Create: `tests/group_photobooth/test_smoke_e2e.py`
@@ -1346,7 +1587,7 @@ git commit -m "test(group-photobooth): end-to-end smoke tests (N=1, N=2)"
 
 ---
 
-## Task 10: Manual visual verification + runbook
+## Task 11: Manual visual verification + runbook
 
 **Files:**
 - Create: `docs/research/2026-05-21-group-photobooth-architecture.md`
@@ -1412,18 +1653,19 @@ git commit -m "docs(group-photobooth): runbook + manual verification artifacts"
 ## Self-review
 
 **Spec coverage:**
-- Inputs/outputs → Task 8 (driver CLI takes photo + background id, writes result.png).
-- Locked decisions (heavy mix, library backgrounds, side-by-side, SAM mask) → Tasks 2, 6, 7.
-- Approach A pipeline → Tasks 2, 3, 4, 5, 8.
-- Components table — `detect.py` (Task 2), `silhouette.py` (Task 3), `layout.py` (Task 4), `composite.py` (Task 5), `driver.py` (Task 8) — all present. Added `face_renderer.py` (Task 7) and `backgrounds.py` (Task 6); both are thin and serve clear responsibilities.
-- Layout solver letterbox + painter's order → Task 4.
-- Occlusion ordering → Task 4 + Task 5 (z_order tested with overlapping dolls).
-- N=1 case → Task 9 test_n1_path.
-- Lying-down / no-face person handling → driver.py skips person if `face_bbox is None`; warning behavior is implicit in detect.py (no Person emitted), explicit logging deferred to Task 10 runbook.
-- Polish stage off by default → Task 8 CLI `--polish` flag.
-- Background library schema → Task 6.
-- Resumability → Task 8 driver skip-if-exists per file.
-- Testing checklist (3 smokes) → Task 9 covers N=1 and N=2; occlusion is covered by unit test in Task 5.
+- Inputs/outputs → Task 9 (driver CLI takes photo + background id, writes result.png).
+- Locked decisions (heavy mix, library backgrounds, side-by-side, SAM mask) → Tasks 3, 7, 8.
+- Approach A pipeline → Tasks 2, 3, 4, 5, 6, 9.
+- Components table — `comfy_io.py` + workflow JSONs (Task 2), `detect.py` (Task 3), `silhouette.py` (Task 4), `layout.py` (Task 5), `composite.py` (Task 6), `driver.py` (Task 9) — all present. Added `face_renderer.py` (Task 8) and `backgrounds.py` (Task 7); both are thin and serve clear responsibilities.
+- ComfyUI custom-node installs (Kijai SAM2, 1038lab RMBG) and workflow scaffolding → Task 2.
+- Layout solver letterbox + painter's order → Task 5.
+- Occlusion ordering → Task 5 + Task 6 (z_order tested with overlapping dolls).
+- N=1 case → Task 10 test_n1_path.
+- Lying-down / no-face person handling → driver.py skips person if `face_bbox is None`; detect.py logs `[detect] skipping bbox … no face` and emits no Person.
+- Polish stage off by default → Task 9 CLI `--polish` flag.
+- Background library schema → Task 7.
+- Resumability → Task 9 driver skip-if-exists per file.
+- Testing checklist (3 smokes) → Task 10 covers N=1 and N=2; occlusion is covered by unit test in Task 6.
 - Cross-reference to chibi pivot — preserved in spec only, no plan task (chibi is out of scope).
 
 **Placeholder scan:** No TBD/TODO. Every code step has a complete block. Every test step has expected output.
@@ -1433,5 +1675,7 @@ git commit -m "docs(group-photobooth): runbook + manual verification artifacts"
 - `Person.face_bbox: tuple[int, int, int, int] | None` — None case handled in detect.py (skip) and driver (assertion only after detect filters).
 - `Placement(x_center, y_bottom, height, z_order)` — used in layout.py producer and composite.py consumer. Consistent.
 - `render_doll(face_crop_bgr, comfy_url, *, seed, demo) -> np.ndarray` — face_renderer.py producer, driver.py consumer. Consistent.
-- `cutout(bgr, model="u2net") -> np.ndarray (BGRA)` — silhouette.py producer, driver.py consumer. Consistent.
+- `detect_people(photo_bgr, *, comfy_url, conf, iou) -> list[Person]` — detect.py producer, driver.py consumer. Consistent.
+- `cutout(bgr, *, comfy_url) -> np.ndarray (BGRA)` — silhouette.py producer, driver.py consumer. Consistent.
 - `composite(bg_bgr, dolls_rgba, placements) -> np.ndarray` — composite.py producer, driver.py consumer. Consistent.
+- `post_workflow(comfy_url, workflow_path, subs, output_node_id, *, timeout_s, unchanged) -> np.ndarray` and `upload_image(comfy_url, bgr, name=None) -> str` — comfy_io.py producers, detect.py / silhouette.py consumers. Consistent.
