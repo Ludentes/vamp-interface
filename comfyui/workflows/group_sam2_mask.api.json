@@ -1,0 +1,54 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "$$IMAGE"
+    }
+  },
+  "2": {
+    "class_type": "DownloadAndLoadSAM2Model",
+    "inputs": {
+      "model": "sam2_hiera_base_plus.safetensors",
+      "segmentor": "single_image",
+      "device": "cuda",
+      "precision": "fp16"
+    }
+  },
+  "3": {
+    "class_type": "Sam2Segmentation",
+    "inputs": {
+      "sam2_model": [
+        "2",
+        0
+      ],
+      "image": [
+        "1",
+        0
+      ],
+      "coordinates_positive": "",
+      "coordinates_negative": "",
+      "bboxes": "$$BBOX_JSON",
+      "individual_objects": false,
+      "keep_model_loaded": true
+    }
+  },
+  "4": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "3",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ],
+      "filename_prefix": "group_sam2"
+    }
+  }
+}

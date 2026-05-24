@@ -1,0 +1,35 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "$$IMAGE"
+    }
+  },
+  "2": {
+    "class_type": "RMBG",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "model": "INSPYRENET",
+      "sensitivity": 1.0,
+      "process_res": 1024,
+      "mask_blur": 0,
+      "mask_offset": 0,
+      "invert_output": false,
+      "refine_foreground": true,
+      "background": "Alpha"
+    }
+  },
+  "3": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "filename_prefix": "group_cutout"
+    }
+  }
+}
