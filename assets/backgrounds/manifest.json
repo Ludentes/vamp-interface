@@ -1,0 +1,9 @@
+[
+  {
+    "id": "blank_studio",
+    "description": "Neutral studio backdrop — soft vertical gray gradient.",
+    "dims": [1024, 1024],
+    "palette_lab_mean": [80.0, 0.0, 0.0],
+    "lighting_hint": "cool-flat"
+  }
+]
