@@ -46,6 +46,8 @@ running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
 - Plan: `docs/superpowers/plans/2026-05-19-photobooth-phase1-sweep.md`
 - **Group-photobooth spec (2026-05-21):** `docs/superpowers/specs/2026-05-21-group-photobooth-pipeline-design.md` — multi-person photo → matryoshka group portrait on chosen background. Approach A: per-face render + rembg + composite.
 - **ComfyUI compositor toolkit research (2026-05-21):** `docs/research/2026-05-21-comfyui-compositor-toolkit.md` — preferred node packs per axis (Impact-Pack, LayerStyle, kijai SAM2, 1038lab RMBG, cozymantis human-parser). Recommended adds for group-photobooth.
+- **Group-photobooth plan (2026-05-21):** `docs/superpowers/plans/2026-05-21-group-photobooth.md`
+- **Group-photobooth runbook (2026-05-21):** `docs/research/2026-05-21-group-photobooth-architecture.md` — pipeline diagram, CLI, per-person cache layout, smoke tests, background-library schema.
 
 ### Cross-thread
 
