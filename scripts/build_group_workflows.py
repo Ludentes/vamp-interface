@@ -17,7 +17,15 @@ _WF_DIR = Path(__file__).resolve().parents[1] / "comfyui" / "workflows"
 
 
 def build_sam2_mask_workflow() -> dict:
-    """LoadImage -> SAM2 model load -> Sam2Segmentation -> MaskToImage -> SaveImage."""
+    """LoadImage + BBoxFromJSON -> Sam2Segmentation -> MaskToImage -> SaveImage.
+
+    ComfyUI rejects literals for BBOX-typed inputs, so the bbox JSON is
+    routed through our `BBoxFromJSON` helper (custom node at
+    /home/newub/w/ComfyUI/custom_nodes/group_photobooth_helpers/).
+
+    `$$BBOX_JSON` is substituted at call time with a JSON string like
+    `"[[x1,y1,x2,y2]]"` (the helper node parses it back into a list).
+    """
     return {
         "1": {"class_type": "LoadImage",
               "inputs": {"image": "$$IMAGE"}},
@@ -26,12 +34,12 @@ def build_sam2_mask_workflow() -> dict:
                          "segmentor": "single_image",
                          "device": "cuda",
                          "precision": "fp16"}},
+        "6": {"class_type": "BBoxFromJSON",
+              "inputs": {"bboxes_json": "$$BBOX_JSON"}},
         "3": {"class_type": "Sam2Segmentation",
               "inputs": {"sam2_model": ["2", 0],
                          "image": ["1", 0],
-                         "coordinates_positive": "",
-                         "coordinates_negative": "",
-                         "bboxes": "$$BBOX_JSON",
+                         "bboxes": ["6", 0],
                          "individual_objects": False,
                          "keep_model_loaded": True}},
         "4": {"class_type": "MaskToImage",

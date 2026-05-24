@@ -18,9 +18,10 @@ def test_sam2_workflow_returns_mask_image():
     bgr = cv2.imread(str(ROOT / "data/importer/identities/id_00.png"))
     name = upload_image(COMFY_URL, bgr, "test_sam2.png")
     h, w = bgr.shape[:2]
-    bbox_json = f"[[{w//8},{h//8},{w*7//8},{h*7//8}]]"
+    # BBoxFromJSON helper node parses this string into the BBOX list.
+    bboxes_json = f"[[{w // 8}, {h // 8}, {w * 7 // 8}, {h * 7 // 8}]]"
     out = post_workflow(COMFY_URL, WORKFLOWS / "group_sam2_mask.api.json",
-                        subs={"$$IMAGE": name, "$$BBOX_JSON": bbox_json},
+                        subs={"$$IMAGE": name, "$$BBOX_JSON": bboxes_json},
                         output_node_id="5")
     assert out is not None
     assert out.shape[:2] == bgr.shape[:2]

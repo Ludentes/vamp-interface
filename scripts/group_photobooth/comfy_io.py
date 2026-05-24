@@ -7,11 +7,11 @@ output_node_id) and gets back a numpy BGR (or BGRA) image.
 from __future__ import annotations
 
 import copy
-import io
 import json
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -21,10 +21,11 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / "comfyui" / "workflows"
 
 
-def substitute_template(workflow: dict, subs: dict[str, str]) -> dict:
+def substitute_template(workflow: dict, subs: dict[str, Any]) -> dict:
     """Walk a workflow JSON and replace every leaf string that matches
-    any key in `subs` exactly. Returns a deep copy; input unchanged."""
-    def walk(v):
+    any key in `subs` exactly. Substitution values may be any JSON-serializable
+    type (e.g. list for SAM2's `bboxes` input). Returns a deep copy."""
+    def walk(v: Any) -> Any:
         if isinstance(v, dict):
             return {k: walk(x) for k, x in v.items()}
         if isinstance(v, list):
@@ -50,7 +51,7 @@ def upload_image(comfy_url: str, bgr: np.ndarray, name: str | None = None) -> st
 
 
 def post_workflow(comfy_url: str, workflow_path: Path,
-                  subs: dict[str, str], output_node_id: str,
+                  subs: dict[str, Any], output_node_id: str,
                   timeout_s: float = 120.0,
                   unchanged: bool = False) -> np.ndarray:
     """POST a substituted workflow, poll for completion, fetch the output

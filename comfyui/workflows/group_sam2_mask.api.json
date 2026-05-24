@@ -14,6 +14,12 @@
       "precision": "fp16"
     }
   },
+  "6": {
+    "class_type": "BBoxFromJSON",
+    "inputs": {
+      "bboxes_json": "$$BBOX_JSON"
+    }
+  },
   "3": {
     "class_type": "Sam2Segmentation",
     "inputs": {
@@ -25,9 +31,10 @@
         "1",
         0
       ],
-      "coordinates_positive": "",
-      "coordinates_negative": "",
-      "bboxes": "$$BBOX_JSON",
+      "bboxes": [
+        "6",
+        0
+      ],
       "individual_objects": false,
       "keep_model_loaded": true
     }
