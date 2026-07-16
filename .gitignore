@@ -161,3 +161,7 @@ exp_output/cfm_train/
 
 # Auto-downloaded by ultralytics (group_photobooth detect)
 yolov8n.pt
+
+# Auto-downloaded by GFPGAN/facexlib (104 MB + 82 MB — over GitHub's limit;
+# accidentally committed once in 756eac7, excised via filter-branch 2026-07-16)
+gfpgan/weights/
