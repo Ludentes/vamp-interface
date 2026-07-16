@@ -165,3 +165,7 @@ yolov8n.pt
 # Auto-downloaded by GFPGAN/facexlib (104 MB + 82 MB — over GitHub's limit;
 # accidentally committed once in 756eac7, excised via filter-branch 2026-07-16)
 gfpgan/weights/
+
+# Downloaded swapper ONNX weights (385-529 MB each — over GitHub's limit;
+# also excised via filter-branch 2026-07-16). Re-fetch per swapper_bakeoff docs.
+exp_output/swapper_bakeoff/weights/
