@@ -29,7 +29,7 @@ Dead/superseded: YuE, DiffRhythm, MusicGen, ACE v1 wrapper packs.
   song via the REST API (same driver pattern as
   `scripts/photobooth_sweep/driver.py`).
 - Fold into the new-dev onboarding guide as the hands-on ComfyUI
-  exercise (guide TBD).
+  exercise — done 2026-07-16: `docs/onboarding/comfyui-basics-music.md`.
 
 ### Cross-thread
 
