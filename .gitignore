@@ -142,3 +142,22 @@ data/arkit_bridge_pairs/
 exp_output/chibi_meshes/koban_canonical/koban.obj
 exp_output/chibi_meshes/koban/
 scripts/face_landmarker.task
+temp/*
+
+# Meme generator — local-only tool (just a meme; not published). Reuses
+# scripts/swap_core.py for multi-face swap; kept around in case it's useful later.
+meme_generator/
+
+# Photobooth sweep — track summaries (scores.parquet, manifest.json, driver
+# logs); per-cell PNGs and mega-sheets stay local (~4 GB total).
+exp_output/photobooth_*/cells/
+exp_output/photobooth_*/*.png
+exp_output/photobooth_judging/
+exp_output/photobooth_smoke/
+exp_output/photobooth_smoke_shard/
+
+# CFM training artifacts (12 GB, local-only)
+exp_output/cfm_train/
+
+# Auto-downloaded by ultralytics (group_photobooth detect)
+yolov8n.pt

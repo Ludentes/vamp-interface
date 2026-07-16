@@ -1,0 +1,50 @@
+[
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "aggressive",
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "depth",
+    "cn_strength": 0.85,
+    "canny_preset": null,
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  },
+  {
+    "face_pixel_budget": "tight_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  },
+  {
+    "face_pixel_budget": "tight_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "aggressive",
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  },
+  {
+    "face_pixel_budget": "tight_1024",
+    "cn_condition": "depth",
+    "cn_strength": 0.85,
+    "canny_preset": null,
+    "refine_denoise": 0.0,
+    "demo_inject": "on"
+  }
+]

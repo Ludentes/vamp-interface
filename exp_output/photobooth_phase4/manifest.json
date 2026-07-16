@@ -1,0 +1,134 @@
+[
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "erode",
+    "mask_radius": 16
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "erode",
+    "mask_radius": 16
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "erode",
+    "mask_radius": 32
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "erode",
+    "mask_radius": 32
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "erode",
+    "mask_radius": 64
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "erode",
+    "mask_radius": 64
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "feather",
+    "mask_radius": 16
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "feather",
+    "mask_radius": 16
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "feather",
+    "mask_radius": 32
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "feather",
+    "mask_radius": 32
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.3,
+    "mask_mode": "feather",
+    "mask_radius": 64
+  },
+  {
+    "face_pixel_budget": "natural_1024",
+    "cn_condition": "canny",
+    "cn_strength": 0.85,
+    "canny_preset": "soft",
+    "refine_denoise": 0.0,
+    "demo_inject": "on",
+    "swap_weight": 0.1,
+    "mask_mode": "feather",
+    "mask_radius": 64
+  }
+]
