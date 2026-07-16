@@ -1,10 +1,15 @@
 ## Photobooth sweep
 
-**Status:** Phase 2 complete (2026-05-20). Robust default identified
-(`cn_strength=0.85, refine_denoise=0.00, demo_inject=on,
-face_pixel_budget=natural_1024, cn_condition=canny`). Per-photo response
-is bimodal — 4/20 photos are rock-solid, 4/20 are structurally hard
-(beard, glasses, hat, depth-collapse). Adaptive lookup is the next axis.
+**Status:** Phases 3–4 run (2026-05-20) and human-judged (2026-07-16).
+**Production recipe:** `tight_1024 + canny/aggressive @0.85,
+refine_denoise=0.00, demo_inject=on, swap_weight=0.40` (light HyperSwap
+embedding mix — beat the 0.5 baseline on *both* id_cos and clip_style).
+Mask erode is a dead dial (kills identity, buys no style); feather is a
+seam-repair knob only. Caveats: the two winning picks were never run
+together, and `tight_1024` carries a ~40 % no-face nan rate that needs a
+fallback before productisation. Per-photo response remains bimodal —
+4/20 photos rock-solid, 4/20 structurally hard (beard, glasses, hat,
+depth-collapse); adaptive lookup is still the open axis.
 
 **Pipeline:** Z-Image Turbo + Z-Image-Turbo-Fun-CN-Union + HyperSwap-1c,
 running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
@@ -22,10 +27,15 @@ running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
   missed (`face_swapper_weight`, the embedding mix), the ONNX runtime
   contract (only `source` + `target`, no hidden weight tensor), and the
   recommended Phase 3 sweep direction (lower w → more matryoshka).
+- [`2026-07-16-photobooth-phase3-4-findings.md`](../2026-07-16-photobooth-phase3-4-findings.md)
+  — current state. Phase 3 swap_weight sweep + Phase 4 mask-geometry
+  sweep + human judging verdicts + production recipe + open items
+  (combined cell untested; tight_1024 nan fallback needed;
+  `face_renderer.py` still hardcodes heavy mix). **Start here.**
 - [`2026-05-20-photobooth-phase2-findings.md`](../2026-05-20-photobooth-phase2-findings.md)
-  — current state. 360 cells, 20 identities × 6 configs × 3 seeds.
+  — 360 cells, 20 identities × 6 configs × 3 seeds.
   Identifies tight_1024 high-risk/high-reward, photo-bimodal failure
-  pattern, 5 named failure modes. **Start here.**
+  pattern, 5 named failure modes.
 - [`2026-05-20-photobooth-phase1-findings.md`](../2026-05-20-photobooth-phase1-findings.md)
   — LHS pilot. Locked-in `refine_denoise=0.00`, `demo_inject=on`,
   `cn_strength≈0.85`. Pruned `natural_768` and refine-as-axis.
@@ -33,12 +43,17 @@ running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
 ### Live artefacts
 
 - Driver: `scripts/photobooth_sweep/driver.py`
-- Axes catalog + Phase 2 grid: `scripts/photobooth_sweep/axes.py`
+- Axes catalog + phase grids: `scripts/photobooth_sweep/axes.py`
 - Contact-sheet generator: `scripts/photobooth_sweep/contact_sheet.py`
-- Per-cell intermediates: `exp_output/photobooth_phase2/cells/<cell_id>/`
-- Score table: `exp_output/photobooth_phase2/scores.parquet`
-- Visual sheets: `exp_output/photobooth_phase2/grid_s{0,1,2}.png`,
-  `stages.png`
+- Judging-sheet generator: `scripts/photobooth_sweep/judging_sheet.py`
+  (column sets `p3` = swap_weight axis, `p4` = all-phases survey)
+- Per-cell intermediates: `exp_output/photobooth_phase{1..4}/cells/<cell_id>/`
+  (local-only, gitignored)
+- Score tables: `exp_output/photobooth_phase{1..4}/scores.parquet`
+- Judging sheets: `exp_output/photobooth_judging/sheet_p{3,4}.png`
+  (local-only, gitignored)
+- HyperSwap knobs (`weight`, `mask_erode_px`, `mask_feather_px`):
+  `scripts/swap_core.py`
 
 ### Spec / plan
 
