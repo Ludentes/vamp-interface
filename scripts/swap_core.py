@@ -56,6 +56,10 @@ def load_swapper(model_path=None):
     model (inswapper_128). Both expose the same
     `get(img, target_face, source_face, paste_back=True)` signature, so
     swap_identity is agnostic to which backend it holds.
+
+    HyperSwap additionally accepts an optional `weight` kwarg that maps to
+    FaceFusion's `--face-swapper-weight` (see
+    `docs/research/2026-05-20-hyperswap-parameters.md`). InSwapper ignores it.
     """
     path = model_path or DEFAULT_SWAPPER
     if "hyperswap" in Path(path).name.lower():
@@ -71,15 +75,34 @@ class HyperSwap:
     target face to a 256 crop via the arcface_128 template, feed it
     [-1,1]-normalised alongside the L2-normalised ArcFace source embedding,
     de-normalise the output, and paste it back through the model's own mask.
-    face_swapper_weight is left at its default 0.5 -> embedding balance is a
-    no-op, so it is omitted.
+
+    `weight` matches FaceFusion's `face_swapper_weight` (CLI default 0.5).
+    Maps to α = interp(weight, [0,1], [+0.35, -0.35]); the embedding fed to
+    the ONNX becomes `(1-α)·source + α·target`, then re-normalised. weight=0.5
+    is the historical no-op default. Lower weight blends the embedding toward
+    the target's painted face (matryoshka-deferred); higher weight extrapolates
+    away from the target (more photoreal). Requires target_face to carry a
+    normed_embedding -- skipped (no-op) otherwise.
     """
 
     def __init__(self, onnx_path):
         self.sess = ort.InferenceSession(onnx_path, providers=_CPU)
         self.size = 256
 
-    def get(self, img, target_face, source_face, paste_back=True):
+    def get(self, img, target_face, source_face, paste_back=True,
+            weight: float = 0.5, mask_erode_px: int = 0,
+            mask_feather_px: int = 0):
+        """Run the HyperSwap ONNX and paste back into `img`.
+
+        `mask_erode_px` shrinks the ONNX-emitted swap mask by a circular
+        kernel of that radius in 256-crop pixels — narrows the swap region
+        so more of `img` (the painted doll) survives.
+        `mask_feather_px` Gaussian-blurs the (post-erode) mask in the same
+        coordinate space — softens the seam between swapped and original
+        pixels. Both are applied before the inv-affine warp back to image
+        space, so the kernel size is consistent across image resolutions.
+        Either at 0 = no-op.
+        """
         kps = np.asarray(target_face.kps, dtype=np.float32)
         tmpl = _ARCFACE_128 * self.size
         affine = cv2.estimateAffinePartial2D(
@@ -93,11 +116,31 @@ class HyperSwap:
         blob = blob.transpose(2, 0, 1)[None]
         src = source_face.normed_embedding.reshape(1, -1).astype(np.float32)
 
+        # face_swapper_weight blend: source <- (1-α)·source + α·target, then
+        # re-normalise. No-op when weight==0.5 or when target has no embedding.
+        tgt_emb = getattr(target_face, "normed_embedding", None)
+        if weight != 0.5 and tgt_emb is not None:
+            alpha = float(np.interp(weight, [0.0, 1.0], [0.35, -0.35]))
+            tgt = np.asarray(tgt_emb, dtype=np.float32).reshape(1, -1)
+            tgt = tgt / (np.linalg.norm(tgt) + 1e-8)
+            src = (1.0 - alpha) * src + alpha * tgt
+            src = src / (np.linalg.norm(src) + 1e-8)
+
         out, mask = self.sess.run(None, {"source": src, "target": blob})
         out = out[0].transpose(1, 2, 0)                         # CHW -> HWC
         out = np.clip(out * 0.5 + 0.5, 0, 1)[:, :, ::-1] * 255  # RGB->BGR
         out = out.astype(np.float32)
         face_mask = np.clip(mask[0, 0], 0, 1).astype(np.float32)
+
+        if mask_erode_px > 0:
+            r = int(mask_erode_px)
+            k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
+                                          (2 * r + 1, 2 * r + 1))
+            face_mask = cv2.erode(face_mask, k)
+        if mask_feather_px > 0:
+            r = int(mask_feather_px)
+            face_mask = cv2.GaussianBlur(face_mask, (2 * r + 1, 2 * r + 1), 0)
+            face_mask = np.clip(face_mask, 0.0, 1.0)
 
         if not paste_back:
             return out.astype(np.uint8)
@@ -289,7 +332,8 @@ def collapse_eyes(img_bgr, kps):
 
 
 def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
-                  restore=False):
+                  restore=False, swap_weight: float = 0.5,
+                  mask_erode_px: int = 0, mask_feather_px: int = 0):
     """Swap source_face's identity onto the doll's painted face.
 
     The doll face is a small patch of a large image -- too few pixels for
@@ -298,6 +342,11 @@ def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
     pipeline runs on that isolated high-res crop; the restored crop is then
     feathered back into a copy of the doll. Backend-agnostic: `swapper` is
     whatever load_swapper returned (HyperSwap 1c by default, or inswapper).
+
+    swap_weight / mask_erode_px / mask_feather_px are HyperSwap-only knobs
+    (see HyperSwap.get); on other backends they are ignored with a warning.
+    Defaults (0.5 / 0 / 0) are exact no-ops, keeping the inswapper path
+    bit-exact against the prior bake-off measurement.
 
     When collapse is True the doll's oversized painted eyes are shrunk to
     folk-art dots before the swap. The collapse step was introduced because
@@ -341,7 +390,25 @@ def swap_identity(app, swapper, doll_bgr, source_face, collapse=True,
     else:
         return doll_bgr, "failed", 0.0
 
-    swapped = swapper.get(work.copy(), target, source_face, paste_back=True)
+    # Only HyperSwap accepts `weight` / mask kwargs; InSwapper.get doesn't.
+    # Inject only when one would actually change behaviour, to keep the
+    # inswapper path bit-exact against the prior bake-off measurement.
+    hyperswap_extras = (swap_weight != 0.5 or mask_erode_px > 0
+                       or mask_feather_px > 0)
+    if hyperswap_extras and not isinstance(swapper, HyperSwap):
+        import warnings
+        warnings.warn(
+            "swap_weight/mask_erode_px/mask_feather_px requested but the "
+            "swapper backend is not HyperSwap -- knobs ignored.",
+            stacklevel=2)
+    if hyperswap_extras and isinstance(swapper, HyperSwap):
+        swapped = swapper.get(work.copy(), target, source_face,
+                              paste_back=True, weight=swap_weight,
+                              mask_erode_px=mask_erode_px,
+                              mask_feather_px=mask_feather_px)
+    else:
+        swapped = swapper.get(work.copy(), target, source_face,
+                              paste_back=True)
     if restore:
         swapped = restore_face(swapped)
 
