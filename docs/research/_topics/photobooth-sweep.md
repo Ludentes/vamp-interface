@@ -16,6 +16,11 @@ running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
 
 ### Read-first
 
+- [`2026-09-27-face-identity-landscape-2026h1.md`](../2026-09-27-face-identity-landscape-2026h1.md)
+  — Apr–Sep 2026 landscape refresh. No new swapper generation; one new
+  256px entrant (AlphaFace, FaceFusion 3.9.0) is the only drop-in bake-off
+  candidate. Effort moved to multi-reference edit models (FLUX.2 klein 4B
+  Apache; Qwen-Image-2.1 research-license). PuLID/InfiniteYou adapters stalled.
 - [`2026-05-20-arcface-topology.md`](../2026-05-20-arcface-topology.md)
   — ArcFace embedding-space manifold / linearity / OOD survey. Justifies
   the lerp+renorm math we use, flags that the matryoshka target is OOD
