@@ -21,6 +21,10 @@ running on Windows RTX 3090 shard via `scripts/photobooth_sweep/driver.py`.
   256px entrant (AlphaFace, FaceFusion 3.9.0) is the only drop-in bake-off
   candidate. Effort moved to multi-reference edit models (FLUX.2 klein 4B
   Apache; Qwen-Image-2.1 research-license). PuLID/InfiniteYou adapters stalled.
+- [`2026-10-02-qwen-image-2-1-video-notes.md`](../2026-10-02-qwen-image-2-1-video-notes.md)
+  — PM-facing notes on a Qwen-Image-2.1 ComfyUI demo (int8 7.26 GB on 3090,
+  10 refs, style ref + depth/pose without ControlNet, face kept across refs).
+  Proposes a one-model photobooth spike vs generate-then-swap.
 - [`2026-05-20-arcface-topology.md`](../2026-05-20-arcface-topology.md)
   — ArcFace embedding-space manifold / linearity / OOD survey. Justifies
   the lerp+renorm math we use, flags that the matryoshka target is OOD
