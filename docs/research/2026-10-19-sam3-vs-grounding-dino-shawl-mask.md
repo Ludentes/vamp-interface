@@ -30,6 +30,31 @@ FASHN SegFormer-B4 parser (scarf = class 10) segment it as a trained class,
 not as an open-vocabulary guess [7][8]. A draped shawl is usually labelled as
 "scarf" there, which is a closer fit than most text prompts.
 
+## Where DINOv3 fits
+
+DINOv3 (Meta, Aug 2025) is not a Grounding DINO successor. The shared name
+covers two lineages: Grounding DINO is IDEA Research's detector built on the
+DINO DETR architecture; DINOv3 is Meta's self-supervised image backbone [9].
+It gives dense per-patch features, not boxes or masks. There are two ways to
+use it for a shawl:
+
+- **Zero-shot via dino.txt.** A text-aligned head for the distilled ViT-L/16
+  supports open-vocabulary semantic segmentation [9][10]. It is trained with a
+  largely global contrastive objective and predicts per 16-px patch, so masks
+  are coarse. Follow-up work such as dinov3.seg adds a dedicated segmentation
+  framework on top [11]. Expect it to be weaker than SAM3 for one garment
+  instance with clean edges.
+- **Few-shot, trained.** Freeze DINOv3, train a small head on ~20–50 labelled
+  shawl masks from our own photos, and optionally refine edges with SAM point
+  or box prompts. This is the strongest option for one fixed category in a
+  fixed photo distribution, and it costs a small labelling job.
+
+License: DINOv3 License, a custom licence. A third-party guide says commercial
+use is allowed with the licence attached; unverified against the text [12].
+
+**Order:** SAM3 first. Then the human-parsing scarf class. Then a DINOv3
+few-shot head if both confuse the shawl with hair or the top.
+
 ## Things to test, not assume
 
 - Prompt wording. Try "shawl", "scarf", "headscarf", "wrap", and use the `:1`
@@ -48,3 +73,7 @@ not as an open-vocabulary guess [7][8]. A draped shawl is usually labelled as
 [6] "Efficient Fine Tuning for Fashion Object Detection", Sensors 2023. https://pmc.ncbi.nlm.nih.gov/articles/PMC10346465/
 [7] FASHN. "fashn-human-parser" and blog on fashion segmentation datasets. https://huggingface.co/fashn-ai/fashn-human-parser , https://fashn.ai/blog/fashion-segmentation-datasets-and-their-common-problems
 [8] mattmdjaga. "segformer_b0_clothes". https://huggingface.co/mattmdjaga/segformer_b0_clothes
+[9] Meta. "DINOv3" repo and paper. https://github.com/facebookresearch/dinov3 , https://arxiv.org/abs/2508.10104
+[10] "DINO Soars: DINOv3 for Open-Vocabulary Semantic Segmentation of Remote Sensing Imagery". https://arxiv.org/html/2605.03175v1
+[11] "dinov3.seg: Open-Vocabulary Semantic Segmentation with DINOv3". https://arxiv.org/html/2603.19531v1
+[12] Roboflow. "DINOv3 Guide". https://blog.roboflow.com/train-dinov3/
